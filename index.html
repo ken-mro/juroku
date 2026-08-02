@@ -1,0 +1,2935 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>十六 JŪROKU v2026.08.02-8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────
+   十六 JŪROKU — palette: 漆 lacquer / 朱 vermilion / 金 gold
+   ───────────────────────────────────────────── */
+:root{
+  --sumi:      #100E0C;   /* 墨 — page ground */
+  --urushi:    #1B1613;   /* 漆 — panel ground */
+  --urushi-hi: #2A221D;   /* raised lacquer */
+  --gofun:     #EFE7DA;   /* 胡粉 — primary text */
+  --gofun-dim: #8C8177;
+  --shu:       #C8452C;   /* 朱 */
+  --kin:       #D9A441;   /* 金 */
+  --kin-hi:    #E8C46A;
+  --hiwada:    #D2703A;   /* 檜皮 */
+  --ai:        #2E5A7A;   /* 藍 */
+  --line:      #322822;
+
+  --row0: #E8C46A;
+  --row1: #D9A441;
+  --row2: #D2703A;
+  --row3: #C8452C;
+
+  --f-disp: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{
+  background:var(--sumi);
+  color:var(--gofun);
+  font-family:var(--f-body);
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:manipulation;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(217,164,65,.07), transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 110%, rgba(200,69,44,.06), transparent 60%);
+}
+
+.screen{
+  position:fixed;inset:0;z-index:1;
+  display:none;flex-direction:column;
+  padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));
+}
+.screen.on{display:flex}
+
+/* ── type ── */
+.wordmark{font-family:var(--f-disp);font-weight:800;letter-spacing:.22em;line-height:1}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--gofun-dim)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* ═══════════ TITLE ═══════════ */
+#title{align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto;
+  padding-top:max(30px,env(safe-area-inset-top))}
+.mark{margin:4px 0 6px}
+.mark h1{font-family:var(--f-disp);font-weight:800;font-size:clamp(52px,17vw,104px);letter-spacing:.16em;
+  background:linear-gradient(168deg,var(--kin-hi),var(--kin) 42%,var(--shu));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-indent:.16em}
+.mark .rom{font-family:var(--f-mono);font-size:11px;letter-spacing:.55em;color:var(--kin);margin-top:2px;text-indent:.55em}
+.tagline{font-size:13px;color:var(--gofun-dim);margin:14px 0 30px;letter-spacing:.08em}
+
+.tracks{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.track{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
+  background:var(--urushi);border:1px solid var(--line);border-radius:3px;
+  padding:13px 15px;color:var(--gofun);font-family:inherit;font-size:14px;
+  transition:border-color .16s, background .16s, transform .16s;
+}
+.track:hover,.track:focus-visible{border-color:var(--kin);background:var(--urushi-hi);transform:translateX(3px)}
+.track:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
+.track .idx{font-family:var(--f-mono);font-size:10px;color:var(--kin);letter-spacing:.1em;min-width:20px}
+.track .meta{flex:1;min-width:0}
+.track .t{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track .a{display:block;font-size:11px;color:var(--gofun-dim);margin-top:2px;letter-spacing:.06em}
+.track .best{font-family:var(--f-mono);font-size:10px;color:var(--gofun-dim)}
+
+/* 収録曲カード */
+#tracks,#utracks{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+#utracks:empty{display:none}
+/* ホームのタブはHTML側のインラインstyleで定義（カスケード事故の切り分け中） */
+.tabpanel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px}
+.card .noart{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1200/630;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(150deg,#2A221D,#171310);
+  font-family:var(--f-disp);font-weight:800;font-size:34px;
+  background-clip:border-box;color:var(--kin)}
+.card{background:var(--urushi);border:1px solid var(--line);border-radius:4px;overflow:hidden;
+  cursor:pointer;text-align:left;padding:0;color:var(--gofun);font-family:inherit;
+  transition:border-color .16s,transform .16s}
+.card:hover,.card:focus-visible{border-color:var(--kin);transform:translateY(-2px)}
+.card:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
+.card img{width:100%;aspect-ratio:1200/630;object-fit:cover;display:block;
+  border-bottom:1px solid var(--line);background:#221C18}
+.card .cb{display:block;padding:8px 10px 9px}
+.card .t{display:block;font-size:12px;font-weight:500;line-height:1.35}
+.card .a{display:block;font-size:9.5px;color:var(--gofun-dim);margin-top:2px;letter-spacing:.04em}
+.card .best{display:flex;align-items:center;gap:6px;width:100%;margin-top:3px;min-height:16px;
+  padding:1px 3px;border:0;border-radius:2px;background:transparent;cursor:pointer;
+  font-family:var(--f-mono);font-size:10px;color:var(--kin);text-align:left}
+.card .best:hover,.card .best:focus-visible{background:rgba(217,164,65,.12)}
+.card .best:focus-visible{outline:1px solid var(--kin);outline-offset:1px}
+.card .best[data-empty="1"]{cursor:default;pointer-events:none}
+.card .best .rk{font-family:var(--f-disp);font-size:11px;font-weight:800;letter-spacing:.06em}
+.card .best .cv{margin-left:auto;font-size:9px;color:var(--gofun-dim);letter-spacing:.06em}
+/* 試聴の失敗はカードの上に出す。画面下の共通エラーだと
+   どの曲で起きたのか分からないため。 */
+.card .perr{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;padding:10px;text-align:center;
+  background:rgba(23,18,14,.86);color:var(--gofun);
+  font-size:10.5px;line-height:1.5;letter-spacing:.04em}
+.card .perr b{color:#E4816B;font-weight:600;font-size:11px}
+.card .perr button{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;
+  padding:5px 12px;border-radius:2px;cursor:pointer;
+  border:1px solid var(--kin);background:transparent;color:var(--kin)}
+.card .perr button:hover{background:rgba(217,164,65,.16)}
+/* ベスト詳細 */
+.bmodal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  padding:22px;background:rgba(10,8,6,.72);backdrop-filter:blur(3px)}
+.bmodal[data-on="1"]{display:flex}
+.bmodal .bx{width:100%;max-width:330px;background:var(--urushi);border:1px solid var(--line);
+  border-radius:5px;padding:20px 20px 16px;text-align:center}
+.bmodal .bt{font-size:13px;font-weight:500;line-height:1.4}
+.bmodal .bd{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;color:var(--gofun-dim);margin-top:4px}
+.bmodal .br{font-family:var(--f-disp);font-size:46px;font-weight:800;color:var(--kin);margin:12px 0 2px;line-height:1}
+.bmodal .bs{font-family:var(--f-mono);font-size:26px;font-weight:700;letter-spacing:.02em}
+.bmodal .ba{font-family:var(--f-mono);font-size:11px;color:var(--kin);letter-spacing:.14em;margin-top:3px}
+.bmodal .bg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:16px 0 4px}
+.bmodal .bg div{border:1px solid var(--line);border-radius:3px;padding:7px 2px}
+.bmodal .bg .k{font-family:var(--f-disp);font-size:13px;font-weight:800}
+.bmodal .bg .v{font-family:var(--f-mono);font-size:13px;margin-top:2px}
+.bmodal .bg .l{font-family:var(--f-mono);font-size:7px;letter-spacing:.14em;color:var(--gofun-dim);margin-top:2px}
+.bmodal .bm{font-family:var(--f-mono);font-size:9.5px;color:var(--gofun-dim);letter-spacing:.1em;margin-top:10px}
+.bmodal .bc{margin-top:16px;width:100%;padding:9px;border-radius:3px;cursor:pointer;
+  border:1px solid var(--line);background:transparent;color:var(--gofun);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.18em}
+.bmodal .bc:hover{border-color:var(--kin);color:var(--kin)}
+.card{position:relative}
+.card .art{position:relative;display:block;line-height:0}
+.card .prev{position:absolute;left:7px;bottom:11px;z-index:3;
+  width:30px;height:30px;padding:0;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(217,164,65,.55);background:rgba(23,18,14,.72);
+  color:var(--kin);font-family:inherit;font-size:11px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(2px);transition:background .14s,border-color .14s,color .14s}
+.card .prev:hover,.card .prev:focus-visible{background:rgba(217,164,65,.20);border-color:var(--kin)}
+.card .prev[data-on="1"]{background:var(--kin);color:#17120E;border-color:var(--kin)}
+.card .prev:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
+/* 試聴の読み込み中: ボタン内を回転リングにし、押しても無反応にしない
+   （もう一度押せば取り消せる）。バーはまだ動かせないので薄くする。 */
+.card .prev[data-load="1"]{color:transparent}
+.card .prev[data-load="1"]::after{content:"";position:absolute;width:13px;height:13px;
+  border-radius:50%;border:2px solid rgba(217,164,65,.30);border-top-color:var(--kin);
+  animation:spin .8s linear infinite}
+.card .prev[data-on="1"][data-load="1"]::after{border-color:rgba(23,18,14,.35);border-top-color:#17120E}
+.card[data-loading="1"] .seek{opacity:.4;pointer-events:none}
+.card[data-loading="1"] .ptm::after{content:" 読み込み中"}
+/* 再生位置バー: 試聴中だけ出す。つまんで動かせる */
+.card .seek{position:absolute;left:0;right:0;bottom:0;height:9px;z-index:3;
+  display:none;align-items:flex-end;cursor:pointer;touch-action:none}
+.card .seek::before{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;
+  background:rgba(23,18,14,.66)}
+.card .seek i{position:relative;display:block;height:4px;width:0;background:var(--kin);
+  box-shadow:0 0 6px rgba(217,164,65,.5)}
+.card .seek i::after{content:"";position:absolute;right:-4px;top:-3px;width:9px;height:9px;
+  border-radius:50%;background:var(--kin)}
+.card[data-playing="1"] .seek{display:flex}
+.card .ptm{position:absolute;right:7px;bottom:11px;z-index:3;display:none;
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.06em;color:var(--gofun);
+  background:rgba(23,18,14,.72);border-radius:2px;padding:2px 5px}
+.card[data-playing="1"] .ptm{display:block}
+/* 曲情報がまだ取れていないカード: 押せない状態にして読み込み中を示す */
+.card.loading{cursor:default;opacity:.72}
+.card.loading:hover{border-color:var(--line);transform:none}
+.card.loading .art{filter:grayscale(.5) brightness(.7)}
+.card .ld{position:absolute;inset:0;z-index:4;display:none;
+  align-items:center;justify-content:center;gap:7px;
+  background:rgba(23,18,14,.52);font-family:var(--f-mono);font-size:9.5px;
+  letter-spacing:.18em;color:var(--gofun-dim)}
+.card.loading .ld{display:flex}
+.card .ld s{display:block;width:11px;height:11px;border-radius:50%;
+  border:2px solid rgba(217,164,65,.28);border-top-color:var(--kin);
+  animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){ .card .ld s{animation:none} }
+
+.drop{
+  width:100%;max-width:420px;border:1px dashed var(--line);border-radius:3px;
+  padding:26px 18px;text-align:center;cursor:pointer;transition:border-color .16s,background .16s;
+}
+.drop:hover,.drop.over{border-color:var(--kin);background:rgba(217,164,65,.05)}
+.linkrow{width:100%;max-width:420px;display:flex;gap:8px;margin-bottom:10px}
+.linkrow input{flex:1;background:var(--urushi);border:1px solid var(--line);border-radius:3px;
+  color:var(--gofun);font-family:var(--f-mono);font-size:11px;padding:10px 12px;min-width:0}
+.linkrow input:focus{outline:none;border-color:var(--kin)}
+.linkrow input::placeholder{color:#5A5148}
+.drop strong{display:block;font-size:13px;font-weight:500;margin-bottom:5px}
+.drop span{font-size:11px;color:var(--gofun-dim);line-height:1.7}
+
+.opts{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap;justify-content:center}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{
+  background:transparent;border:0;color:var(--gofun-dim);font-family:var(--f-mono);
+  font-size:10px;letter-spacing:.14em;padding:8px 15px;cursor:pointer;transition:all .16s;
+}
+.seg button[aria-pressed="true"]{background:var(--kin);color:var(--sumi);font-weight:700}
+.seg button:focus-visible{outline:2px solid var(--kin);outline-offset:-2px}
+
+.calib{display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:10px;
+  color:var(--gofun-dim);letter-spacing:.1em;margin-top:14px}
+.calib input[type=range]{width:130px;accent-color:var(--kin)}
+.calib input[type=number]{width:74px;background:var(--urushi);border:1px solid var(--line);
+  border-radius:3px;color:var(--gofun);font-family:var(--f-mono);font-size:11px;padding:5px 8px;text-align:center}
+.calib input[type=number]:focus{outline:none;border-color:var(--kin)}
+.calib span{white-space:nowrap}
+.foot{margin-top:26px;font-size:10px;color:#5A5148;line-height:1.9;max-width:400px}
+
+/* ═══════════ LOADING ═══════════ */
+#load{align-items:center;justify-content:center;text-align:center}
+.load-t{font-family:var(--f-disp);font-size:20px;letter-spacing:.1em;margin-bottom:6px}
+.load-s{font-family:var(--f-mono);font-size:10px;letter-spacing:.24em;color:var(--gofun-dim);text-transform:uppercase}
+.bar{width:min(280px,72vw);height:1px;background:var(--line);margin-top:26px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--kin);transition:width .25s linear}
+
+/* ═══════════ GAME ═══════════ */
+#game{align-items:center}
+.hud{width:100%;max-width:560px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hud .l{min-width:0}
+.hud .song{font-family:var(--f-disp);font-size:14px;letter-spacing:.06em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:44vw}
+.hud .r{text-align:right}
+.hud .score{font-family:var(--f-mono);font-size:22px;font-weight:700;letter-spacing:.04em;line-height:1.1}
+.hud .acc{font-family:var(--f-mono);font-size:10px;color:var(--gofun-dim);letter-spacing:.12em;margin-top:3px}
+.prog{width:100%;max-width:560px;height:2px;background:var(--line);margin-top:12px;overflow:visible;flex:none;position:relative}
+.prog i{position:absolute;left:0;top:0;height:100%;width:0;background:linear-gradient(90deg,var(--shu),var(--kin));z-index:2}
+.prog .zone{position:absolute;top:0;height:100%;background:rgba(217,164,65,.30);z-index:1}
+.prog .tick{position:absolute;top:-3px;width:2px;height:8px;background:var(--kin);z-index:3;border-radius:1px}
+.ptime{width:100%;max-width:560px;text-align:right;font-family:var(--f-mono);font-size:10px;
+  color:var(--gofun-dim);letter-spacing:.08em;margin-top:5px;flex:none}
+
+.stage{flex:1;width:100%;display:flex;align-items:center;justify-content:center;position:relative;min-height:0}
+.board{position:relative;width:min(88vw,calc(100vh - 230px),480px);aspect-ratio:1}
+#cv{width:100%;height:100%;display:block;touch-action:none}
+
+.combo{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  pointer-events:none;text-align:center;z-index:3;
+}
+.combo .n{font-family:var(--f-mono);font-weight:700;font-size:46px;line-height:1;
+  color:rgba(239,231,218,.16);letter-spacing:-.02em}
+.combo .lb{font-family:var(--f-mono);font-size:9px;letter-spacing:.4em;color:rgba(239,231,218,.13);margin-top:4px}
+
+
+
+.keys{font-family:var(--f-mono);font-size:9px;letter-spacing:.2em;color:#4A423A;margin-top:12px}
+@media (hover:none){.keys{display:none}}
+
+.pausebtn{position:absolute;top:0;right:0;background:none;border:0;color:var(--gofun-dim);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;cursor:pointer;padding:6px}
+.pausebtn:hover{color:var(--kin)}
+.pausebtn[aria-pressed="true"]{color:var(--kin)}
+
+.veil{position:absolute;inset:0;z-index:9;background:rgba(16,14,12,.93);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.veil.on{display:flex}
+.veil.count{background:transparent;pointer-events:none}
+.veil.count .count{text-shadow:0 2px 28px rgba(16,14,12,.95),0 0 8px rgba(16,14,12,.9)}
+.veil h2{font-family:var(--f-disp);font-size:26px;letter-spacing:.24em;text-indent:.24em}
+.count{font-family:var(--f-mono);font-size:64px;font-weight:700;color:var(--kin)}
+
+/* ═══════════ RESULT ═══════════ */
+#result{align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto}
+#result::before,#result::after{content:"";flex:0 0 auto;margin:auto}
+.rank{font-family:var(--f-disp);font-weight:800;font-size:clamp(72px,22vw,132px);line-height:.95;
+  background:linear-gradient(168deg,var(--kin-hi),var(--kin) 45%,var(--shu));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.rsong{font-family:var(--f-disp);font-size:15px;letter-spacing:.08em;margin:16px 0 4px}
+.rdiff{font-family:var(--f-mono);font-size:10px;letter-spacing:.24em;color:var(--gofun-dim)}
+.rscore{font-family:var(--f-mono);font-size:38px;font-weight:700;margin:22px 0 4px;letter-spacing:.02em}
+.racc{font-family:var(--f-mono);font-size:12px;color:var(--kin);letter-spacing:.16em}
+.breakdown{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);margin:26px 0 10px;width:min(400px,86vw)}
+.breakdown div{background:var(--sumi);padding:12px 6px}
+.breakdown .k{font-family:var(--f-disp);font-size:17px;font-weight:700;letter-spacing:.06em}
+.breakdown .v{font-family:var(--f-mono);font-size:15px;margin-top:5px}
+.breakdown .l{font-family:var(--f-mono);font-size:8px;letter-spacing:.16em;color:var(--gofun-dim);margin-top:3px}
+.rmax{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;color:var(--gofun-dim);margin-bottom:26px}
+.newbest{font-family:var(--f-mono);font-size:10px;letter-spacing:.24em;color:var(--kin);margin-top:8px}
+.fcbadge{display:inline-block;margin-top:12px;padding:7px 22px;border:1px solid var(--kin);
+  border-radius:2px;font-family:var(--f-mono);font-size:11px;letter-spacing:.30em;
+  color:var(--kin);background:rgba(217,164,65,.07);animation:fcglow 2.2s ease-in-out infinite}
+.fcbadge.perfect{border-color:var(--kin-hi);color:var(--kin-hi);
+  background:rgba(232,196,106,.12);box-shadow:0 0 18px rgba(232,196,106,.18)}
+@keyframes fcglow{0%,100%{opacity:1}50%{opacity:.62}}
+@media (prefers-reduced-motion: reduce){ .fcbadge{animation:none} }
+
+.btns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+.btn{
+  background:transparent;border:1px solid var(--line);border-radius:3px;color:var(--gofun);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;padding:11px 22px;cursor:pointer;
+  transition:all .16s;text-transform:uppercase;
+}
+.btn:hover{border-color:var(--kin);color:var(--kin)}
+.btn.prime{background:var(--kin);border-color:var(--kin);color:var(--sumi);font-weight:700}
+.btn.prime:hover{background:var(--kin-hi);border-color:var(--kin-hi);color:var(--sumi)}
+.btn:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
+
+.err{color:var(--shu);font-size:12px;margin-top:14px;max-width:380px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ TITLE ══════════════ -->
+<section id="title" class="screen on">
+  <div class="mark">
+    <h1 class="wordmark">十六</h1>
+    <div class="rom">JŪROKU</div>
+  </div>
+
+  <div class="opts">
+    <div class="seg" id="diff" role="group" aria-label="難易度">
+      <button data-d="easy">EASY</button>
+      <button data-d="normal" aria-pressed="true">NORMAL</button>
+      <button data-d="hard">HARD</button>
+      <button data-d="oni">EXTREME</button>
+    </div>
+    <button class="btn" id="syncbtn" style="padding:8px 20px">設定</button>
+  </div>
+
+  <div id="hometabs"
+       style="display:flex;height:48px;width:100%;max-width:420px;margin:0 auto 16px;border:1px solid #322822;border-radius:3px">
+    <button type="button" data-t="lib"
+      style="flex:1 1 50%;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:13px;letter-spacing:.14em;font-weight:700;background:#D9A441;color:#100E0C">収録曲</button>
+    <button type="button" data-t="own"
+      style="flex:1 1 50%;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:13px;letter-spacing:.14em;font-weight:500;background:transparent;color:#8C8177">リンク・ファイル</button>
+  </div>
+
+  <div class="tabpanel" id="tab-lib">
+    <div id="tracks"></div>
+  </div>
+
+  <div class="tabpanel" id="tab-own" hidden>
+    <div class="linkrow">
+      <input type="url" id="slink" placeholder="Sunoの曲リンクを貼り付け">
+      <button class="btn" id="slinkgo">読込</button>
+    </div>
+    <div id="utracks"></div>
+    <div class="drop" id="drop" tabindex="0" role="button">
+      <strong id="droplabel">音源ファイルを選ぶ</strong>
+      <span>ドラッグ＆ドロップ、またはタップ<br>mp3 / wav / m4a / flac / ogg — 端末の外には出ません</span>
+    </div>
+  </div>
+  <input type="file" id="file" accept="audio/*" hidden>
+
+
+
+  <p class="foot">
+    キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応
+  </p>
+  <p class="err" id="err" hidden></p>
+</section>
+
+<!-- ══════════════ SYNC CHECK ══════════════ -->
+<section id="sync" class="screen" style="align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto;padding-top:max(26px,env(safe-area-inset-top))">
+  <div class="load-t">設定</div>
+  <div class="load-s">パネルは本編と同じ表示・判定 — タップ / SPACE で確認</div>
+  <canvas id="scv" style="width:190px;height:190px;margin:14px 0 4px"></canvas>
+  <div class="rscore num" id="serr" style="margin:0;font-size:22px">—</div>
+  <div class="racc" id="smed">中央値 — / OFFSET <span class="num" id="soff">0</span>ms</div>
+
+  <div class="opts" style="margin:16px 0 2px">
+    <div class="seg" id="markersel" role="group" aria-label="マーカー">
+      <button data-m="ring" aria-pressed="true">環</button>
+      <button data-m="fill">満</button>
+      <button data-m="fuse">火</button>
+      <button data-m="sweep">簾</button>
+      <button data-m="ka">蚊</button>
+    </div>
+  </div>
+  <div class="opts" style="margin:2px 0">
+    <div class="seg" id="soundsel" role="group" aria-label="打点音">
+      <button data-c="off" aria-pressed="true">OFF</button>
+      <button data-c="click">刻</button>
+      <button data-c="clap">拍</button>
+      <button data-c="wood">鼓</button>
+    </div>
+  </div>
+  <label class="calib">打点音量 <input type="range" id="svol" min="0" max="100" step="5" value="70">
+    <span class="num" id="svolv">70%</span></label>
+  <label class="calib">OFFSET <input type="range" id="offset" min="-200" max="200" step="5" value="0">
+    <span class="num" id="offsetv">0ms</span></label>
+
+  <div class="btns" style="margin-top:14px">
+    <button class="btn prime" id="sapply">ズレをOFFSETに反映</button>
+    <button class="btn" id="sdone">戻る</button>
+  </div>
+  <p class="foot" style="margin-top:12px">マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。</p>
+</section>
+
+<!-- ══════════════ LOADING ══════════════ -->
+<section id="load" class="screen">
+  <div class="load-t" id="loadt">—</div>
+  <div class="load-s" id="loads">DECODING</div>
+  <div class="bar"><i id="loadbar"></i></div>
+</section>
+
+<!-- ══════════════ GAME ══════════════ -->
+<section id="game" class="screen">
+  <div class="hud">
+    <div class="l">
+      <div class="eyebrow" id="gdiff">NORMAL</div>
+      <div class="song" id="gsong">—</div>
+    </div>
+    <div class="r">
+      <div class="score num" id="gscore">0</div>
+      <div class="acc" id="gacc">100.00%</div>
+    </div>
+  </div>
+  <div class="prog"><u class="zone" id="gzone"></u><b class="tick" id="gtickA"></b><b class="tick" id="gtickB"></b><i id="gprog"></i></div>
+  <div class="ptime"><span class="num" id="gtime">0:00</span> / <span class="num" id="gdur">-:--</span></div>
+
+  <div class="stage">
+    <button class="pausebtn" id="pausebtn">PAUSE</button>
+    <button class="pausebtn" id="clapg" style="right:74px">打点音</button>
+    <div class="board">
+      <canvas id="cv"></canvas>
+      <div class="combo" id="combo" hidden><div class="n num" id="combon">0</div><div class="lb">COMBO</div></div>
+        </div>
+    <div class="veil" id="veil">
+      <h2 id="veilt">PAUSED</h2>
+      <div class="count" id="count" hidden>3</div>
+      <div class="btns" id="veilbtns">
+        <button class="btn prime" id="resume">RESUME</button>
+        <button class="btn" id="quit">QUIT</button>
+      </div>
+    </div>
+  </div>
+  <div class="keys">1234 · QWER · ASDF · ZXCV</div>
+</section>
+
+<!-- ══════════════ RESULT ══════════════ -->
+<section id="result" class="screen">
+  <div class="rank" id="rrank">—</div>
+  <div class="rsong" id="rsong">—</div>
+  <div class="rdiff" id="rdiff">NORMAL</div>
+  <div class="rscore num" id="rscore">0</div>
+  <div class="racc num" id="racc">0.00%</div>
+  <div class="fcbadge" id="rfc" hidden><span id="rfctext">FULL COMBO</span></div>
+  <div class="newbest" id="rnew" hidden>NEW BEST</div>
+  <div class="breakdown">
+    <div><div class="k" style="color:var(--kin-hi)">冴</div><div class="v num" id="c0">0</div><div class="l">SAE</div></div>
+    <div><div class="k" style="color:var(--kin)">良</div><div class="v num" id="c1">0</div><div class="l">RYŌ</div></div>
+    <div><div class="k" style="color:var(--hiwada)">甘</div><div class="v num" id="c2">0</div><div class="l">AMA</div></div>
+    <div><div class="k" style="color:var(--shu)">逃</div><div class="v num" id="c3">0</div><div class="l">NOGASHI</div></div>
+  </div>
+  <div class="rmax">MAX COMBO <span class="num" id="rmax">0</span></div>
+  <div class="btns">
+    <button class="btn prime" id="retry">RETRY</button>
+    <button class="btn" id="back">SELECT</button>
+  </div>
+</section>
+
+<div class="bmodal" id="bmodal" data-on="0" role="dialog" aria-modal="true" aria-label="ベスト記録">
+  <div class="bx">
+    <div class="bt" id="bmt"></div>
+    <div class="bd" id="bmd"></div>
+    <div class="br" id="bmr"></div>
+    <div class="bs num" id="bms">0</div>
+    <div class="ba num" id="bma"></div>
+    <div class="bg">
+      <div><div class="k" style="color:var(--kin-hi)">冴</div><div class="v num" id="bm0">0</div><div class="l">SAE</div></div>
+      <div><div class="k" style="color:var(--kin)">良</div><div class="v num" id="bm1">0</div><div class="l">RYŌ</div></div>
+      <div><div class="k" style="color:var(--hiwada)">甘</div><div class="v num" id="bm2">0</div><div class="l">AMA</div></div>
+      <div><div class="k" style="color:var(--shu)">逃</div><div class="v num" id="bm3">0</div><div class="l">NOGASHI</div></div>
+    </div>
+    <div class="bm" id="bmm"></div>
+    <button class="bc" id="bmclose" type="button">とじる</button>
+  </div>
+</div>
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════
+   十六 JŪROKU
+   自作音源・手持ち音源のみを対象にした 4×4 リズムゲーム。
+   譜面は多帯域スペクトル差分によるオンセット検出から自動生成。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────────────────────────────────────────────
+   ▼ 収録曲の設定 — ここに自分の音源を並べる
+   url は CORS ヘッダを返すホストに置くこと
+   （Cloudflare R2 / S3+CloudFront / 同一オリジンなど）
+   Suno の共有リンクは直接は読めないので、
+   ダウンロードした mp3 を自分のストレージに置いてください。
+   ─────────────────────────────────────────────── */
+const SUNO_CDN = id => `https://cdn1.suno.ai/${id}.mp3`;
+const SUNO_ART = id => `https://cdn2.suno.ai/image_large_${id}.jpeg`;
+/* ジャケットのURLは曲IDから決まるため、Suno側で画像を差し替えても
+   URLが変わらず、ブラウザが以前の画像を使い続ける。
+   日付をクエリに足して1日1回だけ取り直す（毎回付けるとキャッシュが
+   効かず通信が増えるため）。クエリを嫌うCDNだった場合に備え、
+   読み込みに失敗したら素のURLで1度やり直す。 */
+const ART_STAMP = (() => {
+  const d = new Date();
+  return "" + d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0");
+})();
+const artSrc = url => !url ? "" : url + (url.includes("?") ? "&" : "?") + "v=" + ART_STAMP;
+/* 収録曲。曲名・作者名は各リンクのSunoページから取得して確定させた値。
+   ブラウザからは suno.com を直接読めず（CORS）、中継サービスは
+   混雑・停止が常態のため、実行時取得に頼ると曲名が出ないまま
+   待たされる。取得済みの値を持たせるのが確実。 */
+const DEFAULT_TRACKS = [
+  { id:"029ecb48-dd9c-4fd6-b4e3-f1738c592766", title:"Hanabi Fever" },
+  { id:"f7e0917f-a2cf-4b56-a2e1-3cf5f5a2c7fd", title:"Arcade Chiptune Chase" },
+  { id:"2f590f34-be00-4229-99ba-63b49364c87f", title:"Felt-Piano Doppeltime" },
+  { id:"67f9546e-c337-4e1f-8cc1-b8c473233c92", title:"SUPER JAPAN BEAT" },
+  { id:"ea0b2252-d7cd-48f2-ba20-fcfc29cd5acb", title:"The Wondersmith's Capriccio" },
+  { id:"7b3d8cf0-1316-46d4-aa69-6cd2663d4bdb", title:"Butterfly Dash" },
+  { id:"3893faaf-5964-4faa-9de9-4914eacfec01", title:"Crossroads Fair" },
+  { id:"009c16a8-53f2-4aa4-91ba-65204244a3b0", title:"Faewood Glimmer" },
+  { id:"f4c5e5d8-f0ad-4d69-9539-42565ce344a7", title:"Clockwork Carnival: Encore" },
+  { id:"11656e85-c344-40af-926b-97550ba2338c", title:"Rigaudon in the Sky: Second Flight" },
+  { id:"0dd600a2-a118-42ad-ba96-9d1c6a763f7e", title:"Pixel Panic Parade" },
+  { id:"6ffacbc7-ffe5-4485-8c15-96b426aa7193", title:"Trigger Grand Piano" },
+  { id:"608890bc-5381-4f69-80f8-7788c0627637", title:"Crimson Beatline" },
+  { id:"ac50780b-1c04-4e2b-90e0-a638c362cbe2", title:"Fractured Crown" },
+  { id:"fd44d96c-4e9f-4845-8c96-b24d23b00917", title:"Glass Tempest" },
+  { id:"c5517b7e-7adc-41f7-9b8a-322ae236e4bc", title:"Adventure Begins" },
+].map(x => ({ ...x, ready:true, artist:"ken_mro", url:SUNO_CDN(x.id), art:SUNO_ART(x.id) }));
+
+/* ─── 定数 ─── */
+const SR = 22050, FFT_N = 1024, HOP = 256;
+/* スペクトル差分のピークは実際のアタックより少し前のフレームに立つ。
+   既知のオンセットを持つテスト音源に対する実測で +36ms が最小誤差だった。 */
+const ONSET_COMP = 0.036;
+const HOP_SEC = HOP / SR;
+const BANDS = [[1,8],[9,26],[27,90],[91,340]];   // 低 → 高（行 3,2,1,0 に対応）
+/* ノーツは位置にかかわらず同色。接近するほど薄い金 → 濃い金に深まる */
+const NOTE_RGB = [217,164,65];   // --kin
+const APPROACH = 0.35;                            // ノーツ表示リードタイム(秒)
+const COUNT_LEAD = 1.90;                          // カウントイン長（音声クロック同期）
+const W_SAE = 0.045, W_RYO = 0.090, W_AMA = 0.140;
+const DIFF = {
+  /* 新EASY は完全初心者向け: 明確なアクセント（ほぼ拍）だけを、
+     ゆっくり(approach 0.55s)・まばらに(≦1.7/s)・単押しのみで出す。
+     以降は旧テーブルを1段ずつ繰り上げ。鬼 = 旧HARD。          */
+  easy:   { minGap:.450, maxChord:1, thresh:1.40, rate: 1.7, promFloor:1.05, relGate:0.35, riseFrac:.15, salFloor:.30, reach:1.90, repGap:.70, chordGap:9.9, approach:0.55, label:"EASY"   },
+  normal: { minGap:.320, maxChord:1, thresh:1.20, rate: 3.4, promFloor:0.85, relGate:0.30, riseFrac:.08, salFloor:.22, reach:1.50, repGap:.55, chordGap:9.9, approach:0.35, label:"NORMAL" },
+  hard:   { minGap:.185, maxChord:2, thresh:0.95, rate: 6.8, promFloor:0.55, relGate:0.22, riseFrac:.05, salFloor:.15, reach:1.10, repGap:.40, chordGap:.30, approach:0.35, label:"HARD"   },
+  oni:    { minGap:.125, maxChord:3, thresh:0.80, rate:10.5, promFloor:0.35, relGate:0.12, riseFrac:.03, salFloor:.10, reach:0.90, repGap:.32, chordGap:.22, approach:0.35, label:"EXTREME" },
+};
+
+/* ─── 指の到達時間モデル ───────────────────────────
+   同じパネルを連打するのが最速。1パネル動くごとに時間が要る。
+   斜め移動は1手なので距離はチェビシェフ距離で測る。
+   ─────────────────────────────────────────────── */
+const REACH_TAP  = 0.120;   // 到達時間モデル上の連打下限（実際は難易度別 repGap が優先）
+const REACH_BASE = 0.085;   // 移動を伴う打鍵の基礎コスト
+const REACH_PER  = 0.055;   // 1パネルあたりの移動時間（隣接=140ms, 対角3枚=250ms）
+const SAFETY     = 1.15;    // 到達時間に持たせる安全率
+const LOCALITY   = 0.80;    // 列移動1つあたりの選ばれにくさ（小さいほど手が動かない）
+
+/* 周波数帯 → 行の「好み」。硬い規則ではなく重み。
+   押しやすさが優先されるので、低域が必ず下段に来るとは限らない。 */
+const ROW_PREF = [
+  [0.02, 0.10, 0.60, 1.00],   // band0 最低域 → 下段
+  [0.10, 0.55, 1.00, 0.55],   // band1
+  [0.55, 1.00, 0.55, 0.10],   // band2
+  [1.00, 0.60, 0.10, 0.02],   // band3 高域 → 上段
+];
+const KEYMAP = {"1":0,"2":1,"3":2,"4":3,"q":4,"w":5,"e":6,"r":7,
+                "a":8,"s":9,"d":10,"f":11,"z":12,"x":13,"c":14,"v":15};
+
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ─── 状態 ─── */
+let audioCtx = null;
+let difficulty = "normal";
+let offsetMs = 0;
+let bests = {};
+/* 記録は以前スコアの数値だけだった。読み出しは必ずここを通し、
+   旧形式ならスコアのみのオブジェクトとして扱う。 */
+function bestOf(key){
+  const v = bests[key];
+  if(v == null) return null;
+  return (typeof v === "number") ? { s: v } : v;
+}
+const chartCache = new Map();   // key -> {chart}
+let cur = null;                 // 進行中のプレイ
+let lastSong = null;            // 最後に読み込んだ曲 {name, arrayBuffer} — Quitしても保持
+
+/* ═══════════ 永続化（失敗しても続行） ═══════════ */
+/* window.storage は開発環境固有の非同期 KVS。GitHub Pages 等の本番環境には
+   存在しないため、localStorage を裏側に使う同一シグネチャのシムに差し替える。
+   呼び出し側（loadPrefs/savePrefs）は一切変更しない。
+   get() は {value: string} | null を返す元の契約を維持する。
+   localStorage が使えない環境（プライベートブラウジング等）では
+   例外を投げず no-op として振る舞う。 */
+window.storage = {
+  async get(key){
+    try{
+      const v = localStorage.getItem(key);
+      return v == null ? null : { value: v };
+    }catch(e){ return null; }
+  },
+  async set(key, val){
+    try{ localStorage.setItem(key, val); }catch(e){}
+  }
+};
+async function loadPrefs(){
+  try{
+    const o = await window.storage.get("juroku:offset");
+    if(o){ offsetMs = +o.value || 0; $("offset").value = offsetMs; $("offsetv").textContent = offsetMs+"ms"; }
+  }catch(e){}
+  try{
+    const b = await window.storage.get("juroku:bests");
+    if(b) bests = JSON.parse(b.value) || {};
+    /* 曲名から番号を外したため、旧キーの記録を引き継ぐ */
+    const RENAMED = {
+      "12 The Wondersmith's Capriccio": "The Wondersmith's Capriccio",
+      "10 Butterfly Dash":              "Butterfly Dash",
+      "09 Crossroads Fair":             "Crossroads Fair",
+      "06 Faewood Glimmer":             "Faewood Glimmer",
+    };
+    let moved = false;
+    for(const [from, to] of Object.entries(RENAMED)){
+      for(const d of ["easy","normal","hard","oni"]){
+        const a = from + "|" + d, z = to + "|" + d;
+        if(bests[a] == null) continue;
+        const oldS = (typeof bests[a] === "number") ? bests[a] : bests[a].s;
+        const newS = bests[z] == null ? -1 : ((typeof bests[z] === "number") ? bests[z] : bests[z].s);
+        if(oldS > newS) bests[z] = bests[a];
+        delete bests[a];
+        moved = true;
+      }
+    }
+    if(moved) savePrefs("juroku:bests", JSON.stringify(bests));
+
+  }catch(e){}
+  try{
+    const m = await window.storage.get("juroku:marker");
+    if(m && m.value){
+      marker = (m.value === "bloom") ? "fuse" : m.value;   // 旧「蕾」からの移行
+      for(const x of $("markersel").querySelectorAll("button"))
+        x.setAttribute("aria-pressed", String(x.dataset.m === marker));
+    }
+  }catch(e){}
+  try{
+    const c = await window.storage.get("juroku:claptype");
+    if(c && c.value){
+      clapType = c.value;
+      if(clapType !== "off") lastClapType = clapType;
+    }
+    const v = await window.storage.get("juroku:clapvol");
+    if(v) clapVol = Math.max(0, Math.min(1, parseFloat(v.value) || 0.7));
+  }catch(e){}
+  try{
+    const dd = await window.storage.get("juroku:durs");
+    if(dd && dd.value) durMap = JSON.parse(dd.value) || {};
+  }catch(e){}
+  try{
+    const u = await window.storage.get("juroku:usertracks");
+    if(u && u.value){
+      userTracks = (JSON.parse(u.value) || []).filter(x => x && x.kind === "link");
+      renderUserTracks();
+    }
+  }catch(e){}
+  for(const x of $("soundsel").querySelectorAll("button"))
+    x.setAttribute("aria-pressed", String(x.dataset.c === clapType));
+  $("clapg").setAttribute("aria-pressed", String(hitOn()));
+  $("svol").value = Math.round(clapVol*100);
+  $("svolv").textContent = Math.round(clapVol*100) + "%";
+  renderTracks();
+}
+async function savePrefs(key, val){
+  try{ await window.storage.set(key, val); }catch(e){}
+}
+
+/* ═══════════ 画面遷移 ═══════════ */
+function show(id){
+  if(id !== "title" && typeof stopPreview === "function") stopPreview();   // 曲選択を離れたら試聴停止
+  for(const s of document.querySelectorAll(".screen")) s.classList.toggle("on", s.id===id);
+}
+function fail(msg){
+  const e = $("err"); e.textContent = msg; e.hidden = false; show("title");
+}
+
+/* ═══════════ FFT ═══════════ */
+function makeFFT(n){
+  const cosT = new Float32Array(n>>1), sinT = new Float32Array(n>>1);
+  for(let i=0;i<(n>>1);i++){ cosT[i]=Math.cos(-2*Math.PI*i/n); sinT[i]=Math.sin(-2*Math.PI*i/n); }
+  const bits = Math.round(Math.log2(n));
+  const rev = new Uint32Array(n);
+  for(let i=0;i<n;i++){ let r=0; for(let j=0;j<bits;j++) r |= ((i>>j)&1) << (bits-1-j); rev[i]=r; }
+  return function(re, im){
+    for(let i=0;i<n;i++){ const j=rev[i];
+      if(j>i){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; } }
+    for(let size=2;size<=n;size<<=1){
+      const half=size>>1, step=n/size;
+      for(let i=0;i<n;i+=size){
+        for(let j=i,k=0;j<i+half;j++,k+=step){
+          const l=j+half;
+          const tr = re[l]*cosT[k] - im[l]*sinT[k];
+          const ti = re[l]*sinT[k] + im[l]*cosT[k];
+          re[l]=re[j]-tr; im[l]=im[j]-ti;
+          re[j]+=tr;      im[j]+=ti;
+        }
+      }
+    }
+  };
+}
+
+/* ═══════════ モノラル 22.05kHz へ ═══════════ */
+function downmix(buf){
+  const ratio = buf.sampleRate / SR;
+  const outLen = Math.floor(buf.length / ratio);
+  const out = new Float32Array(outLen);
+  const chs = [];
+  for(let c=0;c<buf.numberOfChannels;c++) chs.push(buf.getChannelData(c));
+  const win = Math.max(1, Math.round(ratio));   // 簡易ローパス（箱型平均）
+  for(let i=0;i<outLen;i++){
+    const start = Math.round(i*ratio);
+    let sum=0, n=0;
+    for(let k=0;k<win;k++){
+      const idx = start+k;
+      if(idx >= buf.length) break;
+      for(const ch of chs){ sum += ch[idx]; n++; }
+    }
+    out[i] = n ? sum/n : 0;
+  }
+  return out;
+}
+
+/* ═══════════ オンセット検出 ═══════════ */
+async function detectOnsets(pcm, onProgress){
+  const fft = makeFFT(FFT_N);
+  const win = new Float32Array(FFT_N);
+  for(let i=0;i<FFT_N;i++) win[i] = 0.5 - 0.5*Math.cos(2*Math.PI*i/(FFT_N-1));
+
+  const frames = Math.max(0, Math.floor((pcm.length - FFT_N) / HOP));
+  const nb = BANDS.length;
+  const flux = Array.from({length:nb}, () => new Float32Array(frames));
+  const energy = new Float32Array(frames);        // 総エネルギー（対数、セクション解析用）
+  const loud   = new Float32Array(frames);        // 総パワー（線形、音の実強度の判別用）
+  const prev = new Float32Array(FFT_N>>1);
+  const mag  = new Float32Array(FFT_N>>1);
+  const re = new Float32Array(FFT_N), im = new Float32Array(FFT_N);
+
+  for(let f=0; f<frames; f++){
+    const off = f*HOP;
+    for(let i=0;i<FFT_N;i++){ re[i] = pcm[off+i]*win[i]; im[i] = 0; }
+    fft(re, im);
+    let esum = 0, psum = 0;
+    for(let k=0;k<(FFT_N>>1);k++){
+      const pw = re[k]*re[k] + im[k]*im[k];
+      psum += pw;
+      mag[k] = Math.log1p(80 * Math.sqrt(pw));
+      esum += mag[k];
+    }
+    energy[f] = esum;
+    loud[f] = psum;
+    for(let b=0;b<nb;b++){
+      const [lo,hi] = BANDS[b];
+      let s = 0;
+      for(let k=lo;k<=hi && k<mag.length;k++){ const d = mag[k]-prev[k]; if(d>0) s += d; }
+      flux[b][f] = s;
+    }
+    prev.set(mag);
+    if((f & 1023) === 0){ onProgress(f/frames); await new Promise(r=>setTimeout(r,0)); }
+  }
+
+  /* 帯域ごとに適応正規化 → ピーク検出 */
+  const HALF = Math.round(0.35 / HOP_SEC);
+  const peaks = [];   // {frame, band, strength}
+  for(let b=0;b<nb;b++){
+    const fx = flux[b];
+    const norm = new Float32Array(frames);
+    for(let f=0;f<frames;f++){
+      const a = Math.max(0,f-HALF), z = Math.min(frames-1,f+HALF);
+      let mean=0; for(let i=a;i<=z;i++) mean += fx[i];
+      mean /= (z-a+1);
+      let vr=0; for(let i=a;i<=z;i++){ const d=fx[i]-mean; vr += d*d; }
+      const sd = Math.sqrt(vr/(z-a+1)) || 1e-6;
+      norm[f] = (fx[f]-mean)/sd;
+    }
+    for(let f=2;f<frames-2;f++){
+      const v = norm[f];
+      if(v <= 0.55) continue;
+      if(v < norm[f-1] || v < norm[f+1] || v < norm[f-2] || v < norm[f+2]) continue;
+      peaks.push({ frame:f, band:b, strength:v });
+    }
+    onProgress(0.85 + 0.1*(b+1)/nb);
+    await new Promise(r=>setTimeout(r,0));
+  }
+  peaks.sort((a,b)=>a.frame-b.frame);
+  return { peaks, frames, energy, loud };
+}
+
+/* ═══════════ 曲構成の解析 ═══════════
+   エネルギー包絡から曲をセクション（イントロ・Aメロ・サビ・
+   ブレイク…）に分け、それぞれの強度を 0..1 で持つ。
+   譜面の密度はこの強度に追従する：静かな場所は疎に、
+   盛り上がりは密に。これが「曲調に合わせる」の実体。      */
+function analyzeSections(loud, frames){
+  if(!frames) return [{ start:0, end:1e9, intensity:0.6 }];
+
+  /* 対数エネルギーはマスタリング済みの実曲では潰れて、
+     曲全体が1セクションに併合されてしまう（実測）。
+     線形パワー→振幅(平方根)なら実曲でも起伏が残る。      */
+  const W = Math.max(1, Math.round(0.8/HOP_SEC));
+  const sm = new Float32Array(frames);
+  let acc = 0;
+  for(let i=0;i<frames;i++){
+    acc += loud[i];
+    if(i >= W) acc -= loud[i-W];
+    sm[i] = acc/Math.min(i+1, W);
+  }
+
+  const BLK = Math.max(1, Math.round(4/HOP_SEC));
+  const blocks = [];
+  for(let b=0; b*BLK<frames; b++){
+    const a2 = b*BLK, z = Math.min(frames, a2+BLK);
+    let m = 0;
+    for(let i=a2;i<z;i++) m += sm[i];
+    blocks.push({ start:a2*HOP_SEC, end:z*HOP_SEC, e:Math.sqrt(Math.max(0, m/(z-a2))) });
+  }
+  const secs = [];
+  for(const b2 of blocks){
+    const last = secs[secs.length-1];
+    if(last && Math.abs(Math.log((b2.e+1e-6)/(last.e+1e-6))) < 0.20){
+      last.end = b2.end;
+      last.e = (last.e*last.n + b2.e)/(last.n+1); last.n++;
+    }else{
+      secs.push({ start:b2.start, end:b2.end, e:b2.e, n:1 });
+    }
+  }
+
+  const es = secs.map(x=>x.e).sort((a2,b2)=>a2-b2);
+  const lo = es[Math.floor(es.length*0.05)], hi = es[Math.ceil(es.length*0.95)-1];
+  const span = Math.max(hi-lo, 1e-6);
+  for(const x of secs){
+    const rel  = Math.max(0, Math.min(1, (x.e-lo)/span));
+    const abs_ = Math.max(0, Math.min(1, (x.e/Math.max(hi,1e-6) - 0.35)/0.65));
+    x.intensity = Math.max(rel * (span > 0.20*hi ? 1 : 0), abs_);
+    delete x.e; delete x.n;
+  }
+  return secs;
+}
+
+/* ═══════════ 譜面生成 ═══════════ */
+function buildChart(peaks, sections, energy, loud, cfg, seed){
+  /* 1. 近接オンセットを和音イベントにまとめ、音楽的重要度を付ける。
+     ・キック帯は曲の拍を定義するので重く、ハット帯は装飾なので軽く
+     ・複数帯域で同時に鳴る＝実際の打撃音なのでボーナス
+     単なる音量順ではなく「リズムを構成する音」を優先する。   */
+  const BAND_W = [1.30, 1.15, 1.00, 0.85];   // 低 → 高
+  const events = [];
+  const CLUSTER = 0.030;
+  for(const p of peaks){
+    const t = p.frame * HOP_SEC + ONSET_COMP;
+    const last = events[events.length-1];
+    if(last && t - last.t < CLUSTER){
+      last.bands.push({ band:p.band, strength:p.strength });
+      last.strength = Math.max(last.strength, p.strength);
+    }else{
+      events.push({ t, bands:[{band:p.band, strength:p.strength}], strength:p.strength });
+    }
+  }
+  /* 絶対エネルギー床。適応正規化は「静けさの中の小さなノイズ」を
+     相対的に強い音に見せてしまうため、実エネルギーでも足切りする。 */
+  const esorted = Float32Array.from(energy).sort();
+  const efloor = esorted[Math.floor(esorted.length*0.95)] * 0.14;
+  /* 線形パワーの無音床。対数エネルギーは無音中の微小ノイズでも
+     無視できない値になるが、線形パワーなら無音は文字通りほぼ0。
+     曲の代表音量の0.4%未満（約-24dB）は「鳴っていない」とみなす。 */
+  const lsorted = Float32Array.from(loud).sort();
+  const loudP90 = lsorted[Math.floor(lsorted.length*0.90)];
+  const loudFloor = loudP90 * 0.004;
+  /* アタック必須。パワーがあっても（パッドの持続、残響の尾）、
+     立ち上がりがなければそれは「新しく鳴った音」ではない。
+     絶対条件: 曲の代表的な立ち上がりの2%以上のジャンプ。
+     相対条件: 直前の持続レベルに対して十分な増分（難易度依存）。 */
+
+  /* 各イベントの「線形パワーの立ち上がり」。
+     対数ドメインだと、多数のビンに薄く広がるハットノイズが
+     少数ビンに集中するキックと同等の値になってしまう。
+     線形パワーなら振幅差がそのまま残り（キック vs ハットで約25倍）、
+     リズムの骨格と地の音を絶対軸で区別できる。            */
+  const rises = [];
+  for(const e of events){
+    const fi = Math.min(loud.length-1, Math.max(0, Math.round((e.t-ONSET_COMP)/HOP_SEC)));
+    e.fi = fi;
+    let peakL = 0, pre = loud[Math.max(0, fi-3)];
+    for(let k=fi; k<=Math.min(loud.length-1, fi+3); k++) peakL = Math.max(peakL, loud[k]);
+    e.peakL = peakL;
+    e.rise = Math.max(0, peakL - pre);
+    rises.push(e.rise);
+  }
+  rises.sort((a,b)=>a-b);
+  const riseN = rises[Math.floor(rises.length*0.70)] || 1e-6;
+
+  /* エコー/ディレイの反復抑制。
+     エコーは物理的には本物のアタックなので他のゲートを全部通るが、
+     知覚的には「打点」ではない。同じ帯域で直前0.6秒以内に
+     3.5倍(≈11dB)以上強い立ち上がりがあれば反復とみなす。
+     減衰系のフィル(通常±数dB刻み)は誤爆しない。            */
+  for(let i=0;i<events.length;i++){
+    const e = events[i];
+    let dm = e.bands[0];
+    for(const b of e.bands) if(b.strength*BAND_W[b.band] > dm.strength*BAND_W[dm.band]) dm = b;
+    e.dom = dm.band;
+    e.echo = false;
+    for(let j=i-1; j>=0 && e.t - events[j].t <= 0.6; j--){
+      if(events[j].dom === e.dom && events[j].rise > e.rise*3.5){ e.echo = true; break; }
+    }
+  }
+
+  /* フェード検出。曲の終端やフレーズ末尾の減衰中は、小さな揺り戻しが
+     全ゲートを通過してノーツ化していた（実曲で確認）。
+     前後1秒の包絡を比べて急降下中(60%未満)なら、よほど強い打撃
+     （rise≥60%かつ音量≥75%）でない限り「減衰の一部」として除外。 */
+  const FW = Math.round(1.0/HOP_SEC);
+  for(const e of events){
+    let back = 0, fwd = 0;
+    for(let k=Math.max(0, e.fi-FW); k<=Math.max(0, e.fi-3); k++) back = Math.max(back, loud[k]);
+    for(let k=Math.min(loud.length-1, e.fi+5); k<=Math.min(loud.length-1, e.fi+FW); k++) fwd = Math.max(fwd, loud[k]);
+    e.fading = back > 0 && fwd/back < 0.60
+            && !(e.rise >= riseN*0.75 && e.peakL >= loudP90*0.85);
+  }
+
+  for(const e of events){
+    let w = 0;
+    for(const b of e.bands) w = Math.max(w, BAND_W[b.band]);
+    const riseW = 0.20 + 0.80*Math.min(1, Math.sqrt(e.rise/riseN));   // sqrtで振幅感覚に
+    e.salience = e.strength * w * riseW * (1 + 0.15*(e.bands.length-1));
+    const pre = loud[Math.max(0, e.fi-3)];
+    e.quiet = energy[e.fi] < efloor
+           || e.peakL < loudFloor
+           || e.rise < riseN * cfg.riseFrac
+           || e.rise < pre * cfg.relGate
+           || e.echo
+           || e.fading;
+  }
+
+  /* 局所プロミネンス：前後0.35秒の平均に対する強さ。
+     鳴りっぱなしのハットやベースの「地の音」はほぼ1未満になり、
+     アクセント（キック・スネア・シンコペーション）は1を超える。
+     これがないと、密な曲では minGap 間隔の等速ストリームに退化する。 */
+  for(let i=0;i<events.length;i++){
+    const e = events[i];
+    let sum = 0, n = 0;
+    for(let j=i; j>=0 && e.t-events[j].t <= 0.35; j--){ sum += events[j].salience; n++; }
+    for(let j=i+1; j<events.length && events[j].t-e.t <= 0.35; j++){ sum += events[j].salience; n++; }
+    e.prom = e.salience / ((sum/n) || 1);
+  }
+
+  /* 3. 密度をセクション強度に追従させる。
+     セクションごとに「秒あたり何ノーツまで」の予算を割り、
+     重要度の高い音から予算内で採用する。
+     静かなイントロは疎、サビは密、ブレイクで抜ける。       */
+  const kept = [];
+  const taken = [];
+  const canTake = t => {
+    for(const x of taken){ if(Math.abs(x-t) < cfg.minGap) return false; }
+    return true;
+  };
+  for(const sec of sections){
+    const dur = sec.end - sec.start;
+    const budget = Math.round(dur * cfg.rate * (0.20 + 1.05*Math.pow(sec.intensity, 1.3)));
+    const pool = events.filter(e => e.t >= sec.start && e.t < sec.end)
+                       .sort((a,b) => b.salience - a.salience);
+    /* セクション相対床: 予算が余っていても、その区間の主要打点(上位10%)に
+       比べて明らかに弱い音は採らない。静かなパッセージで適応正規化が
+       弱い音を膨らませ、場違いなノーツを混ぜる症状への対策。 */
+    const clean = pool.filter(e => e.strength >= cfg.thresh && !e.quiet && e.prom >= cfg.promFloor);
+    const secTop = clean.length ? clean[Math.floor((clean.length-1)*0.10)].salience : 0;
+    const salMin = secTop * cfg.salFloor;
+    const salChord = secTop * 0.5;               // これ未満の音は和音化しない
+    let taken_n = 0;
+    for(const e of pool){
+      if(taken_n >= budget) break;
+      if(e.salience < salMin) break;   // 降順プールなので以降は全て弱い
+      e.weakish = e.salience < salChord;
+      if(e.strength < cfg.thresh || e.quiet) continue;   // 相対・絶対のノイズ床
+      if(e.prom < cfg.promFloor) continue;               // 地の音は骨格から除外
+      if(!canTake(e.t)) continue;
+      e.inten = sec.intensity;
+      taken.push(e.t); kept.push(e); taken_n++;
+    }
+  }
+  kept.sort((a,b)=>a.t-b.t);
+
+  /* 4. パネル割り当て — 両手の到達時間モデル
+     ・左手は列0-2、右手は列1-3。担当ゾーンが重なるので詰まらない
+     ・「その手が時間内に届くか」を満たさない配置は生成しない
+     ・空いている手ほど高得点 → 速い連打で自然に交互打ちになる
+     ・同時押しは別々の手へ。3押しだけ片手2本指（隣接必須）を許す      */
+  let s = seed >>> 0;
+  const rnd = () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296;
+
+  const R = cfg.reach;
+  const travel = d => d ? (REACH_BASE + d*REACH_PER) * R : REACH_TAP * R;
+  const cheb = (a,b) => Math.max(Math.abs((a>>2)-(b>>2)), Math.abs((a&3)-(b&3)));
+
+  const hands = { L:{ panel:9, t:-99, run:0 }, R:{ panel:10, t:-99, run:0 } };
+  const rowUse = [0,0,0,0];        // 直近どの行を使ったか（減衰付き）
+  const lastOnPanel = new Float32Array(16).fill(-99);  // パネル単位の最終使用時刻
+  const notes = [];
+
+  let prevT = -99;
+  for(const e of kept){
+    e.bands.sort((a,b)=>b.strength*BAND_W[b.band]-a.strength*BAND_W[a.band]);
+    /* 同時押しは「前の音から間が空いているとき」だけ。
+       これが無いと和音が連鎖して毎秒20打を超える。 */
+    const gap = e.t - prevT;
+    let want = 1;
+    if(gap >= cfg.chordGap)       want = Math.min(2, cfg.maxChord, e.bands.length);
+    if(gap >= cfg.chordGap * 1.6) want = Math.min(cfg.maxChord, e.bands.length);
+    if((e.inten||0) < 0.45) want = 1;   // 和音はサビなど強いセクションだけ
+    if(e.weakish) want = 1;             // 区間の主要打点より弱い音にも和音は付けない
+    prevT = e.t;
+    const usedPanels = [];
+    const usedHands = new Set();
+
+    for(let i=0;i<want;i++){
+      const band = e.bands[i].band;
+      let best = null, bestScore = -1;
+
+      for(const hk of ["L","R"]){
+        const h = hands[hk];
+        const reuse = usedHands.has(hk);        // 同一イベントで既に使った手
+        const avail = e.t - h.t;
+
+        for(let p=0;p<16;p++){
+          if(usedPanels.includes(p)) continue;
+          /* 視認性の連打制約はパネルに対して課す。
+             逆の手で同じパネルを叩き直すケースも等しく制限する。 */
+          if(e.t - lastOnPanel[p] < cfg.repGap) continue;
+          const row = p>>2, col = p&3;
+
+          /* 担当ゾーン：腕を交差させない */
+          if(hk === "L" && col > 2) continue;
+          if(hk === "R" && col < 1) continue;
+
+          const d = cheb(h.panel, p);
+          let comfort;
+          if(reuse){
+            if(d > 1) continue;                 // 片手2本指は隣接パネルのみ
+            comfort = 0.80;
+          }else{
+            /* 同一パネルは物理速度でなく視認性が律速。
+               APPROACH中に前のノーツと重なると次が見えないため、
+               難易度別の repGap を最低間隔として要求する。 */
+            const need = (d === 0) ? cfg.repGap : travel(d) * SAFETY;
+            if(avail < need) continue;
+            comfort = Math.min(1, (avail / need) / 1.7);
+          }
+
+          /* 行は音の高さが決める（＝譜面が曲に結びつく）
+             列は押しやすさが決める（＝横移動だけ局所性を効かせる）  */
+          const rowW  = 0.04 + 0.96 * Math.pow(ROW_PREF[band][row], 1.5);
+          const local = Math.pow(LOCALITY, Math.abs(col - (h.panel & 3)));
+          const zone  = (hk === "L") ? (col <= 1 ? 1 : 0.5) : (col >= 2 ? 1 : 0.5);
+          /* 同じ手が同じパネルを叩き続けるのを抑える（連打自体は許す） */
+          const rep   = (p === h.panel) ? (h.run >= 2 ? 0.10 : h.run >= 1 ? 0.40 : 0.90) : 1;
+          /* 使いすぎている行を冷ます — 盤面が2〜3枚に潰れるのを防ぐ */
+          const bal   = 1 / (1 + rowUse[row]*0.25);
+
+          const sc = rowW * local * comfort * zone * rep * bal * (0.85 + 0.3*rnd());
+          if(sc > bestScore){ bestScore = sc; best = { hk, p }; }
+        }
+      }
+
+      if(!best) break;                          // 置ける場所がなければこの音は捨てる
+      const h = hands[best.hk];
+      h.run = (best.p === h.panel) ? h.run + 1 : 0;
+      h.panel = best.p; h.t = e.t;
+      lastOnPanel[best.p] = e.t;
+      usedPanels.push(best.p);
+      usedHands.add(best.hk);
+      for(let r=0;r<4;r++) rowUse[r] *= 0.90;
+      rowUse[best.p>>2] += 1;
+      notes.push({ t:e.t, panel:best.p, row:best.p>>2, hand:best.hk, judged:0 });
+    }
+  }
+  notes.sort((a,b)=>a.t-b.t);
+  return notes;
+}
+
+/* ═══════════ 譜面の押下可能性を検証 ═══════════
+   生成側とは独立に、両手で最短割り当てを再現して
+   「間に合わない配置」が残っていないか確かめる。   */
+function validate(notes, cfg){
+  const reach = cfg.reach;
+  const cheb = (a,b) => Math.max(Math.abs((a>>2)-(b>>2)), Math.abs((a&3)-(b&3)));
+  const travel = d => d ? (REACH_BASE + d*REACH_PER) * reach : cfg.repGap;
+  const hands = { L:{ panel:9, t:-99 }, R:{ panel:10, t:-99 } };
+  const lastOnPanel = new Float32Array(16).fill(-99);
+  let impossible = 0, tightest = Infinity;
+
+  for(const n of notes){
+    const h = hands[n.hand];
+    const d = cheb(h.panel, n.panel);
+    if(n.t === h.t){                       // 同一イベント＝片手2本指
+      if(d > 1) impossible++;
+    }else{
+      const slack = (n.t - h.t) / travel(d);
+      if(slack < 1) impossible++;
+      tightest = Math.min(tightest, slack);
+    }
+    if(n.t - lastOnPanel[n.panel] < cfg.repGap - 1e-3
+       && n.t !== lastOnPanel[n.panel]) impossible++;   // パネル視認性違反
+    lastOnPanel[n.panel] = n.t;
+    h.panel = n.panel; h.t = n.t;
+  }
+  return { impossible, tightest:+tightest.toFixed(2) };
+}
+
+/* ═══════════ 解析パイプライン ═══════════ */
+/* 解析フェーズが使う進捗の下限。ダウンロード済みで呼ばれたときに
+   ゲージが巻き戻らないよう、呼び出し側が到達点を入れる。 */
+let loadBase = 0;
+const setLoad = frac =>
+  $("loadbar").style.width = (loadBase + Math.max(0, Math.min(1, frac)) * (100 - loadBase)) + "%";
+
+async function prepare(name, arrayBuffer){
+  show("load");
+  $("loadt").textContent = name;
+  $("loads").textContent = "DECODING";
+  setLoad(0.04);
+  await new Promise(r=>setTimeout(r,30));
+
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state === "suspended") await audioCtx.resume();
+
+  let buffer;
+  try{
+    buffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+  }catch(e){
+    fail("この音声ファイルはデコードできませんでした。mp3 / wav / m4a などを試してください。");
+    return null;
+  }
+
+  $("loads").textContent = "ANALYZING";
+  const pcm = downmix(buffer);
+
+  /* 譜面シードは音声内容そのもののハッシュ。
+     ファイル名を変えても、同じ曲なら必ず同じ譜面になる。 */
+  let seed = 2166136261;
+  const step = Math.max(1, (pcm.length/8192)|0);
+  for(let i=0;i<pcm.length;i+=step){
+    seed ^= (pcm[i]*32767)|0 & 0xffff;
+    seed = Math.imul(seed, 16777619);
+  }
+  seed = seed >>> 0;
+  const seedHex = seed.toString(16).padStart(8,"0");
+
+  const key = seedHex + "|" + difficulty;
+  if(chartCache.has(key)){ setLoad(1); return { buffer, ...chartCache.get(key) }; }
+  const { peaks, frames, energy, loud } = await detectOnsets(pcm, p => {
+    setLoad(0.06 + p * 0.80);
+    $("loads").textContent = "ANALYZING · " + Math.round(p * 100) + "%";
+  });
+  const sections = analyzeSections(loud, frames);
+
+  $("loads").textContent = "BUILDING CHART";
+  setLoad(0.96);
+  await new Promise(r=>setTimeout(r,20));
+
+
+  const chart = buildChart(peaks, sections, energy, loud, DIFF[difficulty], seed);
+
+  if(!chart.length){
+    fail("この音源からはノーツを検出できませんでした。難易度を下げるか、別の音源を試してください。");
+    return null;
+  }
+  const v = validate(chart, DIFF[difficulty]);
+  console.log(`[十六] ${name} / ${difficulty} — ${chart.length} notes, ` +
+              `${(chart.length/buffer.duration).toFixed(1)}/s, seed ${seedHex}, ` +
+              `sections [${sections.map(x=>x.intensity.toFixed(2)).join(" ")}], ` +
+              `届かない配置 ${v.impossible}, 最もきつい余裕 ×${v.tightest}`);
+
+  if(lastSong && lastSong.name === name)
+    noteDuration(lastSong.url || ("file:" + name), buffer.duration);
+  const packed = { chart };
+  chartCache.set(key, packed);
+  setLoad(1);
+  return { buffer, ...packed };
+}
+
+/* ═══════════ マーカー（ノーツ表示パターン） ═══════════
+   どれも「外側から中心へ収縮して重なる」系の文法を意図的に避けた自作。
+   環 = 外周アークの回転充填（既定） / 満 = 下から満ちる水位
+   火 = 渦の導火線を火花が中心へ走り「ドン」/ 簾 = 左から右への掃引
+   蚊 = 蚊が飛んできて中央の丸に入った瞬間が押し時
+   いずれも円の拡大・収縮でタイミングを示さない。               */
+let marker = "ring";
+/* マーカーごとの固有色: 金/藍/朱・桜/若竹。伝統色で統一 */
+const MARKER_STYLE = {
+  /* hi = 通常のハイライト / vivid = 押す瞬間だけ乗せる鮮色。
+     同系統で彩度だけを上げ、色相は変えない（どの面かを見失わないため）。 */
+  ring:  { rgb:[217,164, 65], hi:"#E8C46A", vivid:"#FFD980" },   // 金
+  fill:  { rgb:[ 84,138,178], hi:"#9CC8E8", vivid:"#3FD9FF" },   // 藍 → 冴えた空
+  fuse:  { rgb:[200, 69, 44], hi:"#F2AFA6", vivid:"#FF7A4D" },   // 朱と火粉
+  sweep: { rgb:[ 94,158,110], hi:"#A9DDB8", vivid:"#66F58A" },   // 若竹 → 萌黄
+  ka:    { rgb:[150,120,190], hi:"#C6B0E8", vivid:"#C77DFF" },   // 藤紫
+};
+const curStyle = () => MARKER_STYLE[marker] || MARKER_STYLE.ring;
+function paintMarker(c, px, py, pw, ph, p, tracePath){
+  const e = Math.pow(p, 2.2);
+  const st = curStyle();
+  const R = st.rgb;
+  const col = a => `rgba(${R[0]},${R[1]},${R[2]},${a})`;
+  c.save(); tracePath(); c.clip();               // 共通: パネル光量 薄→濃
+  c.globalAlpha = 0.06 + e*0.46;
+  c.fillStyle = col(1);
+  c.fillRect(px, py, pw, ph);
+  c.restore();
+
+  const cx = px+pw/2, cy = py+ph/2, r = pw*0.36;
+  /* 押す瞬間は面そのものも鮮色に寄せる。満・簾は各分岐で塗るため
+     ここでは塗り面を持たない 環・火・蚊 の3方式だけを対象にする。 */
+  if(p > 0.86 && (marker === "ring" || marker === "fuse" || marker === "ka")){
+    const vw = (p-0.86)/0.14;
+    c.save(); tracePath(); c.clip();
+    c.globalAlpha = vw*0.30;
+    c.fillStyle = st.vivid;
+    c.fillRect(px, py, pw, ph);
+    c.restore();
+  }
+  if(marker === "ring"){
+    c.save();
+    c.strokeStyle = "rgba(239,231,218,.10)";
+    c.lineWidth = Math.max(2, pw*0.030);
+    c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.stroke();
+    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;      // 押す瞬間の鮮色の強さ
+    c.strokeStyle = col(0.30+0.70*p);
+    c.lineWidth = Math.max(2.5, pw*0.042); c.lineCap = "round";
+    c.beginPath(); c.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + p*Math.PI*2); c.stroke();
+    if(vv > 0){                                    // 弧を冴えた色で上塗り
+      c.globalAlpha = vv;
+      c.strokeStyle = st.vivid;
+      c.lineWidth = Math.max(3, pw*(0.042 + vv*0.022));
+      c.beginPath(); c.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + p*Math.PI*2); c.stroke();
+      c.globalAlpha = 1;
+    }
+    if(p > 0.86){
+      c.globalAlpha = (p-0.86)/0.14;
+      c.fillStyle = st.vivid;                   // 押す瞬間だけ鮮色
+      c.beginPath(); c.arc(cx, cy, r*0.24, 0, Math.PI*2); c.fill();
+    }
+    c.restore();
+  }else if(marker === "fill"){
+    c.save(); tracePath(); c.clip();
+    const hh = ph * p;
+    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;   // 押す瞬間の鮮色の強さ
+    c.fillStyle = col(0.22 + 0.40*p);
+    c.fillRect(px, py+ph-hh, pw, hh);
+    if(vv > 0){                                 // 水全体を冴えた色に染める
+      c.globalAlpha = vv * 0.70;
+      c.fillStyle = st.vivid;
+      c.fillRect(px, py+ph-hh, pw, hh);
+    }
+    c.globalAlpha = 0.55 + 0.45*p;              // 水面の線
+    c.fillStyle = vv > 0 ? st.vivid : st.hi;
+    const lw = 3 + vv*3;
+    c.fillRect(px, py+ph-hh-lw/2, pw, lw);
+    c.restore();
+  }else if(marker === "fuse"){
+    /* 火: 渦を巻く導火線。火花が外周から中心へ走り、燃えた側（外側）が
+       消えていく。中心に達した瞬間＝押すタイミングで「ドン」。
+       閉じた円の拡大・収縮は使わず、線幅も一定。手がかりは
+       「固定された軌道上を進む一点」で、輪が縮んで重なる方式とは別物。 */
+    const TURNS = 1.0, R0 = r*1.06;
+    const at = u => {                       // u=0:外周 → u=1:中心
+      const th = -Math.PI/2 + u*TURNS*Math.PI*2;
+      const rr = R0*(1-u);
+      return [cx + Math.cos(th)*rr, cy + Math.sin(th)*rr];
+    };
+    c.save();
+    c.lineCap = "round"; c.lineJoin = "round";
+    /* 残っている導火線（火花より内側だけ）*/
+    if(p < 1){
+      c.strokeStyle = "rgba(239,231,218,.22)";
+      c.lineWidth = Math.max(1.6, pw*0.026);
+      c.beginPath();
+      const vvL = p > 0.86 ? (p-0.86)/0.14 : 0;
+      if(vvL > 0) c.strokeStyle = st.vivid;
+      const N = 150;
+      for(let i=0;i<=N;i++){
+        const u = p + (1-p)*(i/N), q = at(u);
+        i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]);
+      }
+      c.stroke();
+    }
+    /* 火花: 大きさ一定の点＋短い火の粉 */
+    const sp = at(Math.min(1, p));
+    const vvF = p > 0.86 ? (p-0.86)/0.14 : 0;
+    c.globalAlpha = 1;
+    c.fillStyle = vvF > 0 ? st.vivid : st.hi;
+    c.beginPath(); c.arc(sp[0], sp[1], Math.max(1.8, pw*0.030), 0, Math.PI*2); c.fill();
+    if(vvF > 0){
+      c.globalAlpha = vvF*0.55;
+      c.beginPath(); c.arc(sp[0], sp[1], Math.max(2.6, pw*0.050), 0, Math.PI*2); c.fill();
+      c.globalAlpha = 1;
+    }
+    c.globalAlpha = 0.35 + 0.45*p;
+    c.strokeStyle = col(0.9);
+    c.lineWidth = Math.max(1.2, pw*0.016);
+    for(let k=0;k<4;k++){
+      const a = (k/4)*Math.PI*2 + p*7, r2 = pw*(0.045 + 0.02*Math.sin(p*22+k));
+      c.beginPath();
+      c.moveTo(sp[0]+Math.cos(a)*pw*0.022, sp[1]+Math.sin(a)*pw*0.022);
+      c.lineTo(sp[0]+Math.cos(a)*r2,       sp[1]+Math.sin(a)*r2);
+      c.stroke();
+    }
+    /* 燃え尽きた瞬間の「ドン」。大きさは変えず不透明度だけで出す */
+    if(p > 0.86){
+      const a = (p-0.86)/0.14;
+      c.globalAlpha = a;
+      c.fillStyle = st.vivid;                   // 押す瞬間だけ鮮色
+      c.font = '800 ' + Math.round(pw*0.30) + 'px "Shippori Mincho", serif';
+      c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillText("\u30C9\u30F3", cx, cy);
+      c.globalAlpha = a*0.8;
+      c.strokeStyle = st.vivid;
+      c.lineWidth = Math.max(1.4, pw*0.020);
+      for(let k=0;k<8;k++){
+        const th = (k/8)*Math.PI*2 + 0.4;
+        c.beginPath();
+        c.moveTo(cx+Math.cos(th)*pw*0.26, cy+Math.sin(th)*pw*0.26);
+        c.lineTo(cx+Math.cos(th)*pw*0.34, cy+Math.sin(th)*pw*0.34);
+        c.stroke();
+      }
+    }
+    c.restore();
+  }else if(marker === "ka"){
+    /* 蚊: 中央に固定サイズの丸（着地点）を置き、蚊が外から
+       ふらふらと飛んで来る。丸の中に入った瞬間が押し時。
+       丸は拡大も縮小もしない。手がかりは「的へ向かう移動体」で、
+       輪が縮んで重なる方式とは別物。 */
+    const rc = r*0.32;                       // 中央の丸（不変）
+    const ez = Math.pow(p, 1.3);             // 進入は終盤ほど素早く
+    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;
+
+    c.save();
+    /* 中央の丸 */
+    c.strokeStyle = vv > 0 ? st.vivid : "rgba(239,231,218,.20)";
+    c.lineWidth = Math.max(1.6, pw*(0.022 + vv*0.016));
+    c.beginPath(); c.arc(cx, cy, rc, 0, Math.PI*2); c.stroke();
+    if(vv > 0){
+      c.globalAlpha = vv*0.28;
+      c.fillStyle = st.vivid;
+      c.beginPath(); c.arc(cx, cy, rc, 0, Math.PI*2); c.fill();
+      c.globalAlpha = 1;
+    }
+
+    /* 飛来経路: パネルごとに進入方向を変える（位置から決まるので毎回同じ）*/
+    const seed = (Math.abs(px)*0.7 + Math.abs(py)*1.3) % 360;
+    const a0 = seed/360 * Math.PI*2;
+    const D0 = pw*0.58;
+    const d  = D0*(1-ez);                    // 中心までの距離
+    const wob = Math.sin(p*17 + seed) * pw*0.10 * Math.pow(1-p, 1.4);   // 蚊のふらつき
+    const wo2 = Math.cos(p*23 + seed*1.7) * pw*0.07 * Math.pow(1-p, 1.4);
+    const mx = cx + Math.cos(a0)*d + Math.cos(a0+Math.PI/2)*wob + wo2*0.4;
+    const my = cy + Math.sin(a0)*d + Math.sin(a0+Math.PI/2)*wob + wo2*0.4;
+
+    /* 蚊本体（進行方向を向く）*/
+    const bs = Math.max(2.0, pw*0.046);
+    c.translate(mx, my);
+    c.rotate(a0 + Math.PI + Math.sin(p*17+seed)*0.5);
+    c.globalAlpha = 1;
+    c.fillStyle = vv > 0 ? st.vivid : st.hi;
+    c.beginPath(); c.ellipse(0, 0, bs, bs*0.42, 0, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(bs*0.95, 0, bs*0.34, bs*0.34, 0, 0, Math.PI*2); c.fill();  // 頭
+    c.strokeStyle = c.fillStyle;
+    c.lineWidth = Math.max(1, pw*0.010);
+    c.beginPath(); c.moveTo(bs*1.25,0); c.lineTo(bs*1.95,0); c.stroke();                 // 口吻
+    const flap = Math.abs(Math.sin(p*90 + seed))*0.7 + 0.25;                             // 羽ばたき
+    c.globalAlpha = 0.55;
+    for(const sgn of [-1, 1]){
+      c.beginPath();
+      c.ellipse(-bs*0.15, sgn*bs*0.55*flap, bs*0.80, bs*0.26*flap, sgn*0.5, 0, Math.PI*2);
+      c.fill();
+    }
+    c.restore();
+  }else{ /* sweep 簾 */
+    c.save(); tracePath(); c.clip();
+    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;   // 押す瞬間の鮮色の強さ
+    c.fillStyle = col(0.16 + 0.30*p);
+    c.fillRect(px, py, pw*p, ph);
+    if(vv > 0){                                 // 掃いた面を冴えた色に染める
+      c.globalAlpha = vv * 0.70;
+      c.fillStyle = st.vivid;
+      c.fillRect(px, py, pw*p, ph);
+    }
+    c.globalAlpha = 0.55 + 0.45*p;              // 先端の線
+    c.fillStyle = vv > 0 ? st.vivid : st.hi;
+    const lw = 3 + vv*3;
+    c.fillRect(px + pw*p - lw/2, py, lw, ph);
+    c.restore();
+  }
+}
+
+/* ═══════════ 描画 ═══════════ */
+const cv = $("cv"), g = cv.getContext("2d");
+let CS = 0, PAD = 0, GAP = 0;
+const ripples = [];
+const flashes = new Float32Array(16);
+
+function resize(){
+  const rect = cv.getBoundingClientRect();
+  if(!rect.width) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cv.width  = Math.round(rect.width  * dpr);
+  cv.height = Math.round(rect.height * dpr);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  CS  = rect.width;
+  GAP = Math.max(4, CS * 0.016);
+  PAD = (CS - GAP*3) / 4;
+}
+new ResizeObserver(resize).observe(cv);
+
+function panelRect(i){
+  const r = (i/4)|0, c = i%4;
+  return { x: c*(PAD+GAP), y: r*(PAD+GAP), w: PAD, h: PAD };
+}
+function rrect(x,y,w,h,r){
+  g.beginPath();
+  g.moveTo(x+r,y); g.lineTo(x+w-r,y); g.quadraticCurveTo(x+w,y,x+w,y+r);
+  g.lineTo(x+w,y+h-r); g.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  g.lineTo(x+r,y+h); g.quadraticCurveTo(x,y+h,x,y+h-r);
+  g.lineTo(x,y+r); g.quadraticCurveTo(x,y,x+r,y); g.closePath();
+}
+
+function draw(songTime){
+  g.clearRect(0,0,CS,CS);
+  const rad = PAD*0.055;
+
+  /* 各パネルの最近ノーツを拾う */
+  const act = new Array(16).fill(null);
+  const AP = cur ? cur.approach : APPROACH;
+  if(cur){
+    for(let i=cur.head;i<cur.chart.length;i++){
+      const n = cur.chart[i];
+      if(n.t - songTime > AP) break;
+      if(n.judged) continue;
+      const p = 1 - (n.t - songTime)/AP;
+      if(p < 0) continue;
+      if(!act[n.panel] || p > act[n.panel].p) act[n.panel] = { p };
+    }
+  }
+
+  for(let i=0;i<16;i++){
+    const { x,y,w,h } = panelRect(i);
+    const a = act[i];
+    const fl = flashes[i];
+
+    /* 下地（漆） */
+    g.save();
+    rrect(x,y,w,h,rad);
+    const grd = g.createLinearGradient(x,y,x,y+h);
+    grd.addColorStop(0, "#221C18");
+    grd.addColorStop(1, "#171310");
+    g.fillStyle = grd; g.fill();
+    g.strokeStyle = "#2C231D"; g.lineWidth = 1; g.stroke();
+    g.restore();
+
+    /* ノーツ表示（選択中のマーカーで描画） */
+    if(a) paintMarker(g, x, y, w, h, Math.max(0, Math.min(1, a.p)), ()=>rrect(x,y,w,h,rad));
+
+    /* 命中フラッシュ */
+    if(fl > 0){
+      g.save();
+      rrect(x,y,w,h,rad); g.clip();
+      g.globalAlpha = fl*0.55;
+      g.fillStyle = "#EFE7DA";
+      g.fillRect(x,y,w,h);
+      g.restore();
+    }
+
+    flashes[i] = Math.max(0, fl - 0.075);
+  }
+
+  /* 曲頭予告 — 最初のノーツ（同時押しなら全パネル）の出現位置を
+     破線リングで示す。カウント中だけでなく、最初のノーツの接近が
+     始まる瞬間まで出し続けるので、イントロが長い曲でも必ず見える。
+     接近アニメが始まったら本表示（実線）に引き継いで消える。 */
+  if(cur && (cur.counting || songTime < cur.firstT - AP)){
+    const seen = new Set();
+    for(let i=cur.head; i<cur.chart.length; i++){
+      const n = cur.chart[i];
+      if(n.t > cur.firstT + 0.012) break;   // 最初のノーツのみ（同時押しは全員）
+      if(n.judged || seen.has(n.panel)) continue;
+      if(n.t - songTime <= AP) continue;    // もう本表示が始まっている
+      seen.add(n.panel);
+      const { x,y,w,h } = panelRect(n.panel);
+      const cx = x+w/2, cy = y+h/2, r = w*0.36;
+      const a = reduceMotion ? 0.30
+              : Math.max(0.14, 0.24 + 0.12*Math.sin(songTime*7 + n.panel));
+      g.save();
+      g.setLineDash([w*0.055, w*0.045]);
+      const gsR = curStyle().rgb;
+      g.strokeStyle = `rgba(${gsR[0]},${gsR[1]},${gsR[2]},${a})`;
+      g.lineWidth = Math.max(2, w*0.030);
+      g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.stroke();
+      g.setLineDash([]);
+      g.globalAlpha = a*0.55;
+      g.fillStyle = curStyle().hi;
+      g.beginPath(); g.arc(cx, cy, Math.max(1.5, w*0.030), 0, Math.PI*2); g.fill();
+      g.restore();
+    }
+  }
+
+  /* 判定文字 — 叩いたパネルの上に浮かんで消える */
+  for(let i=judgeFx.length-1;i>=0;i--){
+    const fx = judgeFx[i];
+    fx.age += reduceMotion ? 0.10 : 0.045;
+    if(fx.age >= 1){ judgeFx.splice(i,1); continue; }
+    const { x,y,w,h } = panelRect(fx.panel);
+    const e = 1 - Math.pow(1-fx.age, 3);
+    g.save();
+    g.globalAlpha = fx.age < 0.15 ? fx.age/0.15 : 1 - Math.pow((fx.age-0.15)/0.85, 1.6);
+    g.fillStyle = JUDGE[fx.j].col;
+    g.font = `800 ${Math.round(w*0.42)}px "Shippori Mincho", serif`;
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.shadowColor = "rgba(16,14,12,.85)"; g.shadowBlur = w*0.06;
+    g.fillText(JUDGE[fx.j].k, x+w/2, y+h/2 - e*h*0.30);
+    g.restore();
+  }
+
+  /* 墨のにじみ（命中フィードバック） */
+  for(let i=ripples.length-1;i>=0;i--){
+    const rp = ripples[i];
+    rp.age += 0.055;
+    if(rp.age >= 1){ ripples.splice(i,1); continue; }
+    const { x,y,w,h } = panelRect(rp.panel);
+    const cx = x+w/2, cy = y+h/2;
+    const e  = 1 - Math.pow(1-rp.age, 2.4);
+    g.save();
+    g.globalAlpha = (1-rp.age) * 0.6;
+    g.strokeStyle = rp.color;
+    g.lineWidth = Math.max(1.5, w*0.028*(1-rp.age));
+    g.beginPath(); g.arc(cx, cy, w*0.20 + e*w*0.62, 0, Math.PI*2); g.stroke();
+    g.restore();
+  }
+}
+
+/* ═══════════ 判定表示 ═══════════ */
+/* 段位。可 = 及第（クリア）、不可 = 不合格。
+   全ノーツを「甘」(30点)で拾うと30%にしかならないため、
+   50%未満は半数近くを取りこぼしている状態にあたる。 */
+function rankOf(acc){
+  return acc >= 97 ? "極" : acc >= 92 ? "秀" : acc >= 84 ? "優"
+       : acc >= 70 ? "良" : acc >= 50 ? "可" : "不可";
+}
+const JUDGE = [
+  { k:"冴", r:"SAE",      col:"#E8C46A", pts:100 },
+  { k:"良", r:"RYŌ",      col:"#D9A441", pts:70  },
+  { k:"甘", r:"AMA",      col:"#D2703A", pts:30  },
+  { k:"逃", r:"NOGASHI",  col:"#C8452C", pts:0   },
+];
+/* 判定はノーツのあった場所に浮かぶ。DOM ではなくキャンバスで描く */
+const judgeFx = [];   // {panel, j, age}
+function showJudge(panel, j){
+  judgeFx.push({ panel, j, age: 0 });
+  if(judgeFx.length > 24) judgeFx.shift();
+}
+
+/* ═══════════ 打点音（アシストクラップ） ═══════════
+   各ノーツの判定時刻 = startAt + n.t（曲とサンプル同一時間軸）に
+   短い音をスケジュール。曲と譜面のズレを耳で検証できる。
+   OFFSET は表示・判定の校正値なので打点音には乗せない。
+   音色3種: 刻(クリック) / 拍(ノイズクラップ) / 鼓(木質トーン)   */
+let clapType = "off", clapVol = 0.7, lastClapType = "click";
+const hitOn = () => clapType !== "off";
+let noiseBuf = null;
+
+function clapVoice(t){
+  const nodes = [];
+  const gn = audioCtx.createGain();
+  const v = clapVol * clapVol;                       // スライダーを聴感に合わせる
+  gn.connect(audioCtx.destination);
+  if(clapType === "clap"){
+    if(!noiseBuf){
+      noiseBuf = audioCtx.createBuffer(1, Math.round(audioCtx.sampleRate*0.06), audioCtx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = noiseBuf;
+    const hp = audioCtx.createBiquadFilter();
+    hp.type = "highpass"; hp.frequency.value = 1600;
+    gn.gain.setValueAtTime(0.0001, t);
+    gn.gain.exponentialRampToValueAtTime(0.55*v + 0.0001, t+0.003);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t+0.055);
+    src.connect(hp); hp.connect(gn);
+    src.start(t); src.stop(t+0.06);
+    nodes.push(src);
+  }else if(clapType === "wood"){
+    const o = audioCtx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(920, t);
+    o.frequency.exponentialRampToValueAtTime(480, t+0.05);
+    gn.gain.setValueAtTime(0.0001, t);
+    gn.gain.exponentialRampToValueAtTime(0.50*v + 0.0001, t+0.003);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t+0.075);
+    o.connect(gn);
+    o.start(t); o.stop(t+0.09);
+    nodes.push(o);
+  }else{                                             // 刻
+    const o = audioCtx.createOscillator();
+    o.type = "square"; o.frequency.value = 2400;
+    gn.gain.setValueAtTime(0.0001, t);
+    gn.gain.exponentialRampToValueAtTime(0.30*v + 0.0001, t+0.002);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t+0.040);
+    o.connect(gn);
+    o.start(t); o.stop(t+0.05);
+    nodes.push(o);
+  }
+  return nodes;
+}
+function scheduleClaps(){
+  if(!hitOn() || !cur || cur.over) return;
+  const horizon = audioCtx.currentTime + 1.2;
+  while(cur.clapHead < cur.chart.length){
+    const n = cur.chart[cur.clapHead];
+    const at = cur.startAt + n.t;
+    if(at > horizon) break;
+    cur.clapHead++;
+    if(at < audioCtx.currentTime + 0.01) continue;
+    if(at - cur.lastClapT < 0.002) continue;         // 和音は1打にまとめる
+    cur.lastClapT = at;
+    for(const nd of clapVoice(at)) cur.clapNodes.push(nd);
+    if(cur.clapNodes.length > 80) cur.clapNodes.splice(0, 40);
+  }
+}
+function stopClaps(){
+  if(!cur) return;
+  for(const o of cur.clapNodes){ try{ o.stop(0); }catch(e){} }
+  cur.clapNodes = [];
+}
+function setClapType(type, preview){
+  clapType = type;
+  if(type !== "off") lastClapType = type;
+  for(const x of $("soundsel").querySelectorAll("button"))
+    x.setAttribute("aria-pressed", String(x.dataset.c === type));
+  $("clapg").setAttribute("aria-pressed", String(hitOn()));
+  savePrefs("juroku:claptype", type);
+  if(cur && !cur.over){
+    if(!hitOn()) stopClaps();
+    else{
+      const now = audioCtx.currentTime;
+      cur.clapHead = cur.chart.findIndex(n => cur.startAt + n.t > now + 0.05);
+      if(cur.clapHead < 0) cur.clapHead = cur.chart.length;
+    }
+  }
+  if(preview && hitOn() && audioCtx) clapVoice(audioCtx.currentTime + 0.02);
+  syncReclap();
+}
+$("soundsel").onclick = e => {
+  const b = e.target.closest("button[data-c]");
+  if(b) setClapType(b.dataset.c, true);
+};
+$("clapg").onclick = () => setClapType(hitOn() ? "off" : lastClapType, false);
+$("svol").oninput = e => {
+  clapVol = (+e.target.value)/100;
+  $("svolv").textContent = e.target.value + "%";
+  savePrefs("juroku:clapvol", String(clapVol));
+  if(hitOn() && audioCtx) clapVoice(audioCtx.currentTime + 0.02);
+  syncReclap();
+};
+
+/* 設定画面で音色/音量を変えた瞬間、先読みスケジュール済みの
+   ビープにもクラップを付け直す。これが無いと変更が約2.5秒遅れて
+   聞こえる（ビープが先にスケジュールされているため）。 */
+function syncReclap(){
+  if(!syncOn) return;
+  for(const nd of syncClapNodes){ try{ nd.stop(0); }catch(e){} }
+  syncClapNodes = [];
+  if(hitOn()){
+    for(const b of syncBeeps){
+      if(!b.judged && b.t > audioCtx.currentTime + 0.05)
+        for(const nd of clapVoice(b.t)) syncClapNodes.push(nd);
+    }
+  }
+}
+
+/* ═══════════ プレイ ═══════════ */
+async function play(name, arrayBuffer, srcUrl){
+  lastSong = { name, arrayBuffer, url: srcUrl || null };
+  const prep = await prepare(name, arrayBuffer);
+  if(!prep) return;
+
+  cur = {
+    /* キャッシュの譜面は共有物。judged を直接書き込むと
+       次回プレイで「全ノーツ判定済み＝何も出ない」になるため、
+       毎回複製してから使う。 */
+    name, buffer: prep.buffer,
+    approach: DIFF[difficulty].approach,
+    firstT: prep.chart.length ? prep.chart[0].t : 0,
+    chart: prep.chart.map(n => ({ ...n, judged: 0 })),
+    head: 0, score: 0, points: 0, combo: 0, maxCombo: 0,
+    counts: [0,0,0,0], source: null, startAt: 0, paused: false, over: false,
+    clapHead: 0, clapNodes: [], lastClapT: -9,
+    diff: difficulty, arrayBuffer,
+  };
+
+  $("gsong").textContent = name;
+  $("gdiff").textContent = DIFF[difficulty].label + " · " + prep.chart.length + " NOTES";
+  $("gscore").textContent = "0";
+  $("gacc").textContent = "100.00%";
+  $("gprog").style.width = "0%";
+  $("gtime").textContent = "0:00";
+  $("gdur").textContent = fmtDur(prep.buffer.duration) || "-:--";
+  cur.lastSec = -1;
+  {
+    const durS = prep.buffer.duration;
+    const f = cur.firstT / durS * 100;
+    const l = (prep.chart[prep.chart.length-1].t) / durS * 100;
+    $("gzone").style.left = f + "%";
+    $("gzone").style.width = Math.max(0, l - f) + "%";
+    $("gtickA").style.left = "calc(" + f + "% - 1px)";
+    $("gtickB").style.left = "calc(" + l + "% - 1px)";
+  }
+  $("combo").hidden = true;
+  ripples.length = 0; flashes.fill(0); judgeFx.length = 0;
+
+  show("game");
+  requestAnimationFrame(()=>{ resize(); });
+
+  /* カウントイン：盤面を隠さず、音声クロックに同期して 3・2・1。
+     音源はこの時点で COUNT_LEAD 秒後にスケジュール済みなので、
+     冒頭のノーツはカウント中から接近を始め、数字と曲の開始が
+     機械精度で一致する。 */
+  $("veil").classList.add("on"); $("veil").classList.add("count");
+  $("veilt").hidden = true; $("veilbtns").hidden = true; $("count").hidden = false;
+  $("count").textContent = "3";
+  cur.counting = true;
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = cur.buffer;
+  src.connect(audioCtx.destination);
+  const at = audioCtx.currentTime + COUNT_LEAD;
+  src.start(at);
+  cur.source = src;
+  cur.startAt = at;
+  src.onended = () => { if(cur && !cur.over && !cur.paused) finish(); };
+
+  loop();
+}
+
+function songTime(){
+  const lat = audioCtx.outputLatency || audioCtx.baseLatency || 0;
+  return audioCtx.currentTime - lat - cur.startAt + offsetMs/1000;
+}
+
+function loop(){
+  if(!cur || cur.over) return;
+  if(!cur.paused){
+    const t = songTime();
+
+    if(cur.counting){
+      if(t < 0){
+        $("count").textContent = Math.min(3, Math.max(1, Math.ceil(-t / (COUNT_LEAD/3))));
+      }else{
+        cur.counting = false;
+        $("veil").classList.remove("on"); $("veil").classList.remove("count");
+        $("veilt").hidden = false; $("veilbtns").hidden = false; $("count").hidden = true;
+      }
+    }
+
+    scheduleClaps();
+
+    /* 見逃し判定 */
+    while(cur.head < cur.chart.length){
+      const n = cur.chart[cur.head];
+      if(n.judged){ cur.head++; continue; }
+      if(t - n.t > W_AMA){ applyJudge(n, 3); cur.head++; continue; }
+      break;
+    }
+    draw(t);
+    const dur = cur.buffer.duration;
+    $("gprog").style.width = Math.max(0, Math.min(100, t/dur*100)) + "%";
+    const sec = Math.max(0, Math.min(dur, t)) | 0;
+    if(sec !== cur.lastSec){ cur.lastSec = sec; $("gtime").textContent = fmtDur(Math.max(1,sec)) || "0:00"; }
+    if(t > dur + 0.35){ finish(); return; }
+  }
+  requestAnimationFrame(loop);
+}
+
+function applyJudge(note, j){
+  note.judged = 1;
+  cur.counts[j]++;
+  cur.points += JUDGE[j].pts;
+  if(j === 3){ cur.combo = 0; }
+  else{
+    cur.combo++;
+    cur.maxCombo = Math.max(cur.maxCombo, cur.combo);
+    cur.score += Math.round(JUDGE[j].pts * (1 + Math.min(cur.combo, 120)/240));
+    flashes[note.panel] = 1;
+    if(!reduceMotion) ripples.push({ panel:note.panel, age:0, color:JUDGE[j].col });
+  }
+  showJudge(note.panel, j);
+
+  const done = cur.counts.reduce((a,b)=>a+b, 0);
+  const acc = done ? cur.points / (done*100) * 100 : 100;
+  $("gscore").textContent = cur.score.toLocaleString();
+  $("gacc").textContent = acc.toFixed(2) + "%";
+  const cb = $("combo");
+  if(cur.combo >= 5){ cb.hidden = false; $("combon").textContent = cur.combo; }
+  else cb.hidden = true;
+}
+
+function press(panel){
+  if(!cur || cur.paused || cur.over) return;
+  const t = songTime();
+  let best = null, bestD = Infinity;
+  for(let i=cur.head; i<cur.chart.length; i++){
+    const n = cur.chart[i];
+    if(n.t - t > cur.approach) break;   // まだ表示が始まっていないノーツのみ対象外
+    if(n.judged || n.panel !== panel) continue;
+    const d = Math.abs(n.t - t);
+    if(d < bestD){ bestD = d; best = n; }
+  }
+  if(!best) return;                     // 表示中のノーツがないパネルは無反応
+  /* 表示が始まったノーツは必ず判定する。判定窓より早い押しは最低評価の甘。 */
+  applyJudge(best, bestD <= W_SAE ? 0 : bestD <= W_RYO ? 1 : 2);
+}
+
+function finish(){
+  if(!cur || cur.over) return;
+  cur.over = true;
+  stopClaps();
+  try{ cur.source && cur.source.stop(); }catch(e){}
+
+  const total = cur.chart.length;
+  const acc = total ? cur.points / (total*100) * 100 : 0;
+  /* 可 = 及第（クリア）、不可 = 不合格。
+     jubeat系の慣習に倣い、精度50%未満を不合格ラインとする。
+     全ノーツを「甘」(70点)で拾えば70%になるため、
+     50%未満は「半数近くを取りこぼしている」状態にあたる。 */
+  const rank = rankOf(acc);
+
+  $("rrank").textContent  = rank;
+  $("rsong").textContent  = cur.name;
+  $("rdiff").textContent  = DIFF[cur.diff].label + " · " + total + " NOTES";
+  $("rscore").textContent = cur.score.toLocaleString();
+  $("racc").textContent   = acc.toFixed(2) + "%";
+  for(let i=0;i<4;i++) $("c"+i).textContent = cur.counts[i];
+  $("rmax").textContent   = cur.maxCombo;
+
+  /* フルコンボ = 逃(NOGASHI)が0。全て「冴」なら完全一致として別表示。
+     コンボは逃でのみ切れるため、逃0 と maxCombo=総数 は同値。 */
+  const fc  = cur.counts[3] === 0 && total > 0;
+  const all = fc && cur.counts[0] === total;
+  const fcb = $("rfc");
+  fcb.hidden = !fc;
+  fcb.classList.toggle("perfect", all);
+  if(fc) $("rfctext").textContent = all ? "\u5168\u51B4  ALL SAE" : "FULL COMBO";
+
+  const bk = cur.name + "|" + cur.diff;
+  const prev = bestOf(bk);
+  const isBest = !prev || cur.score > prev.s;
+  $("rnew").hidden = !isBest;
+  if(isBest){
+    bests[bk] = { s: cur.score, a: +acc.toFixed(2), c: cur.counts.slice(),
+                  m: cur.maxCombo, n: total, d: Date.now() };
+    savePrefs("juroku:bests", JSON.stringify(bests));
+    renderTracks();
+  }
+
+  show("result");
+}
+
+function quit(){
+  if(cur){ stopClaps(); try{ cur.source && cur.source.stop(); }catch(e){} cur.over = true; }
+  cur = null;
+  $("veil").classList.remove("on");
+  show("title");
+}
+
+/* ═══════════ 入力 ═══════════ */
+cv.addEventListener("pointerdown", ev => {
+  ev.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const x = ev.clientX - r.left, y = ev.clientY - r.top;
+  const col = Math.floor(x / (PAD+GAP)), row = Math.floor(y / (PAD+GAP));
+  if(col<0||col>3||row<0||row>3) return;
+  press(row*4 + col);
+});
+const held = new Set();
+addEventListener("keydown", ev => {
+  const k = ev.key.toLowerCase();
+  if(k === "escape" && cur && !cur.over){ togglePause(); return; }
+  if(!(k in KEYMAP) || held.has(k)) return;
+  held.add(k);
+  ev.preventDefault();
+  press(KEYMAP[k]);
+});
+addEventListener("keyup", ev => held.delete(ev.key.toLowerCase()));
+
+let resumeToken = 0;
+function veilPause(){
+  $("veil").classList.remove("count");
+  $("veilt").hidden = false; $("veilbtns").hidden = false; $("count").hidden = true;
+  $("veil").classList.add("on");
+}
+function veilCount(){
+  $("veil").classList.add("on"); $("veil").classList.add("count");
+  $("veilt").hidden = true; $("veilbtns").hidden = true; $("count").hidden = false;
+}
+function togglePause(){
+  if(!cur || cur.over) return;
+
+  if(cur.resuming){                      // 再開カウント中に押した → ポーズへ戻す
+    cur.resuming = false; resumeToken++;
+    veilPause();
+    return;
+  }
+  if(!cur.paused){                       // ポーズする
+    cur.paused = true;
+    audioCtx.suspend();
+    veilPause();
+    return;
+  }
+  /* 再開。曲頭カウント中だったならそのまま透過カウントへ、
+     それ以外は 3・2・1 を挟んでから音を戻す。 */
+  if(cur.counting){
+    cur.paused = false;
+    audioCtx.resume();
+    veilCount();
+    return;
+  }
+  cur.resuming = true;
+  const tok = ++resumeToken;
+  veilCount();
+  let n = 3;
+  $("count").textContent = "3";
+  const step = () => {
+    if(!cur || tok !== resumeToken) return;
+    n--;
+    if(n <= 0){
+      cur.resuming = false; cur.paused = false;
+      audioCtx.resume();
+      $("veil").classList.remove("on"); $("veil").classList.remove("count");
+      $("veilt").hidden = false; $("veilbtns").hidden = false; $("count").hidden = true;
+      return;
+    }
+    $("count").textContent = n;
+    setTimeout(step, 630);
+  };
+  setTimeout(step, 630);
+}
+$("pausebtn").onclick = togglePause;
+$("resume").onclick   = togglePause;
+$("quit").onclick     = quit;
+$("back").onclick     = quit;
+$("retry").onclick    = () => { if(lastSong) play(lastSong.name, lastSong.arrayBuffer); };
+
+/* ═══════════ 選曲 ═══════════ */
+function renderTracks(){
+  const wrap = $("tracks");
+  wrap.innerHTML = "";
+  DEFAULT_TRACKS.forEach(tr => {
+    cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
+  });
+  renderUserTracks();
+}
+
+/* ═══ ユーザーが読み込んだ曲（リンク/ファイル）のカード ═══
+   リンク曲は URL を保存して次回も表示。ファイル曲は音声を
+   保存できないためセッション中のみカード表示する。          */
+let userTracks = [];
+let durMap = {};                 // 曲の長さ（秒） key: url または file:タイトル
+const durKey = tr => tr.url || ("file:" + (tr.title||""));
+const fmtDur = s2 => !s2 ? "" : (s2/60|0) + ":" + String(Math.round(s2)%60).padStart(2,"0");
+function noteDuration(key, sec){
+  if(!sec || !isFinite(sec) || durMap[key]) return;
+  durMap[key] = Math.round(sec);
+  savePrefs("juroku:durs", JSON.stringify(durMap));
+  renderTracks();
+}
+function probeDuration(tr){
+  const key = durKey(tr);
+  if(durMap[key]) return;
+  try{
+    const a = new Audio();
+    a.preload = "metadata";
+    a.onloadedmetadata = () => { noteDuration(key, a.duration); a.src = ""; };
+    if(tr.kind === "file" && tr.ab){
+      a.src = URL.createObjectURL(new Blob([tr.ab], { type:"audio/mpeg" }));
+    }else if(tr.url){
+      a.src = tr.url;
+    }
+  }catch(e){}
+}
+/* ═══ 試聴 ═══
+   解析用の全体ダウンロードとは別に、<audio> でそのまま流す。
+   最後まで通しで聴ける。同時に鳴るのは常に1曲だけ。 */
+let previewEl = null, previewUrl = null, previewLoading = false;
+function syncPreviewIcons(){
+  for(const b of document.querySelectorAll(".card .prev")){
+    const on = !!previewUrl && b.dataset.u === previewUrl;
+    b.dataset.on = on ? "1" : "0";
+    b.textContent = on ? "\u25A0" : "\u25B6";
+    b.setAttribute("aria-label", (on ? "試聴を止める: " : "試聴する: ") + (b.dataset.t || ""));
+    b.dataset.load = (on && previewLoading) ? "1" : "0";
+    const card = b.closest && b.closest(".card");
+    if(card){
+      card.dataset.playing = on ? "1" : "0";
+      card.dataset.loading = (on && previewLoading) ? "1" : "0";
+    }
+  }
+}
+/* 再生位置バーと経過時間の更新 */
+function syncSeek(){
+  const a = previewEl, u = previewUrl;
+  for(const b of document.querySelectorAll(".card .prev")){
+    if(!u || b.dataset.u !== u) continue;
+    const card = b.closest && b.closest(".card"); if(!card) continue;
+    const bar = card.querySelector(".seek i"), tm = card.querySelector(".ptm");
+    const d = (a && a.duration) || 0, t = (a && a.currentTime) || 0;
+    if(bar) bar.style.width = (d ? Math.max(0, Math.min(1, t/d))*100 : 0) + "%";
+    if(tm)  tm.textContent = fmtDur(Math.max(1, Math.round(t))) + (d ? " / " + fmtDur(d) : "");
+  }
+}
+/* 試聴の失敗は、その曲のカードの上に出す。画面下の共通エラー欄では
+   どの曲で起きたのか分からず、見落とされるため。 */
+function showPreviewError(tr){
+  for(const b of document.querySelectorAll(".card .prev")){
+    if(b.dataset.u !== (tr.url || "")) continue;
+    const card = b.closest && b.closest(".card"); if(!card) continue;
+    if(card.querySelector(".perr")) return;
+    const ov = document.createElement("div");
+    ov.className = "perr";
+    const msg = document.createElement("b");
+    msg.textContent = "読み込みに失敗しました";
+    const sub = document.createElement("span");
+    sub.textContent = "通信状況を確認して、もう一度お試しください。";
+    const rt = document.createElement("button");
+    rt.type = "button";
+    rt.textContent = "再試行";
+    rt.onclick = e => { e.stopPropagation(); ov.remove(); togglePreview(tr); };
+    ov.onclick = e => { e.stopPropagation(); ov.remove(); };
+    ov.appendChild(msg); ov.appendChild(sub); ov.appendChild(rt);
+    card.appendChild(ov);
+  }
+}
+function clearPreviewErrors(){
+  for(const e of document.querySelectorAll(".card .perr")) e.remove();
+}
+
+function stopPreview(){
+  if(previewEl){ try{ previewEl.pause(); }catch(e){} previewEl.src = ""; }
+  previewEl = null; previewUrl = null; previewLoading = false;
+  syncPreviewIcons();
+}
+function togglePreview(tr){
+  clearPreviewErrors();
+  if(previewUrl === tr.url){ stopPreview(); return; }
+  stopPreview();
+  const a = new Audio();
+  a.src = tr.url;
+  a.preload = "auto";
+  /* 読み込み状態の遷移。実際に音が出た時点(playing)で解除し、
+     途中でバッファ切れ(waiting/stalled)したら再び表示する。 */
+  const busy = v => {
+    if(previewEl !== a) return;
+    previewLoading = v;
+    syncPreviewIcons();
+  };
+  a.onended    = () => stopPreview();              // 最後まで流し切ったら解除
+  a.onerror    = () => { showPreviewError(tr); stopPreview(); };
+  a.onwaiting  = () => busy(true);
+  a.onstalled  = () => busy(true);
+  a.onplaying  = () => busy(false);
+  a.oncanplay  = () => busy(false);
+  a.onseeking  = () => busy(true);
+  a.onloadedmetadata = () => { noteDuration(durKey(tr), a.duration); syncSeek(); };
+  a.ontimeupdate = () => syncSeek();
+  a.onseeked = () => { busy(false); syncSeek(); };
+  previewEl = a; previewUrl = tr.url; previewLoading = true;   // 押した直後は読み込み中
+  syncPreviewIcons();
+  syncSeek();
+  a.play().catch(() => stopPreview());
+}
+
+/* ベスト記録の詳細。旧形式(スコアのみ)の記録は判定内訳を持たないので、
+   その場合は持っている情報だけを出す。 */
+function openBest(title, b){
+  $("bmt").textContent = title;
+  $("bmd").textContent = DIFF[difficulty].label + (b.n ? " · " + b.n + " NOTES" : "");
+  $("bmr").textContent = (b.a != null) ? rankOf(b.a) : "—";
+  $("bms").textContent = b.s.toLocaleString();
+  $("bma").textContent = (b.a != null) ? b.a.toFixed(2) + "%" : "精度の記録なし";
+  const c = b.c || [];
+  for(let i=0;i<4;i++) $("bm" + i).textContent = (c[i] != null) ? c[i] : "—";
+  const bits = [];
+  if(b.m != null) bits.push("最大コンボ " + b.m);
+  if(c.length === 4 && c[3] === 0) bits.push(c[0] === (b.n || -1) ? "全冴" : "フルコンボ");
+  if(b.d) bits.push(new Date(b.d).toLocaleDateString());
+  $("bmm").textContent = bits.join(" · ");
+  $("bmodal").dataset.on = "1";
+  $("bmclose").focus();
+}
+function closeBest(){ $("bmodal").dataset.on = "0"; }
+
+function cardInto(wrap, tr, onclick, best){
+  /* 試聴ボタンとシークバーを内側に置くため、カード自体は button ではなく div。
+     ボタンの入れ子は不正なHTMLになるため。role と keydown で
+     ボタン相当の操作性は維持する。 */
+  const b = document.createElement("div");
+  b.className = "card";
+  b.setAttribute("role", "button");
+  b.tabIndex = 0;
+
+  const art = document.createElement("div");
+  art.className = "art";
+  if(tr.art){
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.alt = tr.title + " ジャケット";
+    img.onerror = () => {
+      if(img.dataset.bare !== "1"){        // クエリ付きが弾かれた場合の保険
+        img.dataset.bare = "1";
+        img.src = tr.art;
+        return;
+      }
+      img.replaceWith(mkNoArt(tr));
+    };
+    img.src = artSrc(tr.art);
+    art.appendChild(img);
+  }else{
+    art.appendChild(mkNoArt(tr));
+  }
+  b.appendChild(art);
+
+  const cb = document.createElement("span");
+  cb.className = "cb";
+  cb.innerHTML = `<span class="t"></span><span class="a"></span>`;
+  const bs = document.createElement("button");
+  bs.type = "button"; bs.className = "best num";
+  cb.appendChild(bs);
+  b.appendChild(cb);
+
+  /* 曲情報がまだ取れていない曲は押せない（解析に入っても曲名が出せないため）*/
+  const ready = !!tr.ready;
+  cb.querySelector(".t").textContent = ready ? tr.title : "";
+  const dur = durMap[durKey(tr)];
+  cb.querySelector(".a").textContent = ready ? ((tr.artist || "") + (dur ? " · " + fmtDur(dur) : "")) : "";
+  if(ready && best){
+    bs.dataset.empty = "0";
+    bs.innerHTML = `<span class="sc"></span><span class="rk"></span><span class="cv"></span>`;
+    bs.querySelector(".sc").textContent = best.s.toLocaleString();
+    bs.querySelector(".rk").textContent = (best.a != null) ? rankOf(best.a) : "";
+    bs.querySelector(".cv").textContent = (best.a != null) ? best.a.toFixed(2) + "%" : "";
+    bs.setAttribute("aria-label", "ベスト記録の詳細: " + tr.title);
+    bs.onclick = e => { e.stopPropagation(); openBest(tr.title, best); };
+    bs.onkeydown = e => e.stopPropagation();
+  }else{
+    bs.dataset.empty = "1";
+    bs.textContent = "";
+    bs.tabIndex = -1;
+  }
+  if(ready) probeDuration(tr);
+
+  if(!ready){
+    b.classList.add("loading");
+    b.tabIndex = -1;
+    b.setAttribute("aria-disabled", "true");
+    const ld = document.createElement("div");
+    ld.className = "ld";
+    ld.innerHTML = `<s></s>`;
+    ld.appendChild(document.createTextNode("読み込み中"));
+    b.appendChild(ld);
+    wrap.appendChild(b);
+    return;                                   // 押下も試聴もさせない
+  }
+
+  b.onclick = onclick;
+  b.onkeydown = e => {
+    if(e.key === "Enter" || e.key === " " || e.code === "Space"){ e.preventDefault(); onclick(); }
+  };
+
+  /* 試聴ボタン（ジャケット左下）。カード本体のタップ＝プレイ開始とは分離する */
+  const pv = document.createElement("button");
+  pv.type = "button";
+  pv.className = "prev";
+  pv.dataset.u = tr.url || "";
+  pv.dataset.t = tr.title || "";
+  pv.onclick = e => { e.stopPropagation(); togglePreview(tr); };
+  pv.onkeydown = e => { e.stopPropagation(); };
+  art.appendChild(pv);
+
+  /* 再生位置バー。つまんで動かすと試聴位置が変わる */
+  const sk = document.createElement("div");
+  sk.className = "seek";
+  sk.innerHTML = `<i></i>`;
+  const seekTo = ev => {
+    if(previewUrl !== tr.url || !previewEl || !previewEl.duration) return;
+    const r = sk.getBoundingClientRect();
+    const x = (ev.clientX != null ? ev.clientX : 0) - r.left;
+    const f = Math.max(0, Math.min(1, r.width ? x / r.width : 0));
+    previewEl.currentTime = f * previewEl.duration;
+    syncSeek();
+  };
+  sk.onpointerdown = e => {
+    e.stopPropagation(); e.preventDefault();
+    sk.setPointerCapture && sk.setPointerCapture(e.pointerId);
+    sk.dataset.drag = "1";
+    seekTo(e);
+  };
+  sk.onpointermove = e => { if(sk.dataset.drag === "1"){ e.stopPropagation(); seekTo(e); } };
+  sk.onpointerup = e => { sk.dataset.drag = "0"; e.stopPropagation(); };
+  sk.onclick = e => e.stopPropagation();
+  art.appendChild(sk);
+
+  const tm = document.createElement("span");
+  tm.className = "ptm num";
+  tm.textContent = "0:00";
+  art.appendChild(tm);
+
+  wrap.appendChild(b);
+  syncPreviewIcons();
+  syncSeek();
+}
+function mkNoArt(tr){
+  const n = document.createElement("span");
+  n.className = "noart";
+  n.textContent = tr.art ? "♪" : ((tr.title || "♪").slice(0,1));
+  return n;
+}
+function renderUserTracks(){
+  const wrap = $("utracks");
+  wrap.innerHTML = "";
+  userTracks.forEach(tr0 => {
+    const tr = { ...tr0, ready: true };
+    cardInto(wrap, tr,
+      () => tr.kind === "file" ? play(tr.title, tr.ab) : loadRemote(tr),
+      bestOf(tr.title + "|" + difficulty));
+  });
+}
+function addUserTrack(tr){
+  const key = tr.url || ("file:" + tr.title);
+  const i = userTracks.findIndex(x => (x.url || ("file:" + x.title)) === key);
+  if(i >= 0) userTracks[i] = { ...userTracks[i], ...tr };   // 再読込で情報更新
+  else userTracks.push(tr);
+  renderUserTracks();
+  const links = userTracks.filter(x => x.kind === "link")
+    .map(({title, artist, url, art, id, kind}) => ({title, artist, url, art, id, kind}));
+  savePrefs("juroku:usertracks", JSON.stringify(links));
+}
+function setTab(t){
+  for(const x of $("hometabs").querySelectorAll("button")){
+    const on = x.dataset.t === t;
+    x.setAttribute("aria-pressed", String(on));
+    x.style.background = on ? "#D9A441" : "transparent";
+    x.style.color = on ? "#100E0C" : "#8C8177";
+    x.style.fontWeight = on ? "700" : "500";
+  }
+  $("tab-lib").hidden = t !== "lib";
+  $("tab-own").hidden = t !== "own";
+}
+
+/* タブ潰れの自己診断＋自動修復。
+   前回の実測で「子46px・親1px」という非標準レイアウトが確認された。
+   固定高さで直らない場合は、JSでタブを丸ごと作り直す
+   （この端末ではJS生成DOM＝曲カードが正常表示できると実証済み）。 */
+function rebuildTabs(){
+  const tb = $("hometabs");
+  tb.textContent = "";
+  tb.removeAttribute("style");
+  Object.assign(tb.style, { display:"block", width:"100%", maxWidth:"420px",
+    margin:"0 auto 16px", height:"48px", border:"1px solid #322822", borderRadius:"3px" });
+  for(const [t, label] of [["lib","収録曲"],["own","リンク・ファイル"]]){
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.t = t; b.textContent = label;
+    Object.assign(b.style, { display:"inline-block", width:"50%", height:"46px",
+      verticalAlign:"top", border:"0", cursor:"pointer", textAlign:"center",
+      fontFamily:"sans-serif", fontSize:"13px", letterSpacing:".14em" });
+    b.onclick = () => setTab(t);
+    tb.appendChild(b);
+  }
+  setTab("lib");
+}
+setTimeout(() => {
+  try{
+    const tb = $("hometabs");
+    const r = tb.getBoundingClientRect();
+    if(r.width > 0 && r.height < 34){
+      rebuildTabs();
+      setTimeout(() => {
+        const r2 = $("hometabs").getBoundingClientRect();
+        if(r2.height < 34){
+          const c = getComputedStyle($("hometabs"));
+          const e = $("err"); e.hidden = false;
+          e.textContent = "TAB診断v5: rebuild後も " + (r2.width|0) + "x" + (r2.height|0) +
+            "px [display=" + c.display + " height=" + c.height +
+            " position=" + c.position + " overflow=" + c.overflow + "]";
+        }
+      }, 300);
+    }
+  }catch(x){}
+}, 600);
+
+const audioCache = new Map();   // url -> ArrayBuffer
+async function loadRemote(tr){
+  $("err").hidden = true;
+  show("load");
+  $("loadt").textContent = tr.title;
+  $("loads").textContent = "FETCHING";
+  loadBase = 0;
+  $("loadbar").style.width = "2%";
+  try{
+    let ab = audioCache.get(tr.url);
+    if(ab){
+      $("loadbar").style.width = "34%";
+    }else{
+      const res = await fetch(tr.url);
+      if(!res.ok) throw new Error(res.status);
+      /* ダウンロードは体感で最も長い区間。ストリームを読みながら
+         2%→34% を実バイト比で進める。長さ不明のときは
+         「3MBで9割」の目安で漸近させ、止まって見えないようにする。 */
+      const totalH = +(res.headers.get("content-length") || 0);
+      const setDl = frac => { $("loadbar").style.width = (2 + Math.min(1, frac) * 32) + "%"; };
+      if(res.body && res.body.getReader){
+        const reader = res.body.getReader();
+        const chunks = [];
+        let got = 0;
+        for(;;){
+          const { done, value } = await reader.read();
+          if(done) break;
+          chunks.push(value); got += value.length;
+          setDl(totalH ? got / totalH : 1 - Math.exp(-got / 3.0e6));
+          $("loads").textContent = "DOWNLOADING · " + (got / 1048576).toFixed(1) + " MB" +
+            (totalH ? " / " + (totalH / 1048576).toFixed(1) + " MB" : "");
+        }
+        const merged = new Uint8Array(got);
+        let at = 0;
+        for(const c of chunks){ merged.set(c, at); at += c.length; }
+        ab = merged.buffer;
+      }else{
+        ab = await res.arrayBuffer();       // ストリーム非対応の環境
+      }
+      setDl(1);
+      audioCache.set(tr.url, ab);
+    }
+    loadBase = 34;                       // 以降の解析は 34%→100% に写像
+    await play(tr.title, ab, tr.url);
+    loadBase = 0;
+  }catch(e){
+    loadBase = 0;
+    fail("音源を取得できませんでした。ネットワーク、または配信元のCORS設定が原因の可能性があります。" +
+         "その場合はSunoからmp3をダウンロードして、ファイル読み込みで遊べます。");
+  }
+}
+
+/* ═══ Sunoリンクからの読み込み ═══
+   suno.com 本体はブラウザからのクロスオリジン読取を許可しないため、
+   短縮リンク(/s/)やタイトル取得は 直接fetch → CORSプロキシ2種 の
+   順で試す。デフォルト曲が動くのは開発時に解決済みIDを
+   埋め込んであるからで、実行時解決にはこの迂回が必要。       */
+/* 経路ごとにタイムアウトを付ける。応答しないプロキシで
+   全体が止まるのを防ぐ（体感上「失敗」に見える主因）。 */
+async function fetchTimed(u, ms){
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), ms);
+  try{ return await fetch(u, { signal: ac.signal, redirect: "follow" }); }
+  finally{ clearTimeout(timer); }
+}
+
+/* 中継サービス一覧。無料プロキシは個別に落ちる・混雑する・
+   レート制限(429)を返すのが常態なので、数で確実性を上げる。
+   corsproxy.io は無料枠が localhost 限定になったため除外。 */
+function sunoRoutes(url){
+  const e = encodeURIComponent(url);
+  return [
+    { u: url,                                              n: "SUNO",     k: "raw",  t: 4000 },
+    { u: "https://api.allorigins.win/get?url=" + e,        n: "MIRROR 1", k: "json", t: 11000 },
+    { u: "https://api.codetabs.com/v1/proxy/?quest=" + e,  n: "MIRROR 2", k: "raw",  t: 11000 },
+    { u: "https://proxy.corsfix.com/?" + url,              n: "MIRROR 3", k: "raw",  t: 11000 },
+    { u: "https://r.jina.ai/" + url,                       n: "MIRROR 4", k: "raw",  t: 11000 },
+    { u: "https://api.allorigins.win/raw?url=" + e,        n: "MIRROR 5", k: "raw",  t: 11000 },
+    { u: "https://corsmirror.onrender.com/v1/cors?url="+e, n: "MIRROR 6", k: "raw",  t: 11000 },
+    { u: "https://cors.eu.org/" + url,                     n: "MIRROR 7", k: "raw",  t: 11000 },
+    { u: "https://thingproxy.freeboard.io/fetch/" + url,   n: "MIRROR 8", k: "raw",  t: 11000 },
+  ];
+}
+
+/* 中継を使わずに曲情報を取れる可能性のある公開エンドポイント。
+   CORSが許可されていれば一発で取れる。ダメでも即座に諦めて
+   通常のミラー経路に進むだけなので、コストはほぼゼロ。 */
+async function fetchSunoApi(id){
+  const eps = [
+    "https://studio-api.suno.ai/api/clip/" + id,
+    "https://studio-api.prod.suno.com/api/clip/" + id,
+  ];
+  for(const u of eps){
+    try{
+      const res = await fetchTimed(u, 4000);
+      const txt = await res.text();
+      if(!txt) continue;
+      const m = parseSunoMeta(txt);
+      if(m.title || m.artist) return { ...m, id };
+    }catch(e){}
+  }
+  return null;
+}
+
+async function fetchSunoPage(url, onStep){
+  /* suno.com へのブラウザからの直接読取は CORS で拒否されるため、
+     実質はミラー経由でしか取れない。
+     重要: HTTPステータスが 404/429 でも本文を必ず読んで解析する。
+     Suno の /s/ は正しいリンクでも一時的に 404 を返すことがあり、
+     さらに中継によっては元のステータスをそのまま透過するため、
+     res.ok だけで捨てると「本文はあるのに失敗」になる。
+     混雑は時間で解消するので、全経路を2巡する。 */
+  const routes = sunoRoutes(url);
+  const total = routes.length * 2;
+  for(let pass=0; pass<2; pass++){
+    for(let i=0;i<routes.length;i++){
+      const r = routes[i];
+      const step = pass*routes.length + i;
+      if(onStep) onStep(r.n + (pass ? " (2)" : ""), step, total);
+      try{
+        const res = await fetchTimed(r.u, r.t);
+        let html = "";
+        if(r.k === "json"){
+          const txt = await res.text();
+          try{
+            const j = JSON.parse(txt);
+            /* status.url は取得側が記録した最終URL。/s/ が
+               /song/<id> に化けた結果が入るので本文が空でもIDが取れる。 */
+            const fin = (j && j.status && j.status.url) ? j.status.url + "\n" : "";
+            html = fin + ((j && j.contents) || "");
+          }catch(e){ html = txt; }
+        }else{
+          html = await res.text();
+        }
+        if(html && parseSunoMeta(html).id) return html;   // IDが取れた応答だけ成功
+      }catch(e){}
+    }
+    if(pass === 0) await new Promise(r => setTimeout(r, 900));   // 混雑の解消待ち
+  }
+  return null;
+}
+function deent(t){
+  return t.replace(/&amp;/g,"&").replace(/&#0?39;|&apos;/g,"'")
+          .replace(/&quot;/g,'"').replace(/&lt;/g,"<").replace(/&gt;/g,">");
+}
+function pickMeta(html, key){
+  const q = "[\"']";
+  let m = html.match(new RegExp("<meta[^>]*(?:property|name)=" + q + key + q + "[^>]*content=" + q + "([^\"']+)", "i"));
+  if(!m) m = html.match(new RegExp("<meta[^>]*content=" + q + "([^\"']+)" + q + "[^>]*(?:property|name)=" + q + key, "i"));
+  return m ? deent(m[1]) : null;
+}
+/* Sunoのページ側で入る汎用文字列。これらを曲名として採用すると
+   「Suno」がタイトルになり、しかも補完処理が走らなくなる。 */
+function junkTitle(t){
+  if(!t) return true;
+  const x = t.trim();
+  if(x.length < 1) return true;
+  if(/^suno(\s*ai)?$/i.test(x)) return true;
+  if(/^suno\s*[|\u00b7\-\u2013]/i.test(x)) return true;   // 「Suno | AI Music」等のサイト名
+  if(/^(ai\s*music|create|explore|home|song|loading|untitled)$/i.test(x)) return true;
+  if(/^[0-9a-f-]{36}$/i.test(x)) return true;
+  return false;
+}
+function junkArtist(a){
+  if(!a) return true;
+  const x = a.trim();
+  if(x.length < 1) return true;
+  if(/^(suno|suno_ai_|suno ai|listen|unknown)$/i.test(x)) return true;
+  return false;
+}
+/* 「<曲名> by <名前>」を分解する。名前に空白が入る場合もあるため
+   最後の " by " で切る。末尾の「| Suno」等は事前に除去済み。 */
+function splitByArtist(raw){
+  const m = raw.match(/^(.*)\s+by\s+@?([^|]+?)\s*$/i);
+  return m ? { title: m[1].trim(), artist: m[2].trim() } : { title: raw.trim() };
+}
+function parseSunoMeta(html){
+  const out = {};
+  let c = html.match(/suno\.com\/song\/([0-9a-f-]{36})/i)
+       || html.match(/cdn1\.suno\.ai\/([0-9a-f-]{36})\.mp3/i)
+       || html.match(/image_large_([0-9a-f-]{36})\.jpe?g/i);
+  if(c) out.id = c[1];
+
+  const setT = t => { if(!out.title && !junkTitle(t)) out.title = t.trim(); };
+  const setA = a => { if(!out.artist && !junkArtist(a)) out.artist = a.trim(); };
+
+  /* (1) og:title — HTML属性形式 と jina のYAML風形式の両方 */
+  let raw = pickMeta(html, "og:title")
+         || pickMeta(html, "twitter:title");
+  if(!raw){
+    const j = html.match(/^meta-og:title:\s*(.+)$/m)
+           || html.match(/^meta-twitter:title:\s*(.+)$/m);
+    if(j) raw = deent(j[1].trim());
+  }
+  if(raw){
+    raw = raw.replace(/\s*\|\s*Suno\s*$/i, "");
+    const p = splitByArtist(raw);
+    setT(p.title); setA(p.artist);
+  }
+
+  /* (2) description: 「<曲名> by <名前> (@handle).」 */
+  let desc = pickMeta(html, "description") || pickMeta(html, "og:description");
+  if(!desc){
+    const j = html.match(/^meta-description:\s*(.+)$/m);
+    if(j) desc = deent(j[1].trim());
+  }
+  if(desc){
+    const d = desc.match(/^(.+?)\s+by\s+([^(|]+?)\s*\(@([\w.\-]+)\)/);
+    if(d){ setT(d[1]); setA(d[2] || d[3]); }
+    else {
+      const d2 = desc.match(/^(.+?)\s+by\s+@?([\w.\-]+)\s*[.|]/);
+      if(d2){ setT(d2[1]); setA(d2[2]); }
+    }
+  }
+
+  /* (3) <title> / jina の title: 行 */
+  if(!out.title || !out.artist){
+    let t = null;
+    const th = html.match(/<title>([^<]+)<\/title>/i);
+    if(th) t = deent(th[1]);
+    if(!t){ const j = html.match(/^title:\s*(.+)$/m); if(j) t = deent(j[1].trim()); }
+    if(t){
+      t = t.replace(/\s*\|\s*Suno\s*$/i, "");
+      const p = splitByArtist(t);
+      setT(p.title); setA(p.artist);
+    }
+  }
+
+  /* (4) JSON-LD / __NEXT_DATA__ 等の埋め込みJSON */
+  if(!out.title){
+    const j = html.match(/"(?:name|title|display_name)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if(j){ try{ setT(JSON.parse('"'+j[1]+'"')); }catch(e){} }
+  }
+  if(!out.artist){
+    const a = html.match(/"byArtist"\s*:\s*\{[^}]*?"name"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+           || html.match(/"display_name"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+           || html.match(/"handle"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if(a){ try{ setA(JSON.parse('"'+a[1]+'"')); }catch(e){} }
+  }
+  /* (5) 最後の砦: 本文中のどこかにある「by X (@handle)」 */
+  if(!out.artist){
+    const d = html.match(/\bby\s+([^(|@]+?)\s*\(@/) || html.match(/\bby\s+@?([\w.\-]+)\s*\|/);
+    if(d) setA(deent(d[1]));
+  }
+
+  /* ジャケット: og:image がSuno CDNならそれを優先（HTML/jina両形式） */
+  let img = pickMeta(html, "og:image") || pickMeta(html, "twitter:image");
+  if(!img){
+    const j = html.match(/^meta-og:image:\s*(\S+)/m) || html.match(/^meta-twitter:image:\s*(\S+)/m);
+    if(j) img = j[1];
+  }
+  if(img && /cdn\d?\.suno\.ai/.test(img)) out.art = img;
+  return out;
+}
+/* 入力の正規化。以下をすべて suno.com の絶対URLに直す:
+     /song/<id>            → https://suno.com/song/<id>
+     /s/<code>             → https://suno.com/s/<code>
+     song/<id> · s/<code>  → 同上（先頭スラッシュ無し）
+     suno.com/...          → https:// を補う
+     <id>（36桁UUID単体）  → https://suno.com/song/<id>
+   クエリ(?sh=)やハッシュは残したまま渡す（短縮解決に使われるため）。 */
+function normalizeSunoUrl(v){
+  let t = (v||"").trim().replace(/^[<(\[]|[>)\]]$/g, "");
+  if(!t) return "";
+  if(/^[0-9a-f-]{36}$/i.test(t)) return "https://suno.com/song/" + t;
+  if(/^https?:\/\//i.test(t))    return t;
+  if(/^\/\//.test(t))            return "https:" + t;
+  if(/^(www\.)?suno\.com\//i.test(t) || /^cdn\d?\.suno\.ai\//i.test(t))
+    return "https://" + t.replace(/^www\./i, "");
+  if(/^\/?(song|s)\//i.test(t))  return "https://suno.com/" + t.replace(/^\//, "");
+  return t;
+}
+
+async function loadFromLink(rawIn){
+  const raw = normalizeSunoUrl(rawIn);
+  const v = (raw||"").trim();
+  if(!v) return;
+  $("err").hidden = true;
+  let m, id = null, meta = {};
+
+  if((m = v.match(/cdn1\.suno\.ai\/([0-9a-f-]{36})\.mp3/i))) id = m[1];
+  else if((m = v.match(/suno\.com\/song\/([0-9a-f-]{36})/i))) id = m[1];
+
+  show("load");
+  $("loadt").textContent = "Suno";
+  $("loads").textContent = "RESOLVING LINK";
+  $("loadbar").style.width = "6%";
+
+  if(!id && /\/s\//i.test(v)){
+    const html = await fetchSunoPage(v, (name, i, n) => {
+      $("loads").textContent = "RESOLVING · " + name;
+      $("loadbar").style.width = (6 + (i / n) * 16) + "%";   // 6→22%
+    });
+    if(html){ meta = parseSunoMeta(html); id = meta.id || null; }
+    if(!id){
+      fail("短縮リンクを解決できませんでした。短縮リンクの解決には外部の中継" +
+           "サービスが必要で、無料枠の混雑（429）や停止が重なると失敗します。" +
+           "確実なのは、リンクをブラウザで開いてアドレス欄の suno.com/song/… を" +
+           "貼る方法です（この形式なら中継なしで読み込めます）。");
+      return;
+    }
+  }
+  if(!id){
+    fail("Sunoの曲URLを貼ってください。suno.com/song/… ・ /s/… ・ cdn1.suno.ai/….mp3 のほか、/song/… のような相対リンクや曲ID単体でも読み込めます。");
+    return;
+  }
+
+  /* タイトルかアーティストが欠けていれば正規ページから補完する。
+     短縮リンクは最終URLからIDだけ取れて本文が空のことがあるため、
+     「タイトルが取れた」だけで打ち切らない。取得できた項目は
+     上書きせずに温存する（先に得た正しい値を壊さない）。 */
+  if(!meta.title || !meta.artist){
+    $("loads").textContent = "READING INFO";
+    const api = await fetchSunoApi(id);      // 中継不要の直接取得を先に試す
+    if(api){
+      meta = { id,
+        title:  meta.title  || api.title,
+        artist: meta.artist || api.artist,
+        art:    meta.art    || api.art };
+    }
+  }
+  if(!meta.title || !meta.artist){
+    const html = await fetchSunoPage("https://suno.com/song/" + id, (name, i, n) => {
+      $("loads").textContent = "READING INFO · " + name;
+      $("loadbar").style.width = (22 + (i / n) * 10) + "%";  // 22→32%
+    });
+    if(html){
+      const m2 = parseSunoMeta(html);
+      meta = {
+        id,
+        title:  meta.title  || m2.title,
+        artist: meta.artist || m2.artist,
+        art:    meta.art    || m2.art,
+      };
+    }
+  }
+
+  const known = DEFAULT_TRACKS.find(x => x.id === id);
+  if(known){ setTab("lib");
+
+/* タブ潰れの自己診断。46px未満なら、実測と computed display を
+   画面に表示する。スクリーンショットだけで原因を特定するため。 */
+setTimeout(() => {
+  try{
+    const tb = $("hometabs");
+    const bs = tb.querySelectorAll("button");
+    const r = tb.getBoundingClientRect();
+    if(r.width > 0 && r.height < 34){
+      const parts = ["TAB診断: bar " + (r.width|0) + "x" + (r.height|0) + "px, btn数=" + bs.length];
+      for(const b of bs){
+        const c = getComputedStyle(b), br = b.getBoundingClientRect();
+        parts.push("[" + c.display + " " + (br.width|0) + "x" + (br.height|0) +
+                   " mh=" + c.minHeight + " vis=" + c.visibility + "]");
+      }
+      const e = $("err");
+      e.hidden = false;
+      e.textContent = parts.join(" ");
+    }
+  }catch(x){}
+}, 600); loadRemote(known); return; }
+
+  const tr = {
+    kind: "link", id,
+    title:  meta.title  || ("Suno " + id.slice(0,8)),
+    artist: meta.artist || "",
+    url: SUNO_CDN(id), art: meta.art || SUNO_ART(id),
+  };
+  addUserTrack(tr);
+  $("slink").value = "";
+  setTab("own");
+  show("title");                       // 自動再生せずカード登録のみ（アップロードと同じ流儀）
+}
+$("slinkgo").onclick = () => loadFromLink($("slink").value);
+$("slink").addEventListener("keydown", e => {
+  if(e.key === "Enter") loadFromLink($("slink").value);
+});
+
+$("drop").onclick = () => $("file").click();
+$("drop").onkeydown = e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); $("file").click(); } };
+$("file").onchange = e => { const f = e.target.files[0]; if(f) loadLocal(f); e.target.value = ""; };
+
+for(const ev of ["dragenter","dragover"])
+  $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.add("over"); });
+for(const ev of ["dragleave","drop"])
+  $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.remove("over"); });
+$("drop").addEventListener("drop", e => {
+  const f = e.dataTransfer.files[0];
+  if(f) loadLocal(f);
+});
+addEventListener("dragover", e => e.preventDefault());
+addEventListener("drop", e => e.preventDefault());
+
+async function loadLocal(file){
+  $("err").hidden = true;
+  const name = file.name.replace(/\.[^.]+$/, "");
+  const ab = await file.arrayBuffer();
+  lastSong = { name, arrayBuffer: ab };
+  addUserTrack({ kind:"file", title:name, artist:"ローカルファイル", ab });
+  setTab("own");
+  $("droplabel").textContent = "読み込み済み — 別の曲に変える";
+}
+
+/* 難易度・オフセット */
+$("diff").onclick = e => {
+  const b = e.target.closest("button[data-d]");
+  if(!b) return;
+  difficulty = b.dataset.d;
+  for(const x of $("diff").querySelectorAll("button"))
+    x.setAttribute("aria-pressed", String(x === b));
+  renderTracks();
+};
+$("markersel").onclick = e => {
+  const b = e.target.closest("button[data-m]");
+  if(!b) return;
+  marker = b.dataset.m;
+  for(const x of $("markersel").querySelectorAll("button"))
+    x.setAttribute("aria-pressed", String(x === b));
+  savePrefs("juroku:marker", marker);
+};
+$("offset").oninput = e => {
+  offsetMs = +e.target.value;
+  $("offsetv").textContent = offsetMs + "ms";
+  savePrefs("juroku:offset", String(offsetMs));
+};
+
+/* ═══════════ タイミング確認モード ═══════════
+   ゲーム本編と同一の描画（漆パネル・金グロー・アーク・判定文字）、
+   同一の判定窓（W_SAE/W_RYO/W_AMA）、同一の時計
+   （currentTime − 出力遅延 + OFFSET）でビープを叩く。
+   ここで冴が出る設定なら、本編でも冴が出る。            */
+const SYNC_IV = 1.2;
+let syncOn=false, syncNext=0, syncBeeps=[], syncErrs=[], syncTimer=null, syncFx=[], syncFlash=0;
+let syncBeepNodes=[], syncClapNodes=[];
+
+function beepAt(t){
+  const o = audioCtx.createOscillator(), gn = audioCtx.createGain();
+  o.frequency.value = 1100;
+  gn.gain.setValueAtTime(0, t);
+  gn.gain.linearRampToValueAtTime(0.30, t+0.004);
+  gn.gain.exponentialRampToValueAtTime(0.001, t+0.07);
+  o.connect(gn); gn.connect(audioCtx.destination);
+  o.start(t); o.stop(t+0.09);
+  return o;
+}
+function syncClock(){
+  const lat = audioCtx.outputLatency || audioCtx.baseLatency || 0;
+  return audioCtx.currentTime - lat + offsetMs/1000;
+}
+async function syncStart(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state === "suspended") await audioCtx.resume();
+  syncOn = true; syncErrs = []; syncBeeps = []; syncFx = []; syncFlash = 0;
+  syncNext = audioCtx.currentTime + 0.6;
+  $("serr").textContent = "—"; $("serr").style.color = "";
+  $("smed").firstChild.textContent = "中央値 — / OFFSET ";
+  $("soff").textContent = offsetMs;
+  show("sync");
+  syncTimer = setInterval(()=>{
+    while(syncNext < audioCtx.currentTime + 2.5){
+      syncBeepNodes.push(beepAt(syncNext));
+      if(hitOn()) for(const nd of clapVoice(syncNext)) syncClapNodes.push(nd);
+      syncBeeps.push({ t: syncNext, judged: false }); syncNext += SYNC_IV;
+    }
+    if(syncBeeps.length > 24) syncBeeps.splice(0, syncBeeps.length-24);
+    if(syncBeepNodes.length > 24) syncBeepNodes.splice(0, syncBeepNodes.length-24);
+    if(syncClapNodes.length > 48) syncClapNodes.splice(0, syncClapNodes.length-24);
+  }, 400);
+  syncDraw();
+}
+function syncStop(){
+  syncOn = false;
+  if(syncTimer){ clearInterval(syncTimer); syncTimer = null; }
+  /* 先読みスケジュール済みの音を即時停止。これを怠ると
+     戻ったあと最大2.5秒ぶんのビープ/クラップが鳴り続ける。 */
+  for(const nd of syncBeepNodes){ try{ nd.stop(0); }catch(e){} }
+  for(const nd of syncClapNodes){ try{ nd.stop(0); }catch(e){} }
+  syncBeepNodes = []; syncClapNodes = [];
+  show("title");
+}
+function syncShowErr(j, ms){
+  syncFx.push({ j, age: 0 });
+  if(syncFx.length > 6) syncFx.shift();
+  if(j < 3){
+    syncFlash = 1;
+    syncErrs.push(ms);
+    if(syncErrs.length > 12) syncErrs.shift();
+    $("serr").textContent = (ms>0?"+":"") + ms + "ms";
+    $("serr").style.color = JUDGE[j].col;
+    const sorted = [...syncErrs].sort((a,b)=>a-b);
+    const med = sorted[sorted.length>>1];
+    $("smed").firstChild.textContent = "中央値 " + (med>0?"+":"") + med + "ms / OFFSET ";
+  }else{
+    $("serr").textContent = "—";
+    $("serr").style.color = JUDGE[3].col;
+  }
+}
+function syncDraw(){
+  if(!syncOn) return;
+  const c = $("scv");
+  const dpr = Math.min(devicePixelRatio||1, 2);
+  if(c.width !== 220*dpr){ c.width = 220*dpr; c.height = 220*dpr; }
+  const x = c.getContext("2d");
+  x.setTransform(dpr,0,0,dpr,0,0);
+  x.clearRect(0,0,220,220);
+  const t = syncClock();
+
+  /* 見逃し（ゲームの逃と同じ条件） */
+  for(const b of syncBeeps){
+    if(!b.judged && t - b.t > W_AMA){ b.judged = true; syncShowErr(3, 0); }
+  }
+
+  const px=35, py=35, pw=150, ph=150, rad=pw*0.055;
+  const rr=()=>{x.beginPath();
+    x.moveTo(px+rad,py);x.lineTo(px+pw-rad,py);x.quadraticCurveTo(px+pw,py,px+pw,py+rad);
+    x.lineTo(px+pw,py+ph-rad);x.quadraticCurveTo(px+pw,py+ph,px+pw-rad,py+ph);
+    x.lineTo(px+rad,py+ph);x.quadraticCurveTo(px,py+ph,px,py+ph-rad);
+    x.lineTo(px,py+rad);x.quadraticCurveTo(px,py,px+rad,py);x.closePath();};
+
+  /* 下地（本編と同じ漆グラデーション） */
+  x.save(); rr();
+  const grd = x.createLinearGradient(px,py,px,py+ph);
+  grd.addColorStop(0,"#221C18"); grd.addColorStop(1,"#171310");
+  x.fillStyle = grd; x.fill();
+  x.strokeStyle = "#2C231D"; x.lineWidth = 1; x.stroke();
+  x.restore();
+
+  /* 接近中のビープを本編と同じ式で描く */
+  let B = null;
+  for(const b of syncBeeps){ if(!b.judged && b.t >= t - W_AMA){ B = b; break; } }
+  if(B){
+    const p = 1 - (B.t - t)/APPROACH;
+    if(p >= 0){
+      paintMarker(x, px, py, pw, ph, Math.min(1, p), rr);
+    }
+  }
+
+  /* 命中フラッシュ（本編と同じ白） */
+  if(syncFlash > 0){
+    x.save(); rr(); x.clip();
+    x.globalAlpha = syncFlash*0.55;
+    x.fillStyle = "#EFE7DA";
+    x.fillRect(px,py,pw,ph);
+    x.restore();
+    syncFlash = Math.max(0, syncFlash - 0.075);
+  }
+
+  /* 判定文字（本編と同じ浮遊表示） */
+  for(let i=syncFx.length-1;i>=0;i--){
+    const fx = syncFx[i];
+    fx.age += reduceMotion ? 0.10 : 0.045;
+    if(fx.age >= 1){ syncFx.splice(i,1); continue; }
+    const e = 1 - Math.pow(1-fx.age, 3);
+    x.save();
+    x.globalAlpha = fx.age < 0.15 ? fx.age/0.15 : 1 - Math.pow((fx.age-0.15)/0.85, 1.6);
+    x.fillStyle = JUDGE[fx.j].col;
+    x.font = `800 ${Math.round(pw*0.42)}px "Shippori Mincho", serif`;
+    x.textAlign = "center"; x.textBaseline = "middle";
+    x.shadowColor = "rgba(16,14,12,.85)"; x.shadowBlur = pw*0.06;
+    x.fillText(JUDGE[fx.j].k, px+pw/2, py+ph/2 - e*ph*0.30);
+    x.restore();
+  }
+
+  requestAnimationFrame(syncDraw);
+}
+function syncTap(){
+  if(!syncBeeps.length) return;
+  const t = syncClock();
+  let best = null, bd = Infinity;
+  for(const b of syncBeeps){
+    if(b.judged) continue;
+    const d = t - b.t;
+    if(d > W_AMA) continue;                 // 逃した拍
+    if(-d > APPROACH) continue;             // まだ表示前
+    if(Math.abs(d) < Math.abs(bd)){ bd = d; best = b; }
+  }
+  if(!best) return;                             // 本編と同じく空打ちは無反応
+  best.judged = true;
+  const ad = Math.abs(bd);
+  const j = ad <= W_SAE ? 0 : ad <= W_RYO ? 1 : 2;
+  syncShowErr(j, Math.round(bd*1000));
+}
+$("syncbtn").onclick = () => syncStart();
+$("sdone").onclick   = () => syncStop();
+$("sapply").onclick  = () => {
+  if(!syncErrs.length) return;
+  const sorted = [...syncErrs].sort((a,b)=>a-b);
+  const med = sorted[sorted.length>>1];
+  offsetMs = Math.max(-200, Math.min(200, offsetMs - med));
+  $("offset").value = offsetMs; $("offsetv").textContent = offsetMs + "ms";
+  $("soff").textContent = offsetMs;
+  savePrefs("juroku:offset", String(offsetMs));
+  syncErrs = [];
+  $("serr").textContent = "反映しました";
+  $("serr").style.color = "var(--kin)";
+};
+$("sync").addEventListener("pointerdown", e => {
+  if(e.target.closest(".btn")) return;
+  syncTap();
+});
+addEventListener("keydown", e => {
+  if(syncOn && (e.key === " " || e.code === "Space")){ e.preventDefault(); syncTap(); }
+});
+
+$("bmclose").onclick = closeBest;
+$("bmodal").onclick = e => { if(e.target === $("bmodal")) closeBest(); };
+addEventListener("keydown", e => {
+  if(e.key === "Escape" && $("bmodal").dataset.on === "1"){ e.preventDefault(); closeBest(); }
+});
+
+addEventListener("resize", resize);
+loadPrefs();
+</script>
+</body>
+</html>
