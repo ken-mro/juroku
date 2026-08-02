@@ -35,8 +35,7 @@
 
 ## 公開URL
 
-<!-- GitHub Pages 公開後に URL を追記 -->
-準備中
+https://ken-mro.github.io/juroku/
 
 ## 収録曲について
 
