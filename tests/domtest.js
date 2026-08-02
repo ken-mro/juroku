@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+"use strict";
+/* tests/domtest.js — jsdom でのDOM構造・スクリプトエラーチェック
+ * Loads index.html in the stub environment (no play() driven) and asserts:
+ *   - no script errors / unhandled rejections during load
+ *   - #tracks has exactly 16 cards (one per DEFAULT_TRACKS entry)
+ *   - exactly 5 .screen elements (title, sync, load, game, result), only
+ *     #title carrying class "on"
+ *   - <title> mentions the game's name
+ */
+
+const fs = require("fs");
+const path = require("path");
+const { buildEnv } = require("./lib/env.js");
+
+function fail(msg){
+  console.error("[domtest] FAIL: " + msg);
+  process.exit(1);
+}
+
+async function main(){
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const { document, testErrors } = buildEnv(html);
+
+  // Let synchronous top-level script execution finish and give loadPrefs()'s
+  // async storage reads (backed by jsdom localStorage, resolves as
+  // microtasks/near-immediate) a tick to settle before asserting anything.
+  await new Promise(r => setTimeout(r, 80));
+
+  if(testErrors.length){
+    fail("script error(s) captured during load:\n" + testErrors.join("\n---\n"));
+  }
+
+  const tracks = document.querySelectorAll("#tracks > *");
+  if(tracks.length !== 16){
+    fail(`expected 16 track cards in #tracks, got ${tracks.length}`);
+  }
+
+  const screens = Array.from(document.querySelectorAll(".screen"));
+  const ids = screens.map(s => s.id).slice().sort();
+  const expectedIds = ["game", "load", "result", "sync", "title"];
+  if(ids.length !== expectedIds.length || ids.some((id, i) => id !== expectedIds[i])){
+    fail(`expected .screen ids [${expectedIds.join(",")}], got [${ids.join(",")}]`);
+  }
+
+  const onScreens = screens.filter(s => s.classList.contains("on"));
+  if(onScreens.length !== 1 || onScreens[0].id !== "title"){
+    fail(`expected only #title to have class "on" by default, got: [${onScreens.map(s => s.id).join(",")}]`);
+  }
+
+  const title = document.title;
+  if(!title.includes("十六") && !title.includes("JŪROKU")){
+    fail(`expected <title> to mention 十六 or JŪROKU, got "${title}"`);
+  }
+
+  console.log(`[domtest] PASS — no script errors, 16 tracks, 5 screens (only #title active), title="${title}"`);
+  process.exit(0);
+}
+
+main().catch(e => fail((e && e.stack) || String(e)));

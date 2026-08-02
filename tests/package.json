@@ -1,0 +1,11 @@
+{
+  "name": "juroku-tests",
+  "private": true,
+  "description": "Headless regression tests for index.html. Not shipped, not part of the app's zero-build-tooling deploy.",
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  },
+  "scripts": {
+    "test": "node domtest.js && node smoke.js && node chart.js"
+  }
+}
