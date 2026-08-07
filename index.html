@@ -404,6 +404,10 @@ body::before{
     <span class="num" id="svolv">70%</span></label>
   <label class="calib">OFFSET <input type="range" id="offset" min="-200" max="200" step="5" value="0">
     <span class="num" id="offsetv">0ms</span></label>
+  <label class="calib">タップの強さ <input type="range" id="tapforce" min="0" max="100" step="5" value="30">
+    <span class="num" id="tapforcev">30%</span></label>
+  <label class="calib">バイブの長さ <input type="range" id="vibms" min="0" max="100" step="5" value="20">
+    <span class="num" id="vibmsv">20ms</span></label>
 
   <div class="btns" style="margin-top:14px">
     <button class="btn prime" id="sapply">ズレをOFFSETに反映</button>
@@ -593,6 +597,11 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let audioCtx = null;
 let difficulty = "normal";
 let offsetMs = 0;
+/* タップの強さ判定。PointerEvent.pressure（0-1）がこの値未満なら未タップとして無視する。
+   感圧非対応のデバイス（大半のタッチパネル・マウス）は押下中つねに0.5を返す仕様のため、
+   初期値0.3は既存の操作性を変えない。感圧対応デバイス（Apple Pencil等）でのみ効果を持つ。 */
+let tapForce = 0.3;
+let vibrateMs = 20;   // タップ認識時のバイブ長(ms)。0でバイブ無効
 let bests = {};
 /* 記録は以前スコアの数値だけだった。読み出しは必ずここを通し、
    旧形式ならスコアのみのオブジェクトとして扱う。 */
@@ -627,6 +636,20 @@ async function loadPrefs(){
   try{
     const o = await window.storage.get("juroku:offset");
     if(o){ offsetMs = +o.value || 0; $("offset").value = offsetMs; $("offsetv").textContent = offsetMs+"ms"; }
+  }catch(e){}
+  try{
+    const tf = await window.storage.get("juroku:tapforce");
+    if(tf){
+      tapForce = Math.max(0, Math.min(1, parseFloat(tf.value) || 0));
+      $("tapforce").value = Math.round(tapForce*100);
+      $("tapforcev").textContent = Math.round(tapForce*100) + "%";
+    }
+    const vb = await window.storage.get("juroku:vibms");
+    if(vb){
+      vibrateMs = Math.max(0, Math.min(100, parseInt(vb.value, 10) || 0));
+      $("vibms").value = vibrateMs;
+      $("vibmsv").textContent = vibrateMs + "ms";
+    }
   }catch(e){}
   try{
     const b = await window.storage.get("juroku:bests");
@@ -1897,14 +1920,20 @@ function quit(){
 }
 
 /* ═══════════ 入力 ═══════════ */
-cv.addEventListener("pointerdown", ev => {
+/* PointerEvent.pressure は感圧非対応の機器では押下中つねに0.5（仕様上の規定値）。
+   tapForce 以上の強さでタップされた時だけ press() を呼び、認識できたタップにだけ
+   バイブを鳴らす。感圧対応デバイスでのみ実際に弱いタップを弾く効果を持つ。 */
+function handlePointerTap(ev){
   ev.preventDefault();
   const r = cv.getBoundingClientRect();
   const x = ev.clientX - r.left, y = ev.clientY - r.top;
   const col = Math.floor(x / (PAD+GAP)), row = Math.floor(y / (PAD+GAP));
   if(col<0||col>3||row<0||row>3) return;
+  if((ev.pressure || 0) < tapForce) return;
+  if(vibrateMs > 0 && navigator.vibrate) navigator.vibrate(vibrateMs);
   press(row*4 + col);
-});
+}
+cv.addEventListener("pointerdown", handlePointerTap);
 const held = new Set();
 addEventListener("keydown", ev => {
   const k = ev.key.toLowerCase();
@@ -2745,6 +2774,16 @@ $("offset").oninput = e => {
   offsetMs = +e.target.value;
   $("offsetv").textContent = offsetMs + "ms";
   savePrefs("juroku:offset", String(offsetMs));
+};
+$("tapforce").oninput = e => {
+  tapForce = (+e.target.value)/100;
+  $("tapforcev").textContent = e.target.value + "%";
+  savePrefs("juroku:tapforce", String(tapForce));
+};
+$("vibms").oninput = e => {
+  vibrateMs = +e.target.value;
+  $("vibmsv").textContent = vibrateMs + "ms";
+  savePrefs("juroku:vibms", String(vibrateMs));
 };
 
 /* ═══════════ タイミング確認モード ═══════════
