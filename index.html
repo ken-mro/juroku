@@ -2067,7 +2067,9 @@ function clearPreviewErrors(){
 }
 
 function stopPreview(){
-  if(previewEl){ try{ previewEl.pause(); }catch(e){} previewEl.src = ""; }
+  /* src="" は audio要素にエラーイベントを発火させるため、
+     意図的な停止をonerrorが「読み込み失敗」と誤検知しないよう先に外す。 */
+  if(previewEl){ previewEl.onerror = null; try{ previewEl.pause(); }catch(e){} previewEl.src = ""; }
   previewEl = null; previewUrl = null; previewLoading = false;
   syncPreviewIcons();
 }
