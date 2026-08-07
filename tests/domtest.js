@@ -3,7 +3,7 @@
 /* tests/domtest.js — jsdom でのDOM構造・スクリプトエラーチェック
  * Loads index.html in the stub environment (no play() driven) and asserts:
  *   - no script errors / unhandled rejections during load
- *   - #tracks has exactly 16 cards (one per DEFAULT_TRACKS entry)
+ *   - #tracks has exactly 17 cards (one per DEFAULT_TRACKS entry)
  *   - exactly 5 .screen elements (title, sync, load, game, result), only
  *     #title carrying class "on"
  *   - <title> mentions the game's name
@@ -32,8 +32,8 @@ async function main(){
   }
 
   const tracks = document.querySelectorAll("#tracks > *");
-  if(tracks.length !== 16){
-    fail(`expected 16 track cards in #tracks, got ${tracks.length}`);
+  if(tracks.length !== 17){
+    fail(`expected 17 track cards in #tracks, got ${tracks.length}`);
   }
 
   const screens = Array.from(document.querySelectorAll(".screen"));
@@ -53,7 +53,7 @@ async function main(){
     fail(`expected <title> to mention 十六 or JŪROKU, got "${title}"`);
   }
 
-  console.log(`[domtest] PASS — no script errors, 16 tracks, 5 screens (only #title active), title="${title}"`);
+  console.log(`[domtest] PASS — no script errors, 17 tracks, 5 screens (only #title active), title="${title}"`);
   process.exit(0);
 }
 
