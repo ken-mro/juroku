@@ -2958,6 +2958,8 @@ $("sapply").onclick  = () => {
 };
 $("sync").addEventListener("pointerdown", e => {
   if(e.target.closest(".btn")) return;
+  if((e.pressure || 0) < tapForce) return;
+  if(vibrateMs > 0 && navigator.vibrate) navigator.vibrate(vibrateMs);
   syncTap();
 });
 addEventListener("keydown", e => {

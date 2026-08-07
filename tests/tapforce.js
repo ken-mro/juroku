@@ -76,6 +76,38 @@ async function main(){
   }
 
   console.log("[tapforce] strong tap OK (judged, vibrate(42) called once)");
+
+  // ── 3. 設定画面の練習パネルも同じしきい値・バイブを適用する ─────────────
+  // syncTap()は本編のhandlePointerTap()とは別配線のため、以前は#syncの
+  // pointerdownがしきい値もバイブも素通りしていた。回帰させないための確認。
+  await window.syncStart();
+  window.eval("audioCtx.currentTime = 5; syncBeeps.push({ t: 5, judged: false }); tapForce = 0.5; vibrateMs = 33;");
+  vibeCalls.length = 0;
+
+  const sync = window.document.getElementById("sync");
+  const weakEv = new window.Event("pointerdown", { bubbles: true, cancelable: true });
+  weakEv.pressure = 0.1;
+  sync.dispatchEvent(weakEv);
+
+  let beepJudged = window.eval("syncBeeps[0].judged");
+  if(beepJudged) fail(`expected the practice beep to stay unjudged after a weak tap on #sync, got judged=${beepJudged}`);
+  if(vibeCalls.length) fail(`expected no vibration for a weak tap on the settings panel, got calls=${JSON.stringify(vibeCalls)}`);
+
+  const strongEv = new window.Event("pointerdown", { bubbles: true, cancelable: true });
+  strongEv.pressure = 0.9;
+  sync.dispatchEvent(strongEv);
+
+  beepJudged = window.eval("syncBeeps[0].judged");
+  if(!beepJudged) fail(`expected the practice beep to be judged after a strong tap on #sync, got judged=${beepJudged}`);
+  if(vibeCalls.length !== 1 || vibeCalls[0] !== 33){
+    fail(`expected exactly one navigator.vibrate(33) call from the settings panel tap, got calls=${JSON.stringify(vibeCalls)}`);
+  }
+
+  if(testErrors.length){
+    fail("script error(s) captured during settings-panel tap handling:\n" + testErrors.join("\n---\n"));
+  }
+
+  console.log("[tapforce] settings-panel tap OK (same threshold + vibration as gameplay)");
   console.log("[tapforce] PASS — tap-force threshold gates press(), recognized taps trigger vibration");
   process.exit(0);
 }
