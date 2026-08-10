@@ -404,8 +404,8 @@ body::before{
     <span class="num" id="svolv">70%</span></label>
   <label class="calib">OFFSET <input type="range" id="offset" min="-200" max="200" step="5" value="0">
     <span class="num" id="offsetv">0ms</span></label>
-  <label class="calib">タップの強さ <input type="range" id="tapforce" min="0" max="100" step="5" value="30">
-    <span class="num" id="tapforcev">30%</span></label>
+  <label class="calib">タップの強さ <input type="range" id="tapforce" min="0" max="100" step="5" value="0">
+    <span class="num" id="tapforcev">0%</span></label>
   <div class="calib">バイブの長さ <input type="range" id="vibms" min="0" max="100" step="5" value="20">
     <span class="num" id="vibmsv">20ms</span>
     <button class="btn" id="vibtest" type="button" style="padding:3px 12px;font-size:10px">試す</button></div>
@@ -599,9 +599,11 @@ let audioCtx = null;
 let difficulty = "normal";
 let offsetMs = 0;
 /* タップの強さ判定。PointerEvent.pressure（0-1）がこの値未満なら未タップとして無視する。
-   感圧非対応のデバイス（大半のタッチパネル・マウス）は押下中つねに0.5を返す仕様のため、
-   初期値0.3は既存の操作性を変えない。感圧対応デバイス（Apple Pencil等）でのみ効果を持つ。 */
-let tapForce = 0.3;
+   感圧非対応のデバイス（一般的なタッチパネル・マウス）は、押す強さに関係なく
+   機種ごとに固定された値（0.5等）を返す。実際に強さを検知できるのは
+   Apple Pencilや感圧トラックパッドなど一部のみ。初期値0を既定とし、
+   通常のタッチパネルでは何もフィルタしない（既存の操作性を変えない）。 */
+let tapForce = 0;
 let vibrateMs = 20;   // タップ認識時のバイブ長(ms)。0でバイブ無効
 let bests = {};
 /* 記録は以前スコアの数値だけだった。読み出しは必ずここを通し、
@@ -2942,6 +2944,7 @@ function syncTap(){
   }
   if(!best) return;                             // 本編と同じく空打ちは無反応
   best.judged = true;
+  if(vibrateMs > 0 && navigator.vibrate) navigator.vibrate(vibrateMs);   // ノーツに反応した時だけ
   const ad = Math.abs(bd);
   const j = ad <= W_SAE ? 0 : ad <= W_RYO ? 1 : 2;
   syncShowErr(j, Math.round(bd*1000));
@@ -2963,7 +2966,6 @@ $("sapply").onclick  = () => {
 $("sync").addEventListener("pointerdown", e => {
   if(e.target.closest(".btn")) return;
   if((e.pressure || 0) < tapForce) return;
-  if(vibrateMs > 0 && navigator.vibrate) navigator.vibrate(vibrateMs);
   syncTap();
 });
 addEventListener("keydown", e => {

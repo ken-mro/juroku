@@ -108,6 +108,18 @@ async function main(){
   }
 
   console.log("[tapforce] settings-panel tap OK (same threshold + vibration as gameplay)");
+
+  // ── 4. 設定画面で空打ち（近くにノーツが無い）はしきい値を超えてもバイブしない ──
+  vibeCalls.length = 0;
+  const emptyTapEv = new window.Event("pointerdown", { bubbles: true, cancelable: true });
+  emptyTapEv.pressure = 0.9;   // 十分な強さでも、既に消費済みのノーツしかない
+  sync.dispatchEvent(emptyTapEv);
+
+  if(vibeCalls.length){
+    fail(`expected no vibration on the settings panel for a tap with no note nearby, got calls=${JSON.stringify(vibeCalls)}`);
+  }
+
+  console.log("[tapforce] settings-panel empty tap OK (no note nearby -> no vibration)");
   console.log("[tapforce] PASS — tap-force threshold gates press(), recognized taps trigger vibration");
   process.exit(0);
 }
