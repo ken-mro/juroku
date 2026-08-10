@@ -402,8 +402,8 @@ body::before{
   </div>
   <label class="calib">打点音量 <input type="range" id="svol" min="0" max="100" step="5" value="70">
     <span class="num" id="svolv">70%</span></label>
-  <label class="calib">OFFSET <input type="range" id="offset" min="-200" max="200" step="5" value="0">
-    <span class="num" id="offsetv">0ms</span></label>
+  <div class="calib">OFFSET <input type="range" id="offset" min="-200" max="200" step="5" value="0">
+    <input type="number" id="offsetn" min="-200" max="200" step="1" value="0">ms</div>
   <div class="calib">バイブの長さ <input type="range" id="vibms" min="0" max="100" step="5" value="20">
     <span class="num" id="vibmsv">20ms</span>
     <button class="btn" id="vibtest" type="button" style="padding:3px 12px;font-size:10px">試す</button></div>
@@ -630,7 +630,7 @@ window.storage = {
 async function loadPrefs(){
   try{
     const o = await window.storage.get("juroku:offset");
-    if(o){ offsetMs = +o.value || 0; $("offset").value = offsetMs; $("offsetv").textContent = offsetMs+"ms"; }
+    if(o) setOffsetUI(+o.value || 0);
   }catch(e){}
   try{
     const vb = await window.storage.get("juroku:vibms");
@@ -2754,9 +2754,21 @@ $("markersel").onclick = e => {
     x.setAttribute("aria-pressed", String(x === b));
   savePrefs("juroku:marker", marker);
 };
+/* OFFSETはスライダー単体だと0付近を微調整しづらいため、数値入力欄も並べて
+   どちらからでも設定できるようにする。表示の同期をここに集約する。 */
+function setOffsetUI(ms){
+  offsetMs = Math.max(-200, Math.min(200, Math.round(ms) || 0));
+  $("offset").value = offsetMs;
+  $("offsetn").value = offsetMs;
+  return offsetMs;
+}
 $("offset").oninput = e => {
-  offsetMs = +e.target.value;
-  $("offsetv").textContent = offsetMs + "ms";
+  setOffsetUI(+e.target.value);
+  savePrefs("juroku:offset", String(offsetMs));
+};
+$("offsetn").oninput = e => {
+  if(e.target.value === "") return;   // 入力途中（"-"だけ等）は反映しない
+  setOffsetUI(+e.target.value);
   savePrefs("juroku:offset", String(offsetMs));
 };
 $("vibms").oninput = e => {
@@ -2931,8 +2943,7 @@ $("sapply").onclick  = () => {
   if(!syncErrs.length) return;
   const sorted = [...syncErrs].sort((a,b)=>a-b);
   const med = sorted[sorted.length>>1];
-  offsetMs = Math.max(-200, Math.min(200, offsetMs - med));
-  $("offset").value = offsetMs; $("offsetv").textContent = offsetMs + "ms";
+  setOffsetUI(offsetMs - med);
   $("soff").textContent = offsetMs;
   savePrefs("juroku:offset", String(offsetMs));
   syncErrs = [];
