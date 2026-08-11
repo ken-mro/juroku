@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.10-3</title>
+<title>十六 JŪROKU v2026.08.10-4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -407,6 +407,7 @@ body::before{
   <div class="calib">バイブの長さ <input type="range" id="vibms" min="0" max="100" step="5" value="20">
     <span class="num" id="vibmsv">20ms</span>
     <button class="btn" id="vibtest" type="button" style="padding:3px 12px;font-size:10px">試す</button></div>
+  <div class="calib" id="fdbg">検出値 <span class="num" id="fdbgv">パネルを長押しして押し込む</span></div>
 
   <div class="btns" style="margin-top:14px">
     <button class="btn prime" id="sapply">ズレをOFFSETに反映</button>
@@ -2954,6 +2955,18 @@ $("sync").addEventListener("pointerdown", e => {
   if(e.target.closest(".btn")) return;
   syncTap();
 });
+/* 診断用: touchstart(接触した瞬間)は値がまだ安定せず既定値を返す実装があるため、
+   touchmove(押し込んだまま動かす)でも値を拾い、指を触れたまま押し込むと変化するか確認する。
+   force・接触半径をまとめて表示。判定には一切使わない。 */
+function probeDebugTouch(t){
+  if(!t) return;
+  const p = (typeof t.force === "number") ? t.force.toFixed(3) : "-";
+  const rx = (typeof t.radiusX === "number") ? t.radiusX.toFixed(2) : "-";
+  const ry = (typeof t.radiusY === "number") ? t.radiusY.toFixed(2) : "-";
+  $("fdbgv").textContent = `force=${p} rX=${rx} rY=${ry}`;
+}
+$("sync").addEventListener("touchstart", e => probeDebugTouch(e.touches && e.touches[0]), { passive: true });
+$("sync").addEventListener("touchmove",  e => probeDebugTouch(e.touches && e.touches[0]), { passive: true });
 addEventListener("keydown", e => {
   if(syncOn && (e.key === " " || e.code === "Space")){ e.preventDefault(); syncTap(); }
 });
