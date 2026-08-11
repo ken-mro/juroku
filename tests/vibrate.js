@@ -3,10 +3,12 @@
 /* tests/vibrate.js — ノーツ判定時のみバイブが鳴ることの回帰テスト
  *
  * 「タップの強さ」しきい値機能はWeb標準では実際の押下力を検知できない
- * （通常のタッチパネルは機種ごとに固定のPointerEvent.pressureしか返さない）
- * ことが分かったため廃止し、バイブ設定だけを残した。本編(press())・
- * 設定画面の練習パネル(syncTap())どちらも、ノーツに実際に反応した時だけ
- * navigator.vibrate() を呼ぶ。空打ちでは鳴らない。
+ * （PointerEvent.pressure・Touch.force・Touch.radiusX/Yのいずれも実機では
+ * 固定値しか返さないことを確認した）ため廃止し、バイブ設定だけを残した。
+ * 本編(press())・設定画面の練習パネル(syncTap())どちらも、ノーツに実際に
+ * 反応した時だけ navigator.vibrate() を呼ぶ。空打ちでは鳴らない。
+ * 練習パネルは#scv(キャンバス)だけが判定対象で、#sync全体(スライダーや
+ * 余白を含む設定画面すべて)へのタップは無視する。
  */
 
 const fs = require("fs");
@@ -72,18 +74,26 @@ async function main(){
 
   console.log("[vibrate] gameplay note hit OK (judged, vibrate(42) called once)");
 
-  // ── 3. 設定画面: 練習パネルもノーツに反応した時だけバイブする ───────────
+  // ── 3. 設定画面: 練習パネル(#scv)以外へのタップは判定を消費しない ────────
   await window.syncStart();
   window.eval("audioCtx.currentTime = 5; syncBeeps.push({ t: 5, judged: false }); vibrateMs = 33;");
   vibeCalls.length = 0;
 
   const sync = window.document.getElementById("sync");
+  const scv = window.document.getElementById("scv");
 
-  // 空打ち（この時点でsyncBeepsに未消化のビートは無い想定タイミングではないので、
-  // 先にビートを消費させてから同じタイミングで再度叩き、空振りを再現する）
+  // #sync全体(スライダーや余白を含む)へのタップは無反応であるべき
   sync.dispatchEvent(new window.Event("pointerdown", { bubbles: true, cancelable: true }));
   let beepJudged = window.eval("syncBeeps[0].judged");
-  if(!beepJudged) fail(`expected the practice beep to be judged after the first tap, got judged=${beepJudged}`);
+  if(beepJudged) fail(`expected a tap outside #scv to leave the practice beep unjudged, got judged=${beepJudged}`);
+  if(vibeCalls.length) fail(`expected no vibration for a tap outside #scv, got calls=${JSON.stringify(vibeCalls)}`);
+
+  console.log("[vibrate] settings-panel tap outside #scv OK (ignored)");
+
+  // ── 4. 設定画面: 練習パネル(#scv)はノーツに反応した時だけバイブする ────
+  scv.dispatchEvent(new window.Event("pointerdown", { bubbles: true, cancelable: true }));
+  beepJudged = window.eval("syncBeeps[0].judged");
+  if(!beepJudged) fail(`expected the practice beep to be judged after tapping #scv, got judged=${beepJudged}`);
   if(vibeCalls.length !== 1 || vibeCalls[0] !== 33){
     fail(`expected exactly one navigator.vibrate(33) call for the practice beep hit, got calls=${JSON.stringify(vibeCalls)}`);
   }
@@ -91,7 +101,7 @@ async function main(){
   console.log("[vibrate] settings-panel note hit OK (judged, vibrate(33) called once)");
 
   vibeCalls.length = 0;
-  sync.dispatchEvent(new window.Event("pointerdown", { bubbles: true, cancelable: true }));
+  scv.dispatchEvent(new window.Event("pointerdown", { bubbles: true, cancelable: true }));
   if(vibeCalls.length){
     fail(`expected no vibration on the settings panel for a tap with no note nearby, got calls=${JSON.stringify(vibeCalls)}`);
   }
