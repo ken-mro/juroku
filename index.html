@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.10-2</title>
+<title>十六 JŪROKU v2026.08.10-3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -407,7 +407,6 @@ body::before{
   <div class="calib">バイブの長さ <input type="range" id="vibms" min="0" max="100" step="5" value="20">
     <span class="num" id="vibmsv">20ms</span>
     <button class="btn" id="vibtest" type="button" style="padding:3px 12px;font-size:10px">試す</button></div>
-  <div class="calib" id="fdbg">接触半径検出値 <span class="num" id="fdbgv">パネルをタップ</span></div>
 
   <div class="btns" style="margin-top:14px">
     <button class="btn prime" id="sapply">ズレをOFFSETに反映</button>
@@ -2955,13 +2954,6 @@ $("sync").addEventListener("pointerdown", e => {
   if(e.target.closest(".btn")) return;
   syncTap();
 });
-/* 診断用: 接触半径(Touch.radiusX/radiusY)が押す強さに応じて実機で変化するか確認するための
-   一時的な表示。判定には一切使わず、実測してから本実装するかどうかを決める。 */
-$("sync").addEventListener("touchstart", e => {
-  const t = e.touches && e.touches[0];
-  const rx = t ? t.radiusX : undefined, ry = t ? t.radiusY : undefined;
-  $("fdbgv").textContent = (rx == null) ? "非対応(undefined)" : `rX=${rx.toFixed(2)} rY=${ry.toFixed(2)}`;
-}, { passive: true });
 addEventListener("keydown", e => {
   if(syncOn && (e.key === " " || e.code === "Space")){ e.preventDefault(); syncTap(); }
 });
