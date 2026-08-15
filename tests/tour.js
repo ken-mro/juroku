@@ -102,10 +102,11 @@ async function main(){
     assert(vis.length === nVols && !vis.some(v => v.placeholder), `no placeholder should appear after Vol.${nVols} is done (got ${vis.length})`);
     // add a synthetic next Vol → journey continues from the last country of the last real Vol
     const lastCC = window.eval("TOUR_VOLS[TOUR_VOLS.length - 1].tracks.slice(-1)[0].cc");
-    // 最初の国は前 Vol の最終国と経度180°をまたぐ側（西半球なら日本、東半球ならアメリカ）にして、またぎ描画を必ず通す
-    const firstCC = window.eval(`TOUR_COUNTRIES[${JSON.stringify(lastCC)}].lon < 0 ? "JP" : "US"`);
+    // 最初の国は経度 ±179.9° の合成国（ZZ、前 Vol 最終国と反対の半球）にして、180° またぎの描画を必ず通す
+    const firstCC = "ZZ";
+    window.eval(`TOUR_COUNTRIES.ZZ = { en:"TESTLAND", lon: TOUR_COUNTRIES[${JSON.stringify(lastCC)}].lon > 0 ? -179.9 : 179.9, lat: 10 };`);
     window.eval(`TOUR_VOLS.push({ vol:${nextVol}, title:"test vol", en:"tv", tracks:[
-      { id:"00000000-0000-4000-8000-000000000001", title:"T2A", cc:${JSON.stringify(firstCC)}, ready:true, artist:"ken_mro", url:"x", art:"", tour:{vol:${nextVol}, idx:0, cc:${JSON.stringify(firstCC)}}, tag:"x" },
+      { id:"00000000-0000-4000-8000-000000000001", title:"T2A", cc:"ZZ", ready:true, artist:"ken_mro", url:"x", art:"", tour:{vol:${nextVol}, idx:0, cc:"ZZ"}, tag:"x" },
       { id:"00000000-0000-4000-8000-000000000002", title:"T2B", cc:"FR", ready:true, artist:"ken_mro", url:"y", art:"", tour:{vol:${nextVol}, idx:1, cc:"FR"}, tag:"🇫🇷 フランス" } ] });`);
     j = J();
     assert(j.length === total + 2 && j[total].prevCC === lastCC && j[total].vol === undefined && j[total].tour.vol === nextVol, `Vol.${nextVol} must continue from ${lastCC}`);
