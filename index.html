@@ -384,8 +384,6 @@ body::before{
 .vcard .vd i{width:9px;height:9px;border-radius:50%;border:1px solid var(--gofun-dim);opacity:.55}
 .vcard .vd i.on{background:var(--kin);border-color:var(--kin);opacity:1}
 .vcard .vd i.next{border-color:var(--kin);opacity:1}
-.vcard.soon{opacity:.5;cursor:default;transform:none}
-.vcard.soon:hover{border-color:var(--line);transform:none}
 .tarrive .bx{max-width:300px}
 .tarrive .br{font-size:44px}
 
@@ -796,16 +794,13 @@ let pendingTour = null;           // 次の play() をツアーの一環とし�
 function tourIsCleared(id){ return !!(tourState.cleared && tourState.cleared[id]); }
 function tourVolDone(v){ return v.tracks.length > 0 && v.tracks.every(t => tourIsCleared(t.id)); }
 /* 表示できる Vol。Vol.1 は常に、Vol.N は N-1 を完走した時に現れる。
-   完走した次の Vol がまだ無ければ「準備中」の枠 {placeholder:true, vol:N} を返す。 */
+   （次の Vol のデータが無い間は何も出さない。追加された時点で自然に現れる） */
 function tourVisibleVols(){
   const out = [];
   for(let i = 0; i < TOUR_VOLS.length; i++){
     if(i > 0 && !tourVolDone(TOUR_VOLS[i-1])) break;
     out.push(TOUR_VOLS[i]);
   }
-  const last = TOUR_VOLS[out.length - 1];
-  if(out.length === TOUR_VOLS.length && last && tourVolDone(last))
-    out.push({ placeholder:true, vol:last.vol + 1, tracks:[] });
   return out;
 }
 /* 表示できる Vol の曲を Vol 順に繋いだ 1 本の行程。地図は全 Vol で 1 枚なので、
@@ -814,7 +809,6 @@ function tourJourney(){
   const out = [];
   let prevCC = null;
   for(const v of tourVisibleVols()){
-    if(v.placeholder) continue;
     for(const t of v.tracks){
       out.push({ ...t, seq: out.length, prevCC });
       prevCC = t.cc;
@@ -2790,17 +2784,6 @@ function renderTourMap(opts){
       path.setAttribute("class", "tleg-draw");
     }
   }
-  /* 完走済みで次の Vol が未実装なら「準備中」の点線を東へ */
-  const vis = tourVisibleVols();
-  const ph = vis.find(v => v.placeholder);
-  if(ph && j.length){
-    const last = tourCC(j[j.length - 1].cc);
-    const x = tmapX(last.lon), y = tmapY(last.lat);
-    tsvg("path", { d: `M${x},${y} q40,-14 78,-6`, fill: "none", stroke: "#D9A441", "stroke-width": 1,
-                   "stroke-dasharray": "3 4", opacity: .55 }, svg);
-    tsvg("text", { x: x + 84, y: y - 4, "font-size": 7, fill: "#D9A441", opacity: .8, "font-family": "var(--f-mono)",
-                   "letter-spacing": ".14em" }, svg).textContent = `VOL.${ph.vol} — 準備中`;
-  }
 
   /* 飛行機（演出中だけ表示） */
   const plane = tsvg("g", { id: "tplane", visibility: "hidden" }, svg);
@@ -2996,29 +2979,23 @@ function renderTourVols(){
   const next = tourNextSeq();
   const j = tourJourney();
   for(const v of tourVisibleVols()){
-    const b = document.createElement(v.placeholder ? "div" : "button");
-    b.className = "vcard" + (v.placeholder ? " soon" : "");
-    if(!v.placeholder) b.type = "button";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "vcard";
     b.dataset.vol = v.vol;
     b.innerHTML = `<div class="eyebrow"></div><div class="vt"></div><div class="vs"></div><div class="vd"></div>`;
     b.querySelector(".eyebrow").textContent = "World Tour · Vol." + v.vol;
-    if(v.placeholder){
-      b.querySelector(".vt").textContent = `Vol.${v.vol} — 準備中`;
-      b.querySelector(".vs").textContent = "COMING SOON · 次の旅を準備しています";
-      b.querySelector(".vd").remove();
-    }else{
-      const n = v.tracks.filter(t => tourIsCleared(t.id)).length;
-      b.querySelector(".vt").textContent = v.title;
-      b.querySelector(".vs").textContent = `${n} / ${v.tracks.length}` + (n === v.tracks.length ? " · 完走" : "") + " · 地図を開く ▸";
-      const vd = b.querySelector(".vd");
-      for(const t of v.tracks){
-        const i = document.createElement("i");
-        const e = j.find(x => x.id === t.id);
-        if(tourIsCleared(t.id)) i.className = "on"; else if(e && e.seq === next) i.className = "next";
-        vd.appendChild(i);
-      }
-      b.onclick = () => openTour({ vol: v.vol });
+    const n = v.tracks.filter(t => tourIsCleared(t.id)).length;
+    b.querySelector(".vt").textContent = v.title;
+    b.querySelector(".vs").textContent = `${n} / ${v.tracks.length}` + (n === v.tracks.length ? " · 完走" : "") + " · 地図を開く ▸";
+    const vd = b.querySelector(".vd");
+    for(const t of v.tracks){
+      const i = document.createElement("i");
+      const e = j.find(x => x.id === t.id);
+      if(tourIsCleared(t.id)) i.className = "on"; else if(e && e.seq === next) i.className = "next";
+      vd.appendChild(i);
     }
+    b.onclick = () => openTour({ vol: v.vol });
     wrap.appendChild(b);
   }
 }
