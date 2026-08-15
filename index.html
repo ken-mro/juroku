@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.15-4</title>
+<title>十六 JŪROKU v2026.08.16-1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -310,6 +310,14 @@ body::before{
 @keyframes fcglow{0%,100%{opacity:1}50%{opacity:.62}}
 @media (prefers-reduced-motion: reduce){ .fcbadge{animation:none} }
 
+/* 結果の段階表示: .rv は revealing 中は不可視、.in が付くと現れる。数字は JS でカウントアップ */
+#result .rv{transition:opacity .38s ease,transform .38s ease}
+#result.revealing .rv{opacity:0;transform:translateY(8px);visibility:hidden}
+#result.revealing .breakdown{background:var(--sumi)}   /* まだ現れていない枠が明るく抜けないように */
+#result.revealing .rv.in{opacity:1;transform:none;visibility:visible}
+#result.revealing .rank.in{animation:rstamp .55s cubic-bezier(.2,.9,.3,1.15) both}
+@keyframes rstamp{0%{transform:scale(1.7);opacity:0}70%{transform:scale(.96);opacity:1}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){ #result .rv{transition:none} #result.revealing .rank.in{animation:none} }
 .btns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
 .btn{
   background:transparent;border:1px solid var(--line);border-radius:3px;color:var(--gofun);
@@ -534,21 +542,21 @@ body::before{
 
 <!-- ══════════════ RESULT ══════════════ -->
 <section id="result" class="screen">
-  <div class="rank" id="rrank">—</div>
+  <div class="rank rv" id="rrank">—</div>
   <div class="rsong" id="rsong">—</div>
   <div class="rdiff" id="rdiff">NORMAL</div>
-  <div class="rscore num" id="rscore">0</div>
-  <div class="racc num" id="racc">0.00%</div>
-  <div class="fcbadge" id="rfc" hidden><span id="rfctext">FULL COMBO</span></div>
-  <div class="newbest" id="rnew" hidden>NEW BEST</div>
+  <div class="rscore num rv" id="rscore">0</div>
+  <div class="racc num rv" id="racc">0.00%</div>
+  <div class="fcbadge rv" id="rfc" hidden><span id="rfctext">FULL COMBO</span></div>
+  <div class="newbest rv" id="rnew" hidden>NEW BEST</div>
   <div class="breakdown">
-    <div><div class="k" style="color:var(--kin-hi)">冴</div><div class="v num" id="c0">0</div><div class="l">SAE</div></div>
-    <div><div class="k" style="color:var(--kin)">良</div><div class="v num" id="c1">0</div><div class="l">RYŌ</div></div>
-    <div><div class="k" style="color:var(--hiwada)">甘</div><div class="v num" id="c2">0</div><div class="l">AMA</div></div>
-    <div><div class="k" style="color:var(--shu)">逃</div><div class="v num" id="c3">0</div><div class="l">NOGASHI</div></div>
+    <div class="rv"><div class="k" style="color:var(--kin-hi)">冴</div><div class="v num" id="c0">0</div><div class="l">SAE</div></div>
+    <div class="rv"><div class="k" style="color:var(--kin)">良</div><div class="v num" id="c1">0</div><div class="l">RYŌ</div></div>
+    <div class="rv"><div class="k" style="color:var(--hiwada)">甘</div><div class="v num" id="c2">0</div><div class="l">AMA</div></div>
+    <div class="rv"><div class="k" style="color:var(--shu)">逃</div><div class="v num" id="c3">0</div><div class="l">NOGASHI</div></div>
   </div>
-  <div class="rmax">MAX COMBO <span class="num" id="rmax">0</span></div>
-  <div class="btns">
+  <div class="rmax rv">MAX COMBO <span class="num" id="rmax">0</span></div>
+  <div class="btns rv">
     <button class="btn prime" id="tnext" hidden>次の国へ</button>
     <button class="btn prime" id="retry">RETRY</button>
     <button class="btn" id="back">SELECT</button>
@@ -2166,6 +2174,7 @@ function finish(){
   if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? "次の国へ" : "地図へ（完走）";
 
   show("result");
+  revealResult();
 }
 
 function quit(){
@@ -2679,6 +2688,68 @@ async function loadRemote(tr){
     fail("音源を取得できませんでした。ネットワーク、または配信元のCORS設定が原因の可能性があります。" +
          "その場合はSunoからmp3をダウンロードして、ファイル読み込みで遊べます。");
   }
+}
+
+/* ═══════════ 結果の段階表示 ═══════════
+   結果画面は 冴→良→甘→逃 の順に数を一つずつカウントアップし、最大コンボ → 段位（判定）→
+   点数 → 精度 → バッジ → ボタン の順で現れる。タップで即座に完了。reduceMotion なら即完了。 */
+let revealGen = 0;
+function revealResult(){
+  const R = $("result");
+  const gen = ++revealGen;
+  const finals = {
+    c: [0,1,2,3].map(i => +$("c"+i).textContent || 0),
+    score: (+$("rscore").textContent.replace(/,/g,"") || 0),
+    max: +$("rmax").textContent || 0,
+  };
+  const items = Array.from(R.querySelectorAll(".rv"));
+  const finalize = () => {
+    if(gen !== revealGen) return;
+    for(let i=0;i<4;i++) $("c"+i).textContent = finals.c[i];
+    $("rscore").textContent = finals.score.toLocaleString();
+    $("rmax").textContent = finals.max;
+    for(const el of items) el.classList.remove("in");
+    R.classList.remove("revealing");
+    R.onpointerdown = null;
+  };
+  if(reduceMotion){ finalize(); return; }
+
+  R.classList.add("revealing");
+  for(const el of items) el.classList.remove("in");
+  const t0 = performance.now();
+  const T = { c:[200, 580, 960, 1340], cDur: 380, max: 1750, rank: 2100, score: 2100, scoreDur: 650, acc: 2500, badge: 2800, btns: 2950, end: 3200 };
+  const bd = R.querySelectorAll(".breakdown .rv");
+  const scoreEl = $("rscore"), maxEl = R.querySelector(".rmax");
+  const setIn = (el, on) => { if(el && on && !el.classList.contains("in")) el.classList.add("in"); };
+  const easeOut = x => 1 - Math.pow(1 - x, 3);
+  const step = () => {
+    if(gen !== revealGen) return;
+    const t = performance.now() - t0;
+    for(let i=0;i<4;i++){
+      if(t >= T.c[i]){
+        setIn(bd[i], true);
+        const p = Math.min(1, (t - T.c[i]) / T.cDur);
+        $("c"+i).textContent = Math.round(finals.c[i] * easeOut(p));
+      }
+    }
+    if(t >= T.max){ setIn(maxEl, true); $("rmax").textContent = finals.max; }
+    if(t >= T.rank) setIn($("rrank"), true);
+    if(t >= T.score){
+      setIn(scoreEl, true);
+      const p = Math.min(1, (t - T.score) / T.scoreDur);
+      scoreEl.textContent = Math.round(finals.score * easeOut(p)).toLocaleString();
+    }
+    if(t >= T.acc) setIn($("racc"), true);
+    if(t >= T.badge){ setIn($("rfc"), true); setIn($("rnew"), true); }
+    if(t >= T.btns) setIn(R.querySelector(".btns"), true);
+    if(t >= T.end){ finalize(); return; }
+    requestAnimationFrame(step);
+  };
+  for(let i=0;i<4;i++) $("c"+i).textContent = "0";
+  scoreEl.textContent = "0";
+  R.onpointerdown = () => finalize();          // タップで演出を飛ばす
+  requestAnimationFrame(step);
+  setTimeout(finalize, T.end + 400);           // rAF が止まる環境でも必ず最終状態にする
 }
 
 /* ═══════════ ワールドツアー「地球の鼓動 / Pulse of the Earth」 ═══════════
