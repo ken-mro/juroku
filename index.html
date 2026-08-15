@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.15-1</title>
+<title>十六 JŪROKU v2026.08.15-2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -2307,6 +2307,13 @@ function setTab(t){
   $("tab-lib").hidden = t !== "lib";
   $("tab-own").hidden = t !== "own";
 }
+/* タブの切り替えは #hometabs への委譲で受ける。ボタン個別に付けると
+   rebuildTabs() が中身を作り直した時にハンドラごと消えるため。 */
+$("hometabs").onclick = e => {
+  const b = e.target.closest("button[data-t]");
+  if(b) setTab(b.dataset.t);
+};
+setTab("lib");                       // 初期表示（aria-pressed もここで揃える）
 
 /* タブ潰れの自己診断＋自動修復。
    前回の実測で「子46px・親1px」という非標準レイアウトが確認された。
@@ -2324,8 +2331,7 @@ function rebuildTabs(){
     Object.assign(b.style, { display:"inline-block", width:"50%", height:"46px",
       verticalAlign:"top", border:"0", cursor:"pointer", textAlign:"center",
       fontFamily:"sans-serif", fontSize:"13px", letterSpacing:".14em" });
-    b.onclick = () => setTab(t);
-    tb.appendChild(b);
+    tb.appendChild(b);                 // クリックは #hometabs 側の委譲で拾う
   }
   setTab("lib");
 }
@@ -2687,28 +2693,7 @@ async function loadFromLink(rawIn){
   }
 
   const known = DEFAULT_TRACKS.find(x => x.id === id);
-  if(known){ setTab("lib");
-
-/* タブ潰れの自己診断。46px未満なら、実測と computed display を
-   画面に表示する。スクリーンショットだけで原因を特定するため。 */
-setTimeout(() => {
-  try{
-    const tb = $("hometabs");
-    const bs = tb.querySelectorAll("button");
-    const r = tb.getBoundingClientRect();
-    if(r.width > 0 && r.height < 34){
-      const parts = ["TAB診断: bar " + (r.width|0) + "x" + (r.height|0) + "px, btn数=" + bs.length];
-      for(const b of bs){
-        const c = getComputedStyle(b), br = b.getBoundingClientRect();
-        parts.push("[" + c.display + " " + (br.width|0) + "x" + (br.height|0) +
-                   " mh=" + c.minHeight + " vis=" + c.visibility + "]");
-      }
-      const e = $("err");
-      e.hidden = false;
-      e.textContent = parts.join(" ");
-    }
-  }catch(x){}
-}, 600); loadRemote(known); return; }
+  if(known){ setTab("lib"); loadRemote(known); return; }
 
   const tr = {
     kind: "link", id,
