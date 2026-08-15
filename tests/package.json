@@ -6,6 +6,6 @@
     "jsdom": "^30.0.1"
   },
   "scripts": {
-    "test": "node domtest.js && node smoke.js && node chart.js && node preview.js && node vibrate.js"
+    "test": "node domtest.js && node smoke.js && node chart.js && node preview.js && node vibrate.js && node marker.js"
   }
 }
