@@ -123,7 +123,7 @@ tourState       {cleared:{[trackId]:{d, diff, acc}}}   localStorage juroku:tour
 
 - 進行は **行程 `tourJourney()`**（表示できる Vol の曲を順に連結した 1 本の列）で管理する。
   曲 k は「k-1 までクリア済み」で解放（`tourNextSeq()`）。クリア＝精度 50%（可）以上、難易度は問わない。
-- Vol.N は Vol.N-1 完走で現れる。データが無ければ「準備中」の枠（`tourVisibleVols()` の placeholder）。
+- Vol.N は Vol.N-1 完走で現れる（`tourVisibleVols()`）。次の Vol のデータが無い間は何も出さない。
   Vol の境界でも前 Vol の最終国から航路が続く（`prevCC`）。
 - ツアー経由のプレーは `pendingTour` → `play()` 冒頭で `cur.tour` に移す。`finish()` が `tourOnFinish()` を呼ぶ。
   `quit()` / 結果画面の MAP はツアー画面に戻る。

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.15-3</title>
+<title>十六 JŪROKU v2026.08.15-4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -384,8 +384,6 @@ body::before{
 .vcard .vd i{width:9px;height:9px;border-radius:50%;border:1px solid var(--gofun-dim);opacity:.55}
 .vcard .vd i.on{background:var(--kin);border-color:var(--kin);opacity:1}
 .vcard .vd i.next{border-color:var(--kin);opacity:1}
-.vcard.soon{opacity:.5;cursor:default;transform:none}
-.vcard.soon:hover{border-color:var(--line);transform:none}
 .tarrive .bx{max-width:300px}
 .tarrive .br{font-size:44px}
 
@@ -681,6 +679,14 @@ const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上
   ES:{ en:"SPAIN",  lon:-3.7,   lat:40.4  },
   BR:{ en:"BRAZIL", lon:-43.2,  lat:-22.9 },
   US:{ en:"USA",    lon:-118.2, lat:34.1  },
+  MX:{ en:"MEXICO", lon:-99.13, lat:19.43 },
+  CU:{ en:"CUBA", lon:-82.37, lat:23.13 },
+  JM:{ en:"JAMAICA", lon:-76.8, lat:18 },
+  AR:{ en:"ARGENTINA", lon:-58.38, lat:-34.6 },
+  AU:{ en:"AUSTRALIA", lon:151.2, lat:-33.87 },
+  ID:{ en:"INDONESIA", lon:106.85, lat:-6.2 },
+  MN:{ en:"MONGOLIA", lon:106.9, lat:47.9 },
+  IE:{ en:"IRELAND", lon:-6.26, lat:53.35 },
   /* TOUR_COUNTRIES_END */
 };
 const TOUR_VOLS = [
@@ -694,6 +700,17 @@ const TOUR_VOLS = [
       { id:"1e9e9b3d-bd0c-4443-ac35-54a01b7512b1", title:"Duende Rush",        cc:"ES" },
       { id:"ee1506de-cc64-4a7b-9ce1-5281724d6ea0", title:"Batucada Blastoff",  cc:"BR" },
       { id:"83009c6e-c1b1-4512-9df4-0c7269620426", title:"Neon Freeway Funk",  cc:"US" },
+    ] },
+  { vol:2, title:"Pulse of the Earth: World Tour Vol.2",
+    tracks:[
+      { id:"dbab1125-0e24-46db-b204-96120e5127e9", title:"Mariachi Blaze",      cc:"MX" },
+      { id:"7c8accdf-3092-4112-bf06-c4a9530908d9", title:"Havana Heatwave",     cc:"CU" },
+      { id:"994138de-5cdb-4689-856e-5deee18757a4", title:"Riddim Rocket",       cc:"JM" },
+      { id:"93783a23-6cbb-45cd-aaa4-1013b75ade9e", title:"Tango Voltage",       cc:"AR" },
+      { id:"71e49086-6b9f-471e-b6a4-38dc17c3f3c3", title:"Outback Pulse",       cc:"AU" },
+      { id:"8ee09161-2435-4fb9-93c4-93f1ec42d745", title:"Kotekan Cascade",     cc:"ID" },
+      { id:"008c011c-d2b0-41d8-9779-a11d20cd90c5", title:"Steppe Thunder",      cc:"MN" },
+      { id:"f06a9538-ca26-4d03-9814-eac27e33d697", title:"Emerald Reel",        cc:"IE" },
     ] },
   /* TOUR_VOLS_END */
 ].map(v => ({ ...v, tracks: v.tracks.map((x, idx) => ({
@@ -796,16 +813,13 @@ let pendingTour = null;           // 次の play() をツアーの一環とし�
 function tourIsCleared(id){ return !!(tourState.cleared && tourState.cleared[id]); }
 function tourVolDone(v){ return v.tracks.length > 0 && v.tracks.every(t => tourIsCleared(t.id)); }
 /* 表示できる Vol。Vol.1 は常に、Vol.N は N-1 を完走した時に現れる。
-   完走した次の Vol がまだ無ければ「準備中」の枠 {placeholder:true, vol:N} を返す。 */
+   （次の Vol のデータが無い間は何も出さない。追加された時点で自然に現れる） */
 function tourVisibleVols(){
   const out = [];
   for(let i = 0; i < TOUR_VOLS.length; i++){
     if(i > 0 && !tourVolDone(TOUR_VOLS[i-1])) break;
     out.push(TOUR_VOLS[i]);
   }
-  const last = TOUR_VOLS[out.length - 1];
-  if(out.length === TOUR_VOLS.length && last && tourVolDone(last))
-    out.push({ placeholder:true, vol:last.vol + 1, tracks:[] });
   return out;
 }
 /* 表示できる Vol の曲を Vol 順に繋いだ 1 本の行程。地図は全 Vol で 1 枚なので、
@@ -814,7 +828,6 @@ function tourJourney(){
   const out = [];
   let prevCC = null;
   for(const v of tourVisibleVols()){
-    if(v.placeholder) continue;
     for(const t of v.tracks){
       out.push({ ...t, seq: out.length, prevCC });
       prevCC = t.cc;
@@ -2790,17 +2803,6 @@ function renderTourMap(opts){
       path.setAttribute("class", "tleg-draw");
     }
   }
-  /* 完走済みで次の Vol が未実装なら「準備中」の点線を東へ */
-  const vis = tourVisibleVols();
-  const ph = vis.find(v => v.placeholder);
-  if(ph && j.length){
-    const last = tourCC(j[j.length - 1].cc);
-    const x = tmapX(last.lon), y = tmapY(last.lat);
-    tsvg("path", { d: `M${x},${y} q40,-14 78,-6`, fill: "none", stroke: "#D9A441", "stroke-width": 1,
-                   "stroke-dasharray": "3 4", opacity: .55 }, svg);
-    tsvg("text", { x: x + 84, y: y - 4, "font-size": 7, fill: "#D9A441", opacity: .8, "font-family": "var(--f-mono)",
-                   "letter-spacing": ".14em" }, svg).textContent = `VOL.${ph.vol} — 準備中`;
-  }
 
   /* 飛行機（演出中だけ表示） */
   const plane = tsvg("g", { id: "tplane", visibility: "hidden" }, svg);
@@ -2996,29 +2998,23 @@ function renderTourVols(){
   const next = tourNextSeq();
   const j = tourJourney();
   for(const v of tourVisibleVols()){
-    const b = document.createElement(v.placeholder ? "div" : "button");
-    b.className = "vcard" + (v.placeholder ? " soon" : "");
-    if(!v.placeholder) b.type = "button";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "vcard";
     b.dataset.vol = v.vol;
     b.innerHTML = `<div class="eyebrow"></div><div class="vt"></div><div class="vs"></div><div class="vd"></div>`;
     b.querySelector(".eyebrow").textContent = "World Tour · Vol." + v.vol;
-    if(v.placeholder){
-      b.querySelector(".vt").textContent = `Vol.${v.vol} — 準備中`;
-      b.querySelector(".vs").textContent = "COMING SOON · 次の旅を準備しています";
-      b.querySelector(".vd").remove();
-    }else{
-      const n = v.tracks.filter(t => tourIsCleared(t.id)).length;
-      b.querySelector(".vt").textContent = v.title;
-      b.querySelector(".vs").textContent = `${n} / ${v.tracks.length}` + (n === v.tracks.length ? " · 完走" : "") + " · 地図を開く ▸";
-      const vd = b.querySelector(".vd");
-      for(const t of v.tracks){
-        const i = document.createElement("i");
-        const e = j.find(x => x.id === t.id);
-        if(tourIsCleared(t.id)) i.className = "on"; else if(e && e.seq === next) i.className = "next";
-        vd.appendChild(i);
-      }
-      b.onclick = () => openTour({ vol: v.vol });
+    const n = v.tracks.filter(t => tourIsCleared(t.id)).length;
+    b.querySelector(".vt").textContent = v.title;
+    b.querySelector(".vs").textContent = `${n} / ${v.tracks.length}` + (n === v.tracks.length ? " · 完走" : "") + " · 地図を開く ▸";
+    const vd = b.querySelector(".vd");
+    for(const t of v.tracks){
+      const i = document.createElement("i");
+      const e = j.find(x => x.id === t.id);
+      if(tourIsCleared(t.id)) i.className = "on"; else if(e && e.seq === next) i.className = "next";
+      vd.appendChild(i);
     }
+    b.onclick = () => openTour({ vol: v.vol });
     wrap.appendChild(b);
   }
 }

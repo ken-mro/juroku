@@ -72,7 +72,6 @@ async function main(){
       assert(tabBtn(x).getAttribute("aria-pressed") === String(x === "tour"), `aria-pressed wrong on ${x}`);
     const cards = document.querySelectorAll("#tourvols .vcard");
     assert(cards.length === 1, `expected 1 vol card initially, got ${cards.length}`);
-    assert(!cards[0].classList.contains("soon"), "Vol.1 card must not be 準備中");
     assert(cards[0].textContent.includes("0 / 8"), `Vol.1 card should read 0 / 8, got "${cards[0].textContent}"`);
     window.eval("rebuildTabs();");
     tap("tour");
@@ -93,25 +92,26 @@ async function main(){
     window.eval(`for(const t of TOUR_VOLS[0].tracks) tourState.cleared[t.id] = {d:1, diff:"easy", acc:60};`);
     assert(window.tourNextSeq() === 8, "after clearing all, tourNextSeq() should be 8");
     assert(window.eval("tourVolDone(TOUR_VOLS[0])") === true, "Vol.1 should be done");
-    // 収録済みの全 Vol を完走 → 次の番号の「準備中」プレースホルダーが現れる（Vol の数に依存しない）
+    // 収録済みの全 Vol を完走しても、次の Vol のデータが無ければ何も増えない（Vol の数に依存しない）
     const nVols = window.eval("TOUR_VOLS.length");
     const total = window.eval("TOUR_VOLS.reduce((a, v) => a + v.tracks.length, 0)");
     const nextVol = nVols + 1;
     window.eval(`for(const v of TOUR_VOLS) for(const t of v.tracks) tourState.cleared[t.id] = {d:1, diff:"easy", acc:60};`);
     assert(window.tourNextSeq() === total, `after clearing every Vol, tourNextSeq() should be ${total}`);
     let vis = JSON.parse(window.eval("JSON.stringify(tourVisibleVols())"));
-    assert(vis.length === nextVol && vis[nVols].placeholder && vis[nVols].vol === nextVol, `placeholder Vol.${nextVol} should appear after Vol.${nVols} is done`);
+    assert(vis.length === nVols && !vis.some(v => v.placeholder), `no placeholder should appear after Vol.${nVols} is done (got ${vis.length})`);
     // add a synthetic next Vol → journey continues from the last country of the last real Vol
     const lastCC = window.eval("TOUR_VOLS[TOUR_VOLS.length - 1].tracks.slice(-1)[0].cc");
-    // 最初の国は前 Vol の最終国と経度180°をまたぐ側（西半球なら日本、東半球ならアメリカ）にして、またぎ描画を必ず通す
-    const firstCC = window.eval(`TOUR_COUNTRIES[${JSON.stringify(lastCC)}].lon < 0 ? "JP" : "US"`);
+    // 最初の国は経度 ±179.9° の合成国（ZZ、前 Vol 最終国と反対の半球）にして、180° またぎの描画を必ず通す
+    const firstCC = "ZZ";
+    window.eval(`TOUR_COUNTRIES.ZZ = { en:"TESTLAND", lon: TOUR_COUNTRIES[${JSON.stringify(lastCC)}].lon > 0 ? -179.9 : 179.9, lat: 10 };`);
     window.eval(`TOUR_VOLS.push({ vol:${nextVol}, title:"test vol", en:"tv", tracks:[
-      { id:"00000000-0000-4000-8000-000000000001", title:"T2A", cc:${JSON.stringify(firstCC)}, ready:true, artist:"ken_mro", url:"x", art:"", tour:{vol:${nextVol}, idx:0, cc:${JSON.stringify(firstCC)}}, tag:"x" },
+      { id:"00000000-0000-4000-8000-000000000001", title:"T2A", cc:"ZZ", ready:true, artist:"ken_mro", url:"x", art:"", tour:{vol:${nextVol}, idx:0, cc:"ZZ"}, tag:"x" },
       { id:"00000000-0000-4000-8000-000000000002", title:"T2B", cc:"FR", ready:true, artist:"ken_mro", url:"y", art:"", tour:{vol:${nextVol}, idx:1, cc:"FR"}, tag:"🇫🇷 フランス" } ] });`);
     j = J();
     assert(j.length === total + 2 && j[total].prevCC === lastCC && j[total].vol === undefined && j[total].tour.vol === nextVol, `Vol.${nextVol} must continue from ${lastCC}`);
     vis = JSON.parse(window.eval("JSON.stringify(tourVisibleVols())"));
-    assert(vis.length === nextVol && !vis[nVols].placeholder, `Vol.${nextVol} data should replace the placeholder`);
+    assert(vis.length === nextVol && vis[nVols].vol === nextVol, `Vol.${nextVol} should appear once its data exists`);
     assert(window.tourNextSeq() === total, `next should be Vol.${nextVol} #1 (seq ${total})`);
     // map: a leg that crosses the antimeridian (e.g. US→JP) gets a shifted second copy
     const crosses = Math.abs(window.eval(`TOUR_COUNTRIES[${JSON.stringify(lastCC)}].lon - TOUR_COUNTRIES[${JSON.stringify(firstCC)}].lon`)) > 180;
@@ -120,7 +120,7 @@ async function main(){
     const legs = window.document.querySelectorAll(`#tmap path[data-leg="${total}"]`);
     const shifted = window.document.querySelectorAll('#tmap path[transform]');
     assert(legs.length === 1 && shifted.length >= 1, `${lastCC}→${firstCC} leg should have a shifted copy (legs=${legs.length}, shifted=${shifted.length})`);
-    console.log(`[tour] progression OK (sequential unlock, placeholder Vol.${nextVol}, Vol boundary prevCC=${lastCC}, antimeridian leg ${lastCC}→${firstCC})`);
+    console.log(`[tour] progression OK (sequential unlock, no placeholder, Vol.${nextVol} appears with data, Vol boundary prevCC=${lastCC}, antimeridian leg ${lastCC}→${firstCC})`);
   }
 
   /* ── 4. openTour renders map / chips / card ────────────────────────── */
