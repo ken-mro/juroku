@@ -113,6 +113,16 @@ JŪROKU は独自の視覚言語・タイミング提示・判定表現を持つ
   相対床）が「曲と合っていないノーツ」の抑制を担う。
 - 配置は両手モデル（左手 = 列0-2 / 右手 = 列1-3）。`validate()` が押下可能性を検証する。
 
+### 結果画面と結果画像
+
+- `finish()` は最終値を DOM に入れてから `revealResult()` を呼ぶ。演出は 冴→良→甘→逃 のカウントアップ →
+  最大コンボ → 段位（判定）→ 点数 → 精度 → バッジ → ボタン。`#result` のタップで即完了、
+  `reduceMotion` なら即完了。rAF が止まっても `setTimeout` で必ず最終状態にする。
+- 結果画像は `renderShareCanvas(rec)`（1080×1080）。`rec` は bests と同じ形 `{title, diff, s, a, c, m, n, d}` で、
+  結果画面は `lastResult`、ベスト記録モーダルは `bestShown` を渡す（**同じ関数・同じ見た目**）。
+  ジャケットは CORS 可なら描く（cdn2.suno.ai は許可済み）。保存は `saveShareImage()`：
+  モバイル（pointer: coarse）で `navigator.share` が使えれば共有シート、それ以外はダウンロード。
+
 ### ワールドツアー「地球の鼓動 / Pulse of the Earth」
 
 ```
@@ -185,6 +195,7 @@ node tests/domtest.js    # jsdom でのDOM構造・スクリプトエラー
 node tests/chart.js      # 既知の音源で譜面が変化していないか（時刻+パネルの完全一致）
 node tests/tour.js       # ワールドツアー（データ整合・解放ロジック・地図・finish 連携・失敗経路）
 node tests/tour-import.test.js  # Vol 追加スクリプト（fixture の md == index.html の Vol.1、合成 Vol.2 の挿入）
+node tests/result.js     # 結果画面の段階表示・結果画像（記録の同一性、canvas が例外を出さない、ボタン配線）
 ```
 （`cd tests && npm test` で全部通る）
 
