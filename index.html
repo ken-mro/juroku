@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.10-1</title>
+<title>十六 JŪROKU v2026.08.15-1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -385,8 +385,8 @@ body::before{
 
   <div class="opts" style="margin:16px 0 2px">
     <div class="seg" id="markersel" role="group" aria-label="マーカー">
-      <button data-m="ring" aria-pressed="true">環</button>
-      <button data-m="fill">満</button>
+      <button data-m="ring">環</button>
+      <button data-m="fill" aria-pressed="true">満</button>
       <button data-m="fuse">火</button>
       <button data-m="sweep">簾</button>
       <button data-m="ka">蚊</button>
@@ -412,7 +412,7 @@ body::before{
     <button class="btn prime" id="sapply">ズレをOFFSETに反映</button>
     <button class="btn" id="sdone">戻る</button>
   </div>
-  <p class="foot" style="margin-top:12px">マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。</p>
+  <p class="foot" style="margin-top:12px">マーカーが打点に達した瞬間が押し時。マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。</p>
 </section>
 
 <!-- ══════════════ LOADING ══════════════ -->
@@ -1217,12 +1217,15 @@ async function prepare(name, arrayBuffer){
 }
 
 /* ═══════════ マーカー（ノーツ表示パターン） ═══════════
-   どれも「外側から中心へ収縮して重なる」系の文法を意図的に避けた自作。
-   環 = 外周アークの回転充填（既定） / 満 = 下から満ちる水位
-   火 = 渦の導火線を火花が中心へ走り「ドン」/ 簾 = 左から右への掃引
-   蚊 = 蚊が飛んできて中央の丸に入った瞬間が押し時
-   いずれも円の拡大・収縮でタイミングを示さない。               */
-let marker = "ring";
+   マーカーは「打点（Hit Point）に到達した瞬間が押し時」という一貫した文法を、
+   方式ごとに異なる空間表現で提示する。時間の進行方向が一目で読めることが基準。
+   満 = 下から満ちる水位、上端の打点線に届いた瞬間（既定）
+   環 = 外周アークの回転充填、一周した瞬間
+   火 = 渦の導火線を火花が中心へ走り、燃え尽きて「ドン」
+   簾 = 左から右への掃引、右端に届いた瞬間
+   蚊 = 蚊が飛来し、中央の丸（打点）に入った瞬間
+   拡大・縮小の一択に頼らず、水位／回転／掃引／移動／発火を使い分ける。 */
+let marker = "fill";
 /* マーカーごとの固有色: 金/藍/朱・桜/若竹。伝統色で統一 */
 const MARKER_STYLE = {
   /* hi = 通常のハイライト / vivid = 押す瞬間だけ乗せる鮮色。
@@ -1233,7 +1236,7 @@ const MARKER_STYLE = {
   sweep: { rgb:[ 94,158,110], hi:"#A9DDB8", vivid:"#66F58A" },   // 若竹 → 萌黄
   ka:    { rgb:[150,120,190], hi:"#C6B0E8", vivid:"#C77DFF" },   // 藤紫
 };
-const curStyle = () => MARKER_STYLE[marker] || MARKER_STYLE.ring;
+const curStyle = () => MARKER_STYLE[marker] || MARKER_STYLE.fill;
 function paintMarker(c, px, py, pw, ph, p, tracePath){
   const e = Math.pow(p, 2.2);
   const st = curStyle();
@@ -1279,26 +1282,39 @@ function paintMarker(c, px, py, pw, ph, p, tracePath){
     }
     c.restore();
   }else if(marker === "fill"){
+    /* 満: 下から満ちる水位。上端に薄い破線で「打点」を常に描いておき、
+       水面がそこに重なった瞬間が押し時。水位は残り時間に正比例するので、
+       満水までの隙間の高さがそのまま「あとどれだけ早いか」になる。 */
     c.save(); tracePath(); c.clip();
-    const hh = ph * p;
+    const TOP = ph*0.085;                       // 打点線までの余白
+    const hh  = (ph - TOP) * p;                 // p=1 で打点線に一致（満水）
+    const sy  = py + ph - hh;                   // 水面のY
     const vv = p > 0.86 ? (p-0.86)/0.14 : 0;   // 押す瞬間の鮮色の強さ
+    /* 打点線（目標高さ）。水面と読み違えないよう破線・低コントラストで置く */
+    c.save();
+    c.setLineDash([pw*0.07, pw*0.055]);
+    c.globalAlpha = 0.16 + 0.34*p;
+    c.strokeStyle = vv > 0 ? st.vivid : "#EFE7DA";
+    c.lineWidth = Math.max(1, pw*0.014);
+    c.beginPath(); c.moveTo(px, py+TOP); c.lineTo(px+pw, py+TOP); c.stroke();
+    c.restore();
     c.fillStyle = col(0.22 + 0.40*p);
-    c.fillRect(px, py+ph-hh, pw, hh);
+    c.fillRect(px, sy, pw, hh);
     if(vv > 0){                                 // 水全体を冴えた色に染める
       c.globalAlpha = vv * 0.70;
       c.fillStyle = st.vivid;
-      c.fillRect(px, py+ph-hh, pw, hh);
+      c.fillRect(px, sy, pw, hh);
     }
     c.globalAlpha = 0.55 + 0.45*p;              // 水面の線
     c.fillStyle = vv > 0 ? st.vivid : st.hi;
     const lw = 3 + vv*3;
-    c.fillRect(px, py+ph-hh-lw/2, pw, lw);
+    c.fillRect(px, sy-lw/2, pw, lw);
     c.restore();
   }else if(marker === "fuse"){
     /* 火: 渦を巻く導火線。火花が外周から中心へ走り、燃えた側（外側）が
-       消えていく。中心に達した瞬間＝押すタイミングで「ドン」。
-       閉じた円の拡大・収縮は使わず、線幅も一定。手がかりは
-       「固定された軌道上を進む一点」で、輪が縮んで重なる方式とは別物。 */
+       消えていく。中心＝打点に達した瞬間が押し時で、そこで「ドン」。
+       線幅は一定に保ち、手がかりを「固定された軌道上を進む一点」に絞る。
+       残りの導火線の長さがそのまま残り時間として読める。 */
     const TURNS = 1.0, R0 = r*1.06;
     const at = u => {                       // u=0:外周 → u=1:中心
       const th = -Math.PI/2 + u*TURNS*Math.PI*2;
@@ -1363,10 +1379,9 @@ function paintMarker(c, px, py, pw, ph, p, tracePath){
     }
     c.restore();
   }else if(marker === "ka"){
-    /* 蚊: 中央に固定サイズの丸（着地点）を置き、蚊が外から
+    /* 蚊: 中央に固定サイズの丸（打点）を置き、蚊が外から
        ふらふらと飛んで来る。丸の中に入った瞬間が押し時。
-       丸は拡大も縮小もしない。手がかりは「的へ向かう移動体」で、
-       輪が縮んで重なる方式とは別物。 */
+       丸は拡大も縮小もせず、手がかりは「的へ向かう移動体」に絞る。 */
     const rc = r*0.32;                       // 中央の丸（不変）
     const ez = Math.pow(p, 1.3);             // 進入は終盤ほど素早く
     const vv = p > 0.86 ? (p-0.86)/0.14 : 0;
@@ -1865,8 +1880,7 @@ function finish(){
 
   const total = cur.chart.length;
   const acc = total ? cur.points / (total*100) * 100 : 0;
-  /* 可 = 及第（クリア）、不可 = 不合格。
-     jubeat系の慣習に倣い、精度50%未満を不合格ラインとする。
+  /* 可 = 及第（クリア）、不可 = 不合格。不合格ラインは精度50%。
      全ノーツを「甘」(70点)で拾えば70%になるため、
      50%未満は「半数近くを取りこぼしている」状態にあたる。 */
   const rank = rankOf(acc);

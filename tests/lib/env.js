@@ -147,9 +147,12 @@ class FakeAudio {
 /**
  * Build a fresh jsdom environment with index.html loaded and running.
  * @param {string} html - index.html source
+ * @param {{beforeParse?: (window) => void}} [opts] - beforeParse runs after the
+ *        stubs above are installed and before the page script executes, so a
+ *        test can seed localStorage the way a returning player's browser would.
  * @returns {{dom, window, document, pumpFrame: () => void, testErrors: string[]}}
  */
-function buildEnv(html){
+function buildEnv(html, opts){
   const testErrors = [];
 
   const dom = new JSDOM(html, {
@@ -202,6 +205,8 @@ function buildEnv(html){
       window.__rafQueue = rafQueue;
       window.requestAnimationFrame = cb => { rafQueue.push(cb); return rafQueue.length; };
       window.cancelAnimationFrame = () => {};
+
+      if(opts && typeof opts.beforeParse === "function") opts.beforeParse(window);
     },
   });
 
