@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.15-2</title>
+<title>十六 JŪROKU v2026.08.15-3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -91,8 +91,9 @@ body::before{
 .track .best{font-family:var(--f-mono);font-size:10px;color:var(--gofun-dim)}
 
 /* 収録曲カード */
-#tracks,#utracks{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-#utracks:empty{display:none}
+#tracks,#utracks,#ttracks{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+#utracks:empty,#ttracks:empty{display:none}
+#ttracks .tgroup{grid-column:1/-1;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.2em;color:var(--kin);margin-top:4px;text-align:left}
 /* ホームのタブはHTML側のインラインstyleで定義（カスケード事故の切り分け中） */
 .tabpanel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px}
 .card .noart{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1200/630;
@@ -109,7 +110,7 @@ body::before{
   border-bottom:1px solid var(--line);background:#221C18}
 .card .cb{display:block;padding:8px 10px 9px}
 .card .t{display:block;font-size:12px;font-weight:500;line-height:1.35}
-.card .a{display:block;font-size:9.5px;color:var(--gofun-dim);margin-top:2px;letter-spacing:.04em}
+.card .a{display:block;font-size:9.5px;color:var(--gofun-dim);margin-top:2px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .best{display:flex;align-items:center;gap:6px;width:100%;margin-top:3px;min-height:16px;
   padding:1px 3px;border:0;border-radius:2px;background:transparent;cursor:pointer;
   font-family:var(--f-mono);font-size:10px;color:var(--kin);text-align:left}
@@ -320,6 +321,74 @@ body::before{
 .btn.prime:hover{background:var(--kin-hi);border-color:var(--kin-hi);color:var(--sumi)}
 .btn:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
 
+/* ═══════════ WORLD TOUR ═══════════
+   地図は点描（胡粉の点）に朱印と金の航路。過度な発光は足さない。 */
+#tour{align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto;
+  padding-top:max(18px,env(safe-area-inset-top))}
+.thead{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;width:100%;max-width:720px;margin-bottom:12px}
+.thead #tback{justify-self:start;white-space:nowrap}
+.thead .eyebrow{letter-spacing:.2em;font-size:9px}
+.thead .tdone{justify-self:end}
+.thead .tht{min-width:0}
+.thead .load-t{font-size:17px;letter-spacing:.06em;margin-bottom:2px}
+.tdone{font-family:var(--f-mono);font-size:9px;letter-spacing:.24em;color:var(--kin);
+  border:1px solid var(--kin);border-radius:2px;padding:6px 9px;white-space:nowrap}
+.tlead{font-size:11px;line-height:1.8;color:var(--gofun-dim);margin:0 0 4px}
+.tmapwrap{flex:none;position:relative;width:100%;max-width:720px;overflow-x:auto;overflow-y:hidden;
+  background:var(--sumi);border:1px solid var(--line);border-radius:3px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tmapwrap::-webkit-scrollbar{display:none}
+#tmap{display:block;min-width:600px;width:100%;height:auto}
+.tload{position:absolute;left:10px;bottom:7px;font-family:var(--f-mono);font-size:9px;letter-spacing:.2em;color:var(--gofun-dim)}
+.tnext-ring{transform-box:fill-box;transform-origin:center;animation:tpulse 1.8s ease-out infinite}
+@keyframes tpulse{0%{transform:scale(.55);opacity:.95}100%{transform:scale(2.6);opacity:0}}
+.tstamp-in{transform-box:fill-box;transform-origin:center;animation:tstamp .55s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes tstamp{0%{transform:scale(2.4);opacity:0}70%{transform:scale(.9);opacity:1}100%{transform:scale(1);opacity:1}}
+.tleg-draw{animation:tdraw 1.1s ease-out .35s both}
+.tdots-in{animation:tdots .9s ease-out both}
+@keyframes tdots{from{opacity:0}to{opacity:.85}}
+@keyframes tdraw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){ .tnext-ring,.tstamp-in,.tleg-draw,.tdots-in{animation:none} }
+.titin{flex:none;display:flex;width:100%;max-width:720px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none}
+.titin .tinner{display:flex;gap:6px;margin:0 auto;padding:0 2px}   /* 収まる時は中央、溢れる時はスクロール */
+.titin::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:66px;padding:7px 8px 6px;
+  border:1px solid var(--line);border-radius:3px;background:var(--urushi);color:var(--gofun-dim);
+  font-family:inherit;font-size:10px;letter-spacing:.06em;cursor:pointer;transition:border-color .16s,color .16s}
+.chip .f{font-size:16px;line-height:1}
+.chip .s{font-family:var(--f-mono);font-size:8px;letter-spacing:.14em;min-height:10px}
+.chip[data-st="done"]{color:var(--gofun)}
+.chip[data-st="done"] .s{color:var(--shu)}
+.chip[data-st="next"]{border-color:var(--kin);color:var(--kin)}
+.chip[data-st="lock"]{opacity:.42;cursor:default}
+.chip[aria-selected="true"]{background:var(--urushi-hi);border-color:var(--kin)}
+.chip:focus-visible{outline:2px solid var(--kin);outline-offset:1px}
+.tvol{flex:none;align-self:center;font-family:var(--f-mono);font-size:8px;letter-spacing:.2em;color:var(--kin);
+  padding:0 4px;writing-mode:vertical-rl;text-orientation:mixed}
+.tcard{flex:none;width:100%;max-width:420px;background:var(--urushi);border:1px solid var(--line);border-radius:4px;
+  padding:16px 16px 14px;margin-top:6px}
+.tcard .tflag{font-size:34px;line-height:1}
+.tcard .tcountry{font-family:var(--f-disp);font-size:18px;letter-spacing:.22em;margin-top:8px}
+.tcard .ttitle{font-size:14px;font-weight:500;margin-top:10px;line-height:1.4}
+.tcard .tbest{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:var(--gofun-dim);margin-bottom:12px;min-height:14px}
+.tcard .tbest b{color:var(--kin);font-weight:500}
+.tcard .tbest .rk{font-family:var(--f-disp);font-weight:800;color:var(--kin)}
+.tcard .err{margin:12px auto 0}
+.vcard{display:block;width:100%;text-align:left;background:var(--urushi);border:1px solid var(--line);border-radius:4px;
+  padding:14px 16px 13px;color:var(--gofun);cursor:pointer;font-family:inherit;transition:border-color .16s,transform .16s}
+.vcard:hover,.vcard:focus-visible{border-color:var(--kin);transform:translateY(-2px)}
+.vcard:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
+.vcard .vt{font-family:var(--f-disp);font-size:15px;letter-spacing:.08em;margin-top:5px;line-height:1.4}
+.vcard .vs{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;color:var(--gofun-dim);margin-top:5px}
+.vcard .vd{display:flex;gap:6px;margin-top:10px}
+.vcard .vd i{width:9px;height:9px;border-radius:50%;border:1px solid var(--gofun-dim);opacity:.55}
+.vcard .vd i.on{background:var(--kin);border-color:var(--kin);opacity:1}
+.vcard .vd i.next{border-color:var(--kin);opacity:1}
+.vcard.soon{opacity:.5;cursor:default;transform:none}
+.vcard.soon:hover{border-color:var(--line);transform:none}
+.tarrive .bx{max-width:300px}
+.tarrive .br{font-size:44px}
+
 .err{color:var(--shu);font-size:12px;margin-top:14px;max-width:380px;line-height:1.7}
 </style>
 </head>
@@ -345,13 +414,16 @@ body::before{
   <div id="hometabs"
        style="display:flex;height:48px;width:100%;max-width:420px;margin:0 auto 16px;border:1px solid #322822;border-radius:3px">
     <button type="button" data-t="lib"
-      style="flex:1 1 50%;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:13px;letter-spacing:.14em;font-weight:700;background:#D9A441;color:#100E0C">収録曲</button>
+      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:700;background:#D9A441;color:#100E0C">収録曲</button>
     <button type="button" data-t="own"
-      style="flex:1 1 50%;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:13px;letter-spacing:.14em;font-weight:500;background:transparent;color:#8C8177">リンク・ファイル</button>
+      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:500;background:transparent;color:#8C8177">リンク・ファイル</button>
+    <button type="button" data-t="tour"
+      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:500;background:transparent;color:#8C8177">ワールドツアー</button>
   </div>
 
   <div class="tabpanel" id="tab-lib">
     <div id="tracks"></div>
+    <div id="ttracks"></div>
   </div>
 
   <div class="tabpanel" id="tab-own" hidden>
@@ -364,6 +436,12 @@ body::before{
       <strong id="droplabel">音源ファイルを選ぶ</strong>
       <span>ドラッグ＆ドロップ、またはタップ<br>mp3 / wav / m4a / flac / ogg — 端末の外には出ません</span>
     </div>
+  </div>
+
+  <div class="tabpanel" id="tab-tour" hidden>
+    <div class="eyebrow" style="margin-top:2px">Pulse of the Earth</div>
+    <p class="tlead">飛行機で各国を巡り、その土地の音楽をプレーする旅。<br>可以上でクリアすると次の国へ進めます。</p>
+    <div id="tourvols"></div>
   </div>
   <input type="file" id="file" accept="audio/*" hidden>
 
@@ -473,11 +551,54 @@ body::before{
   </div>
   <div class="rmax">MAX COMBO <span class="num" id="rmax">0</span></div>
   <div class="btns">
+    <button class="btn prime" id="tnext" hidden>次の国へ</button>
     <button class="btn prime" id="retry">RETRY</button>
     <button class="btn" id="back">SELECT</button>
   </div>
 </section>
 
+<!-- ══════════════ WORLD TOUR ══════════════ -->
+<section id="tour" class="screen">
+  <div class="thead">
+    <button class="btn" id="tback" type="button" style="padding:8px 14px">戻る</button>
+    <div class="tht">
+      <div class="eyebrow" id="teyebrow">World Tour</div>
+      <div class="load-t" id="ttitle">Pulse of the Earth</div>
+      <div class="load-s" id="tprog">—</div>
+    </div>
+    <div class="tdone" id="tdone" hidden>完走</div>
+  </div>
+  <div class="tmapwrap" id="tmapwrap">
+    <svg id="tmap" viewBox="0 0 720 300" role="img" aria-label="世界地図：訪れた国と航路"></svg>
+    <div class="tload" id="tload" hidden>DOWNLOADING</div>
+  </div>
+  <div class="titin" id="tchips" role="listbox" aria-label="行程"></div>
+  <div class="tcard" id="tcard">
+    <div class="tflag" id="tflag">—</div>
+    <div class="tcountry" id="tcen">—</div>
+    <div class="ttitle" id="ttrack">—</div>
+    <div class="opts" style="margin:14px 0 8px">
+      <div class="seg" id="tdiff" role="group" aria-label="難易度">
+        <button data-d="easy">EASY</button>
+        <button data-d="normal" aria-pressed="true">NORMAL</button>
+        <button data-d="hard">HARD</button>
+        <button data-d="oni">EXTREME</button>
+      </div>
+    </div>
+    <div class="tbest" id="tbest">—</div>
+    <div class="btns"><button class="btn prime" id="tgo" type="button">出発する</button></div>
+    <p class="err" id="terr" hidden></p>
+  </div>
+</section>
+
+<div class="bmodal tarrive" id="tarrive" data-on="0" role="status" aria-live="polite">
+  <div class="bx">
+    <div class="bd">ARRIVAL</div>
+    <div class="br" id="tarrflag">—</div>
+    <div class="bt" id="tarrt">—</div>
+    <div class="bd" id="tarrs"></div>
+  </div>
+</div>
 <div class="bmodal" id="bmodal" data-on="0" role="dialog" aria-modal="true" aria-label="ベスト記録">
   <div class="bx">
     <div class="bt" id="bmt"></div>
@@ -546,6 +667,66 @@ const DEFAULT_TRACKS = [
   { id:"9501f3e4-0a08-4477-9a33-6d7606306171", title:"Ten Little Toes" },
 ].map(x => ({ ...x, ready:true, artist:"ken_mro", url:SUNO_CDN(x.id), art:SUNO_ART(x.id) }));
 
+/* ═══════════ ワールドツアー「地球の鼓動 / Pulse of the Earth」 ═══════════
+   各国を旅しながら、その国の伝統音楽×エレクトロの楽曲をプレーするモード。
+   データは Vol 単位。Vol の追加は .claude/skills/add-tour-vol（tests/tour-import.js）が
+   markdown から生成して番兵コメントの位置に挿入する。番兵は消さないこと。 */
+const flagOf = cc => String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上の座標（代表都市）
+  JP:{ en:"JAPAN",  lon:139.7,  lat:35.7  },
+  CN:{ en:"CHINA",  lon:116.4,  lat:39.9  },
+  IN:{ en:"INDIA",  lon:77.2,   lat:28.6  },
+  EG:{ en:"EGYPT",  lon:31.2,   lat:30.0  },
+  FR:{ en:"FRANCE", lon:2.35,   lat:48.9  },
+  ES:{ en:"SPAIN",  lon:-3.7,   lat:40.4  },
+  BR:{ en:"BRAZIL", lon:-43.2,  lat:-22.9 },
+  US:{ en:"USA",    lon:-118.2, lat:34.1  },
+  /* TOUR_COUNTRIES_END */
+};
+const TOUR_VOLS = [
+  { vol:1, title:"Pulse of the Earth: World Tour Vol.1",
+    tracks:[
+      { id:"3e943f7c-a9f6-4727-83d6-66b6e6b1e796", title:"Matsuri Overdrive",  cc:"JP" },
+      { id:"51ba4ca2-417b-427e-a879-ad3582f94878", title:"Jade Dragon Parade", cc:"CN" },
+      { id:"21b99d76-93f5-40bb-92f5-65df7eab8ea2", title:"Masala Monsoon",     cc:"IN" },
+      { id:"f106a3bc-e584-42f7-9b99-0914cd51f25f", title:"Scarab Mirage",      cc:"EG" },
+      { id:"53d4e030-2fbd-40ed-9993-a53622e44739", title:"Montmartre Express", cc:"FR" },
+      { id:"1e9e9b3d-bd0c-4443-ac35-54a01b7512b1", title:"Duende Rush",        cc:"ES" },
+      { id:"ee1506de-cc64-4a7b-9ce1-5281724d6ea0", title:"Batucada Blastoff",  cc:"BR" },
+      { id:"83009c6e-c1b1-4512-9df4-0c7269620426", title:"Neon Freeway Funk",  cc:"US" },
+    ] },
+  /* TOUR_VOLS_END */
+].map(v => ({ ...v, tracks: v.tracks.map((x, idx) => ({
+  ...x, ready:true, artist:"ken_mro", url:SUNO_CDN(x.id), art:SUNO_ART(x.id),
+  tour:{ vol:v.vol, idx, cc:x.cc },
+  tag: flagOf(x.cc) + " " + ((TOUR_COUNTRIES[x.cc] || {}).en || x.cc),
+})) }));
+
+/* 世界地図の簡略ポリゴン [lon,lat]。点描で描くので粗くても輪郭は読める。
+   キーは大陸・島の略号（描画にしか使わない）。 */
+const TOUR_LAND = {
+  na:[[-168,66],[-162,58],[-150,60],[-140,59],[-131,54],[-124,48],[-124,40],[-118,33],[-113,29],[-109,23],[-105,20],[-97,16],[-90,14],[-84,10],[-78,7],[-77,9],[-83,11],[-88,16],[-91,19],[-90,21],[-87,21],[-92,19],[-97,22],[-97,28],[-91,29],[-84,30],[-81,25],[-80,32],[-76,35],[-74,40],[-70,42],[-66,45],[-60,46],[-64,49],[-56,50],[-58,55],[-64,58],[-70,61],[-78,62],[-80,57],[-84,52],[-88,56],[-93,58],[-90,63],[-85,66],[-90,69],[-95,71],[-102,73],[-115,72],[-125,71],[-138,70],[-152,71],[-160,71],[-166,68]],
+  gl:[[-52,60],[-45,60],[-40,65],[-22,70],[-18,76],[-25,82],[-45,83],[-60,82],[-70,78],[-60,75],[-56,70],[-53,65]],
+  sa:[[-79,9],[-77,4],[-80,0],[-81,-5],[-76,-14],[-70,-18],[-70,-25],[-71,-33],[-73,-40],[-75,-48],[-71,-55],[-66,-55],[-65,-48],[-62,-40],[-57,-38],[-53,-33],[-48,-26],[-41,-22],[-39,-15],[-35,-9],[-35,-5],[-42,-3],[-50,0],[-52,4],[-60,8],[-65,10],[-72,12],[-76,9]],
+  af:[[-17,15],[-17,21],[-13,27],[-9,32],[-6,35],[0,36],[10,37],[11,33],[15,32],[20,31],[25,32],[32,31],[35,26],[38,21],[43,12],[51,12],[48,5],[42,-2],[40,-8],[39,-15],[35,-22],[33,-26],[30,-31],[26,-34],[19,-35],[15,-30],[12,-20],[13,-12],[10,-4],[9,4],[3,6],[-2,5],[-8,4],[-13,8],[-17,13]],
+  mg:[[44,-13],[50,-16],[48,-24],[44,-25],[43,-18]],
+  eu:[[-9,37],[-9,43],[-2,43],[-1,46],[-5,48],[0,49],[3,51],[8,54],[12,54],[15,54],[21,55],[24,59],[30,60],[23,60],[21,63],[25,66],[21,64],[18,61],[18,58],[13,56],[11,58],[6,58],[5,62],[13,67],[20,70],[30,71],[40,67],[44,68],[60,69],[70,73],[80,72],[90,76],[105,78],[115,74],[130,72],[140,72],[150,70],[160,70],[170,69],[180,66],[178,63],[170,60],[163,60],[163,56],[157,52],[156,58],[150,59],[142,59],[137,54],[135,45],[132,43],[129,40],[129,36],[126,34],[126,38],[124,40],[121,39],[118,38],[122,37],[120,35],[122,31],[120,27],[114,22],[109,21],[106,20],[109,13],[107,10],[105,9],[100,13],[99,8],[103,2],[100,6],[98,10],[98,17],[94,19],[90,22],[87,21],[80,15],[77,8],[73,16],[70,21],[66,25],[57,25],[56,27],[50,30],[48,29],[52,24],[56,23],[59,22],[55,17],[52,13],[45,13],[43,15],[39,21],[35,28],[34,31],[36,36],[30,36],[27,37],[26,40],[24,41],[23,37],[20,40],[19,42],[14,45],[18,40],[16,38],[12,42],[9,44],[3,43],[0,40],[-2,37],[-6,36]],
+  jp1:[[130,31],[132,33],[135,34],[137,35],[140,35],[142,38],[141,41],[140,41],[139,38],[136,37],[133,36],[131,34],[130,32]],
+  jp2:[[140,42],[140,44],[142,45],[145,44],[144,42]],
+  gb:[[-5,50],[1,51],[2,53],[-1,55],[-2,57],[-5,58],[-6,56],[-3,54],[-4,53],[-5,52]],
+  ie:[[-10,52],[-6,52],[-6,55],[-10,54]],
+  is:[[-22,64],[-14,65],[-16,66],[-24,66]],
+  au:[[114,-22],[114,-34],[118,-35],[124,-33],[131,-31],[136,-35],[140,-38],[147,-39],[150,-37],[153,-31],[153,-25],[146,-19],[142,-11],[140,-17],[136,-12],[131,-12],[126,-14],[122,-18]],
+  nz:[[166,-46],[172,-44],[174,-41],[178,-38],[174,-36],[173,-40],[170,-43]],
+  su:[[95,5],[104,-1],[106,-6],[102,-4],[96,2]],
+  bo:[[109,1],[117,7],[119,1],[116,-4],[110,-3]],
+  jv:[[105,-6],[114,-8],[113,-8],[106,-7]],
+  ng:[[131,-1],[141,-2],[147,-6],[150,-10],[141,-9],[135,-4]],
+  ph:[[120,18],[122,18],[124,12],[126,7],[124,7],[121,12],[120,16]],
+  lk:[[80,10],[82,7],[80,6]],
+  cu:[[-85,22],[-75,20],[-77,20],[-84,22]],
+};
+
 /* ─── 定数 ─── */
 const SR = 22050, FFT_N = 1024, HOP = 256;
 /* スペクトル差分のピークは実際のアタックより少し前のフレームに立つ。
@@ -608,6 +789,47 @@ function bestOf(key){
 const chartCache = new Map();   // key -> {chart}
 let cur = null;                 // 進行中のプレイ
 let lastSong = null;            // 最後に読み込んだ曲 {name, arrayBuffer} — Quitしても保持
+
+/* ─── ワールドツアーの進行 ─── */
+let tourState = { cleared: {} };  // cleared[trackId] = {d, diff, acc}  (localStorage juroku:tour)
+let pendingTour = null;           // 次の play() をツアーの一環として扱うための文脈 {vol, idx, seq, id}
+function tourIsCleared(id){ return !!(tourState.cleared && tourState.cleared[id]); }
+function tourVolDone(v){ return v.tracks.length > 0 && v.tracks.every(t => tourIsCleared(t.id)); }
+/* 表示できる Vol。Vol.1 は常に、Vol.N は N-1 を完走した時に現れる。
+   完走した次の Vol がまだ無ければ「準備中」の枠 {placeholder:true, vol:N} を返す。 */
+function tourVisibleVols(){
+  const out = [];
+  for(let i = 0; i < TOUR_VOLS.length; i++){
+    if(i > 0 && !tourVolDone(TOUR_VOLS[i-1])) break;
+    out.push(TOUR_VOLS[i]);
+  }
+  const last = TOUR_VOLS[out.length - 1];
+  if(out.length === TOUR_VOLS.length && last && tourVolDone(last))
+    out.push({ placeholder:true, vol:last.vol + 1, tracks:[] });
+  return out;
+}
+/* 表示できる Vol の曲を Vol 順に繋いだ 1 本の行程。地図は全 Vol で 1 枚なので、
+   Vol の境界でも前 Vol の最終国から次の国へ航路が続く。 */
+function tourJourney(){
+  const out = [];
+  let prevCC = null;
+  for(const v of tourVisibleVols()){
+    if(v.placeholder) continue;
+    for(const t of v.tracks){
+      out.push({ ...t, seq: out.length, prevCC });
+      prevCC = t.cc;
+    }
+  }
+  return out;
+}
+/* 行程の先頭から何曲連続でクリアしたか ＝ 次に遊べる通し番号（全クリアなら length）。 */
+function tourNextSeq(){
+  const j = tourJourney();
+  let n = 0;
+  while(n < j.length && tourIsCleared(j[n].id)) n++;
+  return n;
+}
+function saveTour(){ savePrefs("juroku:tour", JSON.stringify(tourState)); }
 
 /* ═══════════ 永続化（失敗しても続行） ═══════════ */
 /* window.storage は開発環境固有の非同期 KVS。GitHub Pages 等の本番環境には
@@ -691,6 +913,13 @@ async function loadPrefs(){
     if(u && u.value){
       userTracks = (JSON.parse(u.value) || []).filter(x => x && x.kind === "link");
       renderUserTracks();
+    }
+  }catch(e){}
+  try{
+    const t = await window.storage.get("juroku:tour");
+    if(t && t.value){
+      const v = JSON.parse(t.value);
+      if(v && typeof v === "object" && v.cleared && typeof v.cleared === "object") tourState = v;
     }
   }catch(e){}
   for(const x of $("soundsel").querySelectorAll("button"))
@@ -1731,7 +1960,10 @@ function syncReclap(){
 
 /* ═══════════ プレイ ═══════════ */
 async function play(name, arrayBuffer, srcUrl){
-  lastSong = { name, arrayBuffer, url: srcUrl || null };
+  /* ツアーの文脈は同期的に消費する。デコード失敗で途中 return しても
+     次の通常プレーにツアー扱いが漏れないように。 */
+  const tour = pendingTour; pendingTour = null;
+  lastSong = { name, arrayBuffer, url: srcUrl || null, tour };
   const prep = await prepare(name, arrayBuffer);
   if(!prep) return;
 
@@ -1747,6 +1979,7 @@ async function play(name, arrayBuffer, srcUrl){
     counts: [0,0,0,0], source: null, startAt: 0, paused: false, over: false,
     clapHead: 0, clapNodes: [], lastClapT: -9,
     diff: difficulty, arrayBuffer,
+    tour,                            // ワールドツアー経由なら {vol, idx, seq, id}
   };
 
   $("gsong").textContent = name;
@@ -1913,14 +2146,21 @@ function finish(){
     renderTracks();
   }
 
+  /* ワールドツアー: 可以上で次の国を解放。結果画面のボタンもツアー用に切り替える。 */
+  const tn = cur.tour ? tourOnFinish(cur.tour, acc) : null;
+  $("back").textContent = cur.tour ? "MAP" : "SELECT";
+  $("tnext").hidden = !(tn && tn.cleared);
+  if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? "次の国へ" : "地図へ（完走）";
+
   show("result");
 }
 
 function quit(){
+  const t = cur && cur.tour;
   if(cur){ stopClaps(); try{ cur.source && cur.source.stop(); }catch(e){} cur.over = true; }
   cur = null;
   $("veil").classList.remove("on");
-  show("title");
+  if(t) openTour({ focus: t.seq }); else show("title");
 }
 
 /* ═══════════ 入力 ═══════════ */
@@ -1999,7 +2239,17 @@ $("pausebtn").onclick = togglePause;
 $("resume").onclick   = togglePause;
 $("quit").onclick     = quit;
 $("back").onclick     = quit;
-$("retry").onclick    = () => { if(lastSong) play(lastSong.name, lastSong.arrayBuffer); };
+$("retry").onclick    = () => {
+  if(!lastSong) return;
+  pendingTour = lastSong.tour || null;      // ツアー中のリトライはツアーのまま
+  play(lastSong.name, lastSong.arrayBuffer, lastSong.url);
+};
+$("tnext").onclick    = () => {
+  const t = cur && cur.tour;
+  if(!t) return;
+  quit();
+  openTour({ justCleared: t.seq });
+};
 
 /* ═══════════ 選曲 ═══════════ */
 function renderTracks(){
@@ -2009,6 +2259,7 @@ function renderTracks(){
     cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
   });
   renderUserTracks();
+  renderTourTracks();
 }
 
 /* ═══ ユーザーが読み込んだ曲（リンク/ファイル）のカード ═══
@@ -2193,7 +2444,8 @@ function cardInto(wrap, tr, onclick, best){
   const ready = !!tr.ready;
   cb.querySelector(".t").textContent = ready ? tr.title : "";
   const dur = durMap[durKey(tr)];
-  cb.querySelector(".a").textContent = ready ? ((tr.artist || "") + (dur ? " · " + fmtDur(dur) : "")) : "";
+  cb.querySelector(".a").textContent = ready
+    ? [tr.tag, tr.artist, dur ? fmtDur(dur) : ""].filter(Boolean).join(" · ") : "";
   if(ready && best){
     bs.dataset.empty = "0";
     bs.innerHTML = `<span class="sc"></span><span class="rk"></span><span class="cv"></span>`;
@@ -2306,6 +2558,8 @@ function setTab(t){
   }
   $("tab-lib").hidden = t !== "lib";
   $("tab-own").hidden = t !== "own";
+  $("tab-tour").hidden = t !== "tour";
+  if(t === "tour") renderTourVols();
 }
 /* タブの切り替えは #hometabs への委譲で受ける。ボタン個別に付けると
    rebuildTabs() が中身を作り直した時にハンドラごと消えるため。 */
@@ -2325,12 +2579,13 @@ function rebuildTabs(){
   tb.removeAttribute("style");
   Object.assign(tb.style, { display:"block", width:"100%", maxWidth:"420px",
     margin:"0 auto 16px", height:"48px", border:"1px solid #322822", borderRadius:"3px" });
-  for(const [t, label] of [["lib","収録曲"],["own","リンク・ファイル"]]){
+  const tabs = [["lib","収録曲"],["own","リンク・ファイル"],["tour","ワールドツアー"]];
+  for(const [t, label] of tabs){
     const b = document.createElement("button");
     b.type = "button"; b.dataset.t = t; b.textContent = label;
-    Object.assign(b.style, { display:"inline-block", width:"50%", height:"46px",
+    Object.assign(b.style, { display:"inline-block", width:(100/tabs.length)+"%", height:"46px",
       verticalAlign:"top", border:"0", cursor:"pointer", textAlign:"center",
-      fontFamily:"sans-serif", fontSize:"13px", letterSpacing:".14em" });
+      fontFamily:"sans-serif", fontSize:"12px", letterSpacing:".06em" });
     tb.appendChild(b);                 // クリックは #hometabs 側の委譲で拾う
   }
   setTab("lib");
@@ -2358,7 +2613,7 @@ setTimeout(() => {
 const audioCache = new Map();   // url -> ArrayBuffer
 /* 音源の取得だけを行う。audioCache にあれば即返す。onProgress(got, total) は
    ストリーム読取中に呼ばれる（total は content-length、不明なら 0）。
-   読み込み画面以外（演出中の先読みなど）からも使えるように切り出してある。 */
+   通常の読み込み画面（loadRemote）とツアーの飛行演出の両方から使う。 */
 async function fetchAudio(url, onProgress){
   let ab = audioCache.get(url);
   if(ab) return ab;
@@ -2412,6 +2667,488 @@ async function loadRemote(tr){
          "その場合はSunoからmp3をダウンロードして、ファイル読み込みで遊べます。");
   }
 }
+
+/* ═══════════ ワールドツアー「地球の鼓動 / Pulse of the Earth」 ═══════════
+   1 枚の世界地図（点描）に、行程 tourJourney() の国と航路を Vol をまたいで累積して描く。
+   出発 → 飛行演出（その間に音源を先読み）→ 到着 → 通常の play()。
+   結果は finish() から tourOnFinish() で受け取り、可以上なら次の国を解放する。 */
+const TMAP_W = 720, TMAP_H = 300;                       // viewBox
+const tmapX = lon => (lon + 180) / 360 * TMAP_W;
+const tmapY = lat => (85 - lat) / (85 + 60) * TMAP_H;   // 北緯85°〜南緯60°
+const TSVG = "http://www.w3.org/2000/svg";
+function tsvg(tag, attrs, parent){
+  const e = document.createElementNS(TSVG, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+const tourCC = cc => TOUR_COUNTRIES[cc] || { en: cc, lon: 0, lat: 0 };
+function tourInPoly(lon, lat, poly){                     // even-odd ray casting
+  let inside = false;
+  for(let i = 0, j = poly.length - 1; i < poly.length; j = i++){
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if(((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+let tourDots = null;                                     // 点描格子（初回だけ計算）
+function tourLandDots(){
+  if(tourDots) return tourDots;
+  const out = [];
+  for(let lat = 84; lat >= -58; lat -= 2.2){
+    for(let lon = -179; lon <= 179; lon += 2.2){
+      for(const k in TOUR_LAND){
+        if(tourInPoly(lon, lat, TOUR_LAND[k])){ out.push({ lon, lat }); break; }
+      }
+    }
+  }
+  return (tourDots = out);
+}
+/* 二次ベジェの航路。経度180°をまたぐ時は経度を unwrap して弧を計算し、
+   描く側で x を ±W ずらした複製を足す（右端で消えて左端から現れる）。 */
+function tourArc(a, b){
+  let lon2 = b.lon;
+  if(lon2 - a.lon > 180) lon2 -= 360; else if(a.lon - lon2 > 180) lon2 += 360;
+  const x1 = tmapX(a.lon), y1 = tmapY(a.lat), x2 = tmapX(lon2), y2 = tmapY(b.lat);
+  const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2 - Math.abs(x2 - x1) * 0.18 - 6;
+  const shift = x2 > TMAP_W ? -TMAP_W : x2 < 0 ? TMAP_W : 0;   // 複製のずらし量（0 なら不要）
+  return { x1, y1, cx, cy, x2, y2, shift };
+}
+function tourBez(A, t){
+  const u = 1 - t;
+  return { x: u*u*A.x1 + 2*u*t*A.cx + t*t*A.x2,
+           y: u*u*A.y1 + 2*u*t*A.cy + t*t*A.y2,
+           ang: Math.atan2(2*u*(A.cy - A.y1) + 2*t*(A.y2 - A.cy), 2*u*(A.cx - A.x1) + 2*t*(A.x2 - A.cx)) };
+}
+const tourArcPath = A => `M${A.x1.toFixed(1)},${A.y1.toFixed(1)} Q${A.cx.toFixed(1)},${A.cy.toFixed(1)} ${A.x2.toFixed(1)},${A.y2.toFixed(1)}`;
+function tourArcLen(A){
+  let len = 0, p = tourBez(A, 0);
+  for(let i = 1; i <= 24; i++){ const q = tourBez(A, i / 24); len += Math.hypot(q.x - p.x, q.y - p.y); p = q; }
+  return len;
+}
+/* 航路を描く。またぐ場合は複製も。戻り値は本体の path。 */
+function tourDrawArc(parent, A, attrs){
+  const d = tourArcPath(A);
+  const main = tsvg("path", { d, fill: "none", ...attrs }, parent);
+  if(A.shift) tsvg("path", { d, fill: "none", ...attrs, transform: `translate(${A.shift},0)` }, parent);
+  return main;
+}
+/* 訪問済みの国の周囲（≈11°、経度は cos(lat) 補正）の点は金に灯る */
+function tourNearVisited(lon, lat, visited){
+  for(const c of visited){
+    const d = Math.hypot((c.lon - lon) * Math.cos(lat * Math.PI / 180), c.lat - lat);
+    if(d < 11) return true;
+  }
+  return false;
+}
+const TOUR_PLANE = "M-7,0 L4,-1.2 L7,0 L4,1.2 Z M-2,-.6 L-1,-5 L1,-5 L0.5,-.6 Z M-2,.6 L-1,5 L1,5 L0.5,.6 Z M-6,-.4 L-6.5,-2.6 L-5.2,-2.6 L-4.5,-.4 Z";
+
+let tourSel = 0;          // 出発カードに出している行程の通し番号
+let tourBusy = false;     // 出発〜play() までの再入防止
+let tourFlyGen = 0;       // 飛行演出の世代（失敗時に古い演出を止める）
+
+/* 世界地図を組み立てる。opts.justCleared = 今クリアした通し番号（朱印・航路のアニメーション） */
+function renderTourMap(opts){
+  opts = opts || {};
+  const svg = $("tmap");
+  svg.textContent = "";
+  const j = tourJourney();
+  const next = tourNextSeq();
+  const visited = j.filter(e => tourIsCleared(e.id)).map(e => tourCC(e.cc));
+  tsvg("rect", { width: TMAP_W, height: TMAP_H, fill: "#100E0C" }, svg);
+  const grat = tsvg("g", { stroke: "#2A221D", "stroke-width": .5 }, svg);
+  for(let lon = -150; lon <= 150; lon += 30) tsvg("line", { x1: tmapX(lon), y1: 0, x2: tmapX(lon), y2: TMAP_H }, grat);
+  for(let lat = -30; lat <= 60; lat += 30) tsvg("line", { x1: 0, y1: tmapY(lat), x2: TMAP_W, y2: tmapY(lat) }, grat);
+
+  /* 点描 — 色ごとに 1 本の path（数千個の circle は作らない） */
+  const dot = (x, y, r) => `M${(x - r).toFixed(1)},${y.toFixed(1)}a${r},${r} 0 1 0 ${2*r},0a${r},${r} 0 1 0 ${-2*r},0`;
+  let dBase = "", dGold = "";
+  for(const p of tourLandDots()){
+    const x = tmapX(p.lon), y = tmapY(p.lat);
+    if(visited.length && tourNearVisited(p.lon, p.lat, visited)) dGold += dot(x, y, 1.35);
+    else dBase += dot(x, y, 1.15);
+  }
+  tsvg("path", { d: dBase, fill: "#8C8177", opacity: .42 }, svg);
+  const gold = tsvg("path", { d: dGold, fill: "#D9A441", opacity: .85 }, svg);
+  if(opts.justCleared != null) gold.setAttribute("class", "tdots-in");
+
+  /* 航路: 各行程要素への到着レグ（prevCC → cc） */
+  const routes = tsvg("g", {}, svg);
+  for(const e of j){
+    if(!e.prevCC) continue;
+    const A = tourArc(tourCC(e.prevCC), tourCC(e.cc));
+    const done = tourIsCleared(e.id), isNext = e.seq === next;
+    const attrs = done
+      ? { stroke: "#D9A441", "stroke-width": 1.4, opacity: .9 }
+      : isNext ? { stroke: "#D9A441", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: .75 }
+               : { stroke: "#8C8177", "stroke-width": 1, "stroke-dasharray": "2 4", opacity: .45 };
+    const path = tourDrawArc(routes, A, attrs);
+    path.dataset.leg = e.seq;
+    if(opts.justCleared != null && e.seq === opts.justCleared){   // 今飛んだレグは伸びて見せる
+      const len = tourArcLen(A);
+      path.setAttribute("stroke-dasharray", len); path.style.setProperty("--len", len);
+      path.setAttribute("class", "tleg-draw");
+    }
+  }
+  /* 完走済みで次の Vol が未実装なら「準備中」の点線を東へ */
+  const vis = tourVisibleVols();
+  const ph = vis.find(v => v.placeholder);
+  if(ph && j.length){
+    const last = tourCC(j[j.length - 1].cc);
+    const x = tmapX(last.lon), y = tmapY(last.lat);
+    tsvg("path", { d: `M${x},${y} q40,-14 78,-6`, fill: "none", stroke: "#D9A441", "stroke-width": 1,
+                   "stroke-dasharray": "3 4", opacity: .55 }, svg);
+    tsvg("text", { x: x + 84, y: y - 4, "font-size": 7, fill: "#D9A441", opacity: .8, "font-family": "var(--f-mono)",
+                   "letter-spacing": ".14em" }, svg).textContent = `VOL.${ph.vol} — 準備中`;
+  }
+
+  /* 飛行機（演出中だけ表示） */
+  const plane = tsvg("g", { id: "tplane", visibility: "hidden" }, svg);
+  const pg = tsvg("g", { transform: "scale(1.6)" }, plane);
+  tsvg("path", { d: TOUR_PLANE, fill: "#EFE7DA", stroke: "#100E0C", "stroke-width": .5, "paint-order": "stroke" }, pg);
+  tsvg("circle", { r: 9, fill: "none", stroke: "#EFE7DA", "stroke-width": .6, opacity: .45 }, pg);
+
+  /* ノードとラベル。ラベルは上→下→右→左の順に、他のノードや置いたラベルと
+     重ならない位置を選ぶ（フランスとスペインのように近い国のため）。 */
+  const nodes = tsvg("g", {}, svg);
+  const pts = j.map(e => { const c = tourCC(e.cc); return { x: tmapX(c.lon), y: tmapY(c.lat) }; });
+  const labels = [];                                     // 置いたラベルの矩形 {x0,x1,y0,y1}
+  const labelByCC = {};                                  // 同じ国が別 Vol で再登場しても地名ラベルは 1 つ
+  const placeLabel = (x, y, half) => {
+    const cands = [
+      { x, y: y - 11, a: "middle", sub: y - 21 },
+      { x, y: y + 18, a: "middle", sub: y + 28 },
+      { x: x + 12, y: y + 3, a: "start", sub: y + 13 },
+      { x: x - 12, y: y + 3, a: "end",   sub: y + 13 },
+    ];
+    for(const c of cands){
+      const x0 = c.a === "middle" ? c.x - half : c.a === "start" ? c.x : c.x - half * 2;
+      const x1 = x0 + half * 2, y0 = c.y - 8, y1 = c.y + 2;
+      const hitNode = pts.some(p => !(p.x === x && p.y === y) && p.x > x0 - 8 && p.x < x1 + 8 && p.y > y0 - 8 && p.y < y1 + 8);
+      const hitLabel = labels.some(l => x0 < l.x1 && x1 > l.x0 && y0 < l.y1 && y1 > l.y0);
+      if(!hitNode && !hitLabel){ labels.push({ x0, x1, y0, y1 }); return c; }
+    }
+    const c = cands[0]; labels.push({ x0: c.x - half, x1: c.x + half, y0: c.y - 8, y1: c.y + 2 }); return c;
+  };
+  for(const e of j){
+    const c = tourCC(e.cc), x = tmapX(c.lon), y = tmapY(c.lat);
+    const done = tourIsCleared(e.id), isNext = e.seq === next, unlocked = e.seq <= next;
+    const g = tsvg("g", { "data-seq": e.seq, "data-st": done ? "done" : isNext ? "next" : "lock" }, nodes);
+    if(done){
+      const st = tsvg("g", { class: opts.justCleared === e.seq ? "tstamp-in" : "" }, g);
+      tsvg("circle", { cx: x, cy: y, r: 7.5, fill: "#C8452C", stroke: "#D9A441", "stroke-width": 1.2 }, st);
+      tsvg("text", { x, y: y + 2.6, "text-anchor": "middle", "font-size": 7, fill: "#EFE7DA",
+                     "font-family": "var(--f-disp)" }, st).textContent = "印";
+    }else if(isNext){
+      tsvg("circle", { cx: x, cy: y, r: 4, fill: "#E8C46A" }, g);
+    }else{
+      tsvg("circle", { cx: x, cy: y, r: 3.5, fill: "#100E0C", stroke: "#8C8177", "stroke-width": 1 }, g);
+    }
+    if(isNext) tsvg("circle", { cx: x, cy: y, r: 6, fill: "none", stroke: "#E8C46A", "stroke-width": 1.2, class: "tnext-ring" }, g);
+    /* ラベル（国ごとに 1 つ。再登場した時は色と副題だけ更新する） */
+    let L = labelByCC[e.cc];
+    if(!L){
+      L = placeLabel(x, y, 7 + c.en.length * 3.1);
+      L.el = tsvg("text", { x: L.x, y: L.y, "text-anchor": L.a, "font-size": 8, "font-family": "var(--f-mono)",
+                            "letter-spacing": ".14em" }, g);
+      L.el.textContent = flagOf(e.cc) + " " + c.en;
+      L.bright = false;
+      labelByCC[e.cc] = L;
+    }
+    if((done || isNext) && !L.bright){ L.el.setAttribute("fill", "#EFE7DA"); L.bright = true; }
+    else if(!L.bright) L.el.setAttribute("fill", "#8C8177");
+    if(isNext){
+      const s2 = tsvg("text", { x: L.x, y: L.sub, "text-anchor": L.a, "font-size": 6.5,
+                                "font-family": "var(--f-mono)", "letter-spacing": ".12em", fill: "#D9A441" }, g);
+      s2.textContent = e.title.toUpperCase();
+    }
+    if(unlocked){
+      const hit = tsvg("circle", { cx: x, cy: y, r: 14, fill: "transparent", style: "cursor:pointer" }, g);
+      hit.addEventListener("click", () => tourSelect(e.seq));
+    }
+  }
+}
+
+/* 地図の横スクロールを行程 seq の国が中央に来るように */
+function tourScrollTo(seq){
+  const wrap = $("tmapwrap"), svg = $("tmap");
+  const e = tourJourney()[seq];
+  if(!wrap || !e || !svg.clientWidth) return;
+  const px = tmapX(tourCC(e.cc).lon) * (svg.clientWidth / TMAP_W);
+  wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
+}
+
+function renderTourChips(){
+  const wrap = $("tchips");
+  wrap.textContent = "";
+  const j = tourJourney(), next = tourNextSeq();
+  /* 内側の箱を margin:auto で中央に置く。収まる時は中央揃え、溢れる時は横スクロール */
+  const inner = document.createElement("div");
+  inner.className = "tinner";
+  wrap.appendChild(inner);
+  let lastVol = null;
+  for(const e of j){
+    if(e.tour.vol !== lastVol){
+      lastVol = e.tour.vol;
+      if(e.seq > 0){ const d = document.createElement("div"); d.className = "tvol"; d.textContent = "VOL." + e.tour.vol; inner.appendChild(d); }
+    }
+    const done = tourIsCleared(e.id), isNext = e.seq === next, unlocked = e.seq <= next;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.dataset.seq = e.seq;
+    b.dataset.st = done ? "done" : isNext ? "next" : "lock";
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", String(e.seq === tourSel));
+    b.disabled = !unlocked;
+    b.innerHTML = `<span class="f"></span><span class="n"></span><span class="s"></span>`;
+    b.querySelector(".f").textContent = flagOf(e.cc);
+    b.querySelector(".n").textContent = tourCC(e.cc).en;
+    b.querySelector(".s").textContent = done ? tourBestRank(e.title) : isNext ? "NEXT" : "🔒";
+    b.title = e.title;
+    if(unlocked) b.onclick = () => tourSelect(e.seq);
+    inner.appendChild(b);
+  }
+}
+/* その曲の全難易度でのベスト段位（チップ表示用） */
+function tourBestRank(title){
+  let acc = -1;
+  for(const d in DIFF){ const b = bestOf(title + "|" + d); if(b && typeof b.a === "number" && b.a > acc) acc = b.a; }
+  return acc < 0 ? "済" : rankOf(acc);
+}
+
+function renderTourCard(){
+  const j = tourJourney(), next = tourNextSeq();
+  const e = j[tourSel];
+  if(!e) return;
+  const c = tourCC(e.cc);
+  $("tflag").textContent = flagOf(e.cc);
+  $("tcen").textContent = c.en;
+  $("ttrack").textContent = e.title;
+  for(const x of $("tdiff").querySelectorAll("button[data-d]"))
+    x.setAttribute("aria-pressed", String(x.dataset.d === difficulty));
+  const b = bestOf(e.title + "|" + difficulty);
+  const tb = $("tbest");
+  if(b && typeof b.s === "number"){
+    tb.innerHTML = `BEST <b></b> · <span class="rk"></span> · <span class="ac"></span>`;
+    tb.querySelector("b").textContent = b.s.toLocaleString();
+    tb.querySelector(".rk").textContent = typeof b.a === "number" ? rankOf(b.a) : "—";
+    tb.querySelector(".ac").textContent = typeof b.a === "number" ? b.a.toFixed(2) + "%" : "";
+  }else{
+    tb.textContent = DIFF[difficulty].label + " は未プレー";
+  }
+  const done = tourIsCleared(e.id);
+  $("tgo").textContent = done ? "もう一度旅する" : "出発する";
+  $("tgo").disabled = tourBusy || e.seq > next;
+}
+function renderTourHeader(){
+  const j = tourJourney();
+  const e = j[tourSel];
+  const v = e ? TOUR_VOLS.find(x => x.vol === e.tour.vol) : TOUR_VOLS[0];
+  if(!v) return;
+  const n = v.tracks.filter(t => tourIsCleared(t.id)).length;
+  $("teyebrow").textContent = "World Tour · Vol." + v.vol;
+  $("ttitle").textContent = "Pulse of the Earth";
+  $("tprog").textContent = `VOL.${v.vol} · ${n} / ${v.tracks.length}`;
+  $("tdone").hidden = !tourVolDone(v);
+}
+function tourSelect(seq){
+  if(seq > tourNextSeq()) return;
+  tourSel = seq;
+  for(const b of $("tchips").querySelectorAll(".chip"))
+    b.setAttribute("aria-selected", String(+b.dataset.seq === seq));
+  renderTourHeader();
+  renderTourCard();
+  tourScrollTo(seq);
+}
+/* ツアー画面を開く。opts: {vol} その Vol の次の国へ / {focus} その通し番号 / {justCleared} 直後の演出 */
+function openTour(opts){
+  opts = opts || {};
+  const j = tourJourney();
+  const next = tourNextSeq();
+  let sel;
+  if(opts.justCleared != null) sel = Math.min(opts.justCleared + 1, j.length - 1);
+  else if(opts.focus != null) sel = opts.focus;
+  else if(opts.vol != null){
+    const v = TOUR_VOLS.find(x => x.vol === opts.vol);
+    const first = v ? j.find(e => e.tour.vol === v.vol && !tourIsCleared(e.id)) || j.find(e => e.tour.vol === v.vol) : null;
+    sel = first ? first.seq : Math.min(next, j.length - 1);
+  }else sel = Math.min(next, j.length - 1);
+  tourSel = Math.max(0, Math.min(sel, Math.min(next, j.length - 1)));
+  $("terr").hidden = true;
+  $("tload").hidden = true;
+  renderTourHeader();
+  renderTourMap({ justCleared: opts.justCleared });
+  renderTourChips();
+  renderTourCard();
+  show("tour");
+  requestAnimationFrame(() => tourScrollTo(opts.justCleared != null ? opts.justCleared : tourSel));
+}
+function tourError(msg){
+  const el = $("terr");
+  el.textContent = msg || "エラーが発生しました。";
+  el.hidden = false;
+}
+
+/* タイトルタブの Vol カード */
+function renderTourVols(){
+  const wrap = $("tourvols");
+  if(!wrap) return;
+  wrap.textContent = "";
+  const next = tourNextSeq();
+  const j = tourJourney();
+  for(const v of tourVisibleVols()){
+    const b = document.createElement(v.placeholder ? "div" : "button");
+    b.className = "vcard" + (v.placeholder ? " soon" : "");
+    if(!v.placeholder) b.type = "button";
+    b.dataset.vol = v.vol;
+    b.innerHTML = `<div class="eyebrow"></div><div class="vt"></div><div class="vs"></div><div class="vd"></div>`;
+    b.querySelector(".eyebrow").textContent = "World Tour · Vol." + v.vol;
+    if(v.placeholder){
+      b.querySelector(".vt").textContent = `Vol.${v.vol} — 準備中`;
+      b.querySelector(".vs").textContent = "COMING SOON · 次の旅を準備しています";
+      b.querySelector(".vd").remove();
+    }else{
+      const n = v.tracks.filter(t => tourIsCleared(t.id)).length;
+      b.querySelector(".vt").textContent = v.title;
+      b.querySelector(".vs").textContent = `${n} / ${v.tracks.length}` + (n === v.tracks.length ? " · 完走" : "") + " · 地図を開く ▸";
+      const vd = b.querySelector(".vd");
+      for(const t of v.tracks){
+        const i = document.createElement("i");
+        const e = j.find(x => x.id === t.id);
+        if(tourIsCleared(t.id)) i.className = "on"; else if(e && e.seq === next) i.className = "next";
+        vd.appendChild(i);
+      }
+      b.onclick = () => openTour({ vol: v.vol });
+    }
+    wrap.appendChild(b);
+  }
+}
+/* 収録曲タブ: クリア済みのツアー曲だけを Vol ごとの見出し付きで並べる */
+function renderTourTracks(){
+  const wrap = $("ttracks");
+  if(!wrap) return;
+  wrap.textContent = "";
+  for(const v of TOUR_VOLS){
+    const done = v.tracks.filter(t => tourIsCleared(t.id));
+    if(!done.length) continue;
+    const h = document.createElement("div");
+    h.className = "tgroup";
+    h.textContent = `🌏 PULSE OF THE EARTH · VOL.${v.vol} — WORLD TOUR`;
+    wrap.appendChild(h);
+    for(const tr of done) cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
+  }
+}
+
+/* 飛行演出。fromCC が無ければ（行程の最初）目的地の上空を一周する離陸だけ。
+   進捗は performance.now() 基準（rAF の引数には頼らない）。reduceMotion なら即完了。 */
+function tourFly(fromCC, toCC, ms){
+  return new Promise(resolve => {
+    const gen = ++tourFlyGen;
+    const svg = $("tmap"), plane = $("tplane"), wrap = $("tmapwrap");
+    if(!plane) return resolve();
+    const to = tourCC(toCC);
+    const A = fromCC ? tourArc(tourCC(fromCC), to) : null;
+    const dur = (reduceMotion || !(ms > 0)) ? 0 : ms;
+    const trail = A ? tsvg("path", { fill: "none", stroke: "#D9A441", "stroke-width": 1.4, opacity: .9 }) : null;
+    if(trail) plane.parentNode.insertBefore(trail, plane);
+    plane.setAttribute("visibility", "visible");
+    const t0 = performance.now();
+    const step = () => {
+      if(gen !== tourFlyGen) return resolve();          // 新しい演出／中断で置き換えられた
+      const t = dur ? Math.min(1, (performance.now() - t0) / dur) : 1;
+      const e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+      let x, y, ang;
+      if(A){
+        const p = tourBez(A, e); x = p.x; y = p.y; ang = p.ang;
+        /* 軌跡は折れ線。180°をまたいで x が端から端へ飛ぶ所は subpath を切る。 */
+        let d = "", prev = null;
+        for(let i = 0; i <= 32; i++){
+          const q = tourBez(A, e * i / 32);
+          const ux = ((q.x % TMAP_W) + TMAP_W) % TMAP_W;
+          d += (prev === null || Math.abs(ux - prev) > TMAP_W / 2 ? "M" : "L") + ux.toFixed(1) + "," + q.y.toFixed(1);
+          prev = ux;
+        }
+        trail.setAttribute("d", d);
+      }else{                                              // 離陸: 目的地の周りを一周して降りる
+        const cx = tmapX(to.lon), cy = tmapY(to.lat), r = 16 * (1 - e), a = -Math.PI / 2 + e * Math.PI * 2;
+        x = cx + r * Math.cos(a); y = cy + r * Math.sin(a) * .6; ang = a + Math.PI / 2;
+      }
+      const wx = ((x % TMAP_W) + TMAP_W) % TMAP_W;
+      plane.setAttribute("transform", `translate(${wx.toFixed(1)},${y.toFixed(1)}) rotate(${(ang * 180 / Math.PI).toFixed(1)})`);
+      if(wrap && svg.clientWidth){                        // 飛行機を追ってスクロール
+        const px = wx * (svg.clientWidth / TMAP_W);
+        wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
+      }
+      if(t >= 1) resolve(); else requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+function tourArrive(e){
+  const c = tourCC(e.cc);
+  $("tarrflag").textContent = flagOf(e.cc);
+  $("tarrt").textContent = c.en;
+  $("tarrs").textContent = e.title;
+  $("tarrive").dataset.on = "1";
+  return new Promise(r => setTimeout(() => { $("tarrive").dataset.on = "0"; r(); }, reduceMotion ? 400 : 1300));
+}
+/* 出発。ダウンロードと飛行演出を並行し、到着後に通常の play() へ。 */
+async function tourDepart(seq){
+  if(tourBusy) return;
+  const j = tourJourney();
+  const e = j[seq];
+  if(!e || seq > tourNextSeq()) return;
+  tourBusy = true;
+  $("tgo").disabled = true;
+  $("terr").hidden = true; $("err").hidden = true;
+  if(!audioCtx){ try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(_){} }
+  const tl = $("tload");
+  tl.hidden = false; tl.textContent = "DOWNLOADING";
+  const dl = fetchAudio(e.url, (got, total) => {
+    tl.textContent = "DOWNLOADING · " + (total ? Math.round(got / total * 100) + "%" : (got / 1048576).toFixed(1) + " MB");
+  });
+  try{
+    const [, ab] = await Promise.all([tourFly(e.prevCC, e.cc, e.prevCC ? 2800 : 1400), dl]);
+    tl.hidden = true;
+    await tourArrive(e);
+    loadBase = 0;
+    pendingTour = { vol: e.tour.vol, idx: e.tour.idx, seq, id: e.id };
+    await play(e.title, ab, e.url);
+    if(!$("game").classList.contains("on")){          // prepare() 内の fail() でタイトルへ戻された
+      const m = $("err").textContent;
+      $("err").hidden = true;
+      openTour({ focus: seq });
+      tourError(m);
+    }
+  }catch(err){
+    tourFlyGen++;                                       // 進行中の飛行演出を止める
+    tl.hidden = true;
+    $("tarrive").dataset.on = "0";
+    openTour({ focus: seq });
+    tourError("音源を取得できませんでした。ネットワーク、または配信元のCORS設定が原因の可能性があります。");
+  }finally{
+    tourBusy = false;
+    $("tgo").disabled = false;
+  }
+}
+/* finish() から。可以上ならクリアを記録し、次の国を返す。 */
+function tourOnFinish(t, acc){
+  const cleared = rankOf(acc) !== "不可";
+  if(cleared && !tourIsCleared(t.id)){
+    tourState.cleared[t.id] = { d: Date.now(), diff: cur ? cur.diff : difficulty, acc: +acc.toFixed(2) };
+    saveTour();
+    renderTracks();
+    renderTourVols();
+  }
+  const j = tourJourney();                              // 完走で次の Vol が現れることがある
+  const next = cleared && t.seq + 1 < j.length ? t.seq + 1 : null;
+  return { cleared, next };
+}
+$("tback").onclick = () => show("title");
+$("tgo").onclick = () => tourDepart(tourSel);
+$("tdiff").onclick = e => {
+  const b = e.target.closest("button[data-d]");
+  if(b) setDifficulty(b.dataset.d);
+};
 
 /* ═══ Sunoリンクからの読み込み ═══
    suno.com 本体はブラウザからのクロスオリジン読取を許可しないため、
@@ -2743,13 +3480,15 @@ async function loadLocal(file){
 }
 
 /* 難易度・オフセット */
-/* 難易度の変更は 1 箇所に集約する（他の画面からも選べるようにするため）。 */
+/* 難易度はタイトルの #diff とツアーの出発カード #tdiff の 2 箇所から選べる。
+   どちらで選んでも同じ変数に入り、両方の表示を揃える。 */
 function setDifficulty(d){
   if(!DIFF[d]) return;
   difficulty = d;
-  for(const x of document.querySelectorAll("#diff button[data-d]"))
+  for(const x of document.querySelectorAll("#diff button[data-d], #tdiff button[data-d]"))
     x.setAttribute("aria-pressed", String(x.dataset.d === d));
   renderTracks();
+  if($("tour").classList.contains("on")) renderTourCard();
 }
 $("diff").onclick = e => {
   const b = e.target.closest("button[data-d]");
