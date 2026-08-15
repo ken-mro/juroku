@@ -318,6 +318,7 @@ body::before{
 #result.revealing .rank.in{animation:rstamp .55s cubic-bezier(.2,.9,.3,1.15) both}
 @keyframes rstamp{0%{transform:scale(1.7);opacity:0}70%{transform:scale(.96);opacity:1}100%{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion: reduce){ #result .rv{transition:none} #result.revealing .rank.in{animation:none} }
+.rmsg{margin-top:12px;color:var(--kin)}
 .btns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
 .btn{
   background:transparent;border:1px solid var(--line);border-radius:3px;color:var(--gofun);
@@ -560,7 +561,9 @@ body::before{
     <button class="btn prime" id="tnext" hidden>次の国へ</button>
     <button class="btn prime" id="retry">RETRY</button>
     <button class="btn" id="back">SELECT</button>
+    <button class="btn" id="share" type="button">画像を保存</button>
   </div>
+  <p class="foot rmsg" id="rmsg" hidden></p>
 </section>
 
 <!-- ══════════════ WORLD TOUR ══════════════ -->
@@ -619,7 +622,9 @@ body::before{
       <div><div class="k" style="color:var(--shu)">逃</div><div class="v num" id="bm3">0</div><div class="l">NOGASHI</div></div>
     </div>
     <div class="bm" id="bmm"></div>
+    <button class="bc" id="bmshare" type="button">画像を保存</button>
     <button class="bc" id="bmclose" type="button">とじる</button>
+    <p class="bm" id="bmmsg" hidden></p>
   </div>
 </div>
 <script>
@@ -814,6 +819,7 @@ function bestOf(key){
 const chartCache = new Map();   // key -> {chart}
 let cur = null;                 // 進行中のプレイ
 let lastSong = null;            // 最後に読み込んだ曲 {name, arrayBuffer} — Quitしても保持
+let lastResult = null;          // 直近の結果 {title, diff, s, a, c, m, n, d}（結果画像用）
 
 /* ─── ワールドツアーの進行 ─── */
 let tourState = { cleared: {} };  // cleared[trackId] = {d, diff, acc}  (localStorage juroku:tour)
@@ -2173,6 +2179,11 @@ function finish(){
   $("tnext").hidden = !(tn && tn.cleared);
   if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? "次の国へ" : "地図へ（完走）";
 
+  /* 結果画像用の記録（ベスト記録と同じ形 + 曲名・難易度） */
+  lastResult = { title: cur.name, diff: cur.diff, s: cur.score, a: +acc.toFixed(2), c: cur.counts.slice(),
+                 m: cur.maxCombo, n: total, d: Date.now() };
+  $("rmsg").hidden = true;
+
   show("result");
   revealResult();
 }
@@ -2406,7 +2417,10 @@ function togglePreview(tr){
 
 /* ベスト記録の詳細。旧形式(スコアのみ)の記録は判定内訳を持たないので、
    その場合は持っている情報だけを出す。 */
+let bestShown = null;           // ベスト記録モーダルに出している記録（結果画像用）
 function openBest(title, b){
+  bestShown = { title, diff: difficulty, s: b.s, a: b.a, c: b.c ? b.c.slice() : null, m: b.m, n: b.n, d: b.d };
+  $("bmmsg").hidden = true;
   $("bmt").textContent = title;
   $("bmd").textContent = DIFF[difficulty].label + (b.n ? " · " + b.n + " NOTES" : "");
   $("bmr").textContent = (b.a != null) ? rankOf(b.a) : "—";
@@ -2699,7 +2713,7 @@ function revealResult(){
   const gen = ++revealGen;
   const finals = {
     c: [0,1,2,3].map(i => +$("c"+i).textContent || 0),
-    score: (+$("rscore").textContent.replace(/,/g,"") || 0),
+    score: lastResult ? lastResult.s : (+$("rscore").textContent.replace(/,/g,"") || 0),
     max: +$("rmax").textContent || 0,
   };
   const items = Array.from(R.querySelectorAll(".rv"));
@@ -2751,6 +2765,198 @@ function revealResult(){
   requestAnimationFrame(step);
   setTimeout(finalize, T.end + 400);           // rAF が止まる環境でも必ず最終状態にする
 }
+
+/* ═══════════ 結果画像（SNS 用） ═══════════
+   結果画面とベスト記録モーダルの両方から、同じ記録形 {title, diff, s, a, c, m, n, d} を
+   同じ描画関数に渡す。1080×1080 の PNG。ジャケットは CORS 可なら描き、失敗したら無しで描く。 */
+const SHARE_W = 1080, SHARE_H = 1080;
+function findTrackByTitle(title){
+  for(const t of DEFAULT_TRACKS) if(t.title === title) return t;
+  for(const v of TOUR_VOLS) for(const t of v.tracks) if(t.title === title) return t;
+  for(const t of userTracks) if(t.title === title) return t;
+  return null;
+}
+function loadImageCORS(url, ms){
+  return new Promise(res => {
+    if(!url) return res(null);
+    const img = new Image();
+    let done = false;
+    const fin = v => { if(!done){ done = true; res(v); } };
+    img.crossOrigin = "anonymous";
+    img.onload = () => fin(img);
+    img.onerror = () => fin(null);
+    setTimeout(() => fin(null), ms || 6000);   // 遅い回線ではジャケット無しで描く
+    img.src = url;
+  });
+}
+async function shareFontsReady(){
+  if(!document.fonts || !document.fonts.load) return;
+  try{
+    await Promise.race([
+      Promise.all([
+        document.fonts.load('800 200px "Shippori Mincho"'), document.fonts.load('500 48px "Shippori Mincho"'),
+        document.fonts.load('700 80px "JetBrains Mono"'),  document.fonts.load('400 24px "JetBrains Mono"'),
+        document.fonts.load('500 24px "Zen Kaku Gothic New"'),
+      ]),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  }catch(e){}
+}
+/* 記録 → canvas。ctx が無い環境（テスト）でも例外を出さない。 */
+async function renderShareCanvas(rec){
+  const cv = document.createElement("canvas");
+  cv.width = SHARE_W; cv.height = SHARE_H;
+  const ctx = cv.getContext("2d");
+  if(!ctx || typeof ctx.fillRect !== "function") return cv;
+  await shareFontsReady();
+  const tr = findTrackByTitle(rec.title);
+  const art = tr && tr.art ? await loadImageCORS(artSrc(tr.art)) : null;
+  const W = SHARE_W, H = SHARE_H, C = W / 2;
+  const disp = '"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif';
+  const mono = '"JetBrains Mono","SF Mono",Menlo,monospace';
+  const body = '"Zen Kaku Gothic New","Hiragino Sans",sans-serif';
+  const KIN = "#D9A441", KIN_HI = "#E8C46A", SHU = "#C8452C", GOFUN = "#EFE7DA", DIM = "#8C8177", LINE = "#322822";
+  const measure = t => (typeof ctx.measureText === "function" ? ctx.measureText(t).width : t.length * 20);
+
+  /* 下地 */
+  ctx.fillStyle = "#100E0C"; ctx.fillRect(0, 0, W, H);
+  /* 上部の帯: ジャケットをぼかして色だけ敷き、下へ墨に溶かす。右上に小さなサムネイル。 */
+  const BAND = 320;
+  if(art && art.naturalWidth){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W, BAND); ctx.clip();
+    const s = Math.max(W / art.naturalWidth, BAND / art.naturalHeight) * 1.15;
+    const dw = art.naturalWidth * s, dh = art.naturalHeight * s;
+    try{ ctx.filter = "blur(28px)"; }catch(e){}
+    ctx.globalAlpha = .5;
+    ctx.drawImage(art, (W - dw) / 2, (BAND - dh) / 2, dw, dh);
+    ctx.restore();
+  }
+  const g = ctx.createLinearGradient(0, 0, 0, BAND);
+  g.addColorStop(0, "rgba(16,14,12,.30)"); g.addColorStop(.55, "rgba(16,14,12,.70)"); g.addColorStop(1, "rgba(16,14,12,1)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, BAND);
+  if(art && art.naturalWidth){                       // サムネイル（contain）
+    const bw = 236, bh = 132, bx = W - 72 - bw, by = 66;
+    const s = Math.min(bw / art.naturalWidth, bh / art.naturalHeight);
+    const dw = art.naturalWidth * s, dh = art.naturalHeight * s;
+    ctx.save(); ctx.globalAlpha = .95;
+    ctx.drawImage(art, bx + (bw - dw) / 2, by + (bh - dh) / 2, dw, dh);
+    ctx.restore();
+    ctx.strokeStyle = "rgba(217,164,65,.5)"; ctx.lineWidth = 1;
+    ctx.strokeRect(bx + (bw - dw) / 2 + .5, by + (bh - dh) / 2 + .5, dw - 1, dh - 1);
+  }
+  /* 額縁 */
+  ctx.strokeStyle = "rgba(217,164,65,.45)"; ctx.lineWidth = 2; ctx.strokeRect(36, 36, W - 72, H - 72);
+
+  /* 見出し */
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.font = `700 26px ${mono}`; ctx.fillStyle = KIN;
+  ctx.fillText("十六  JŪROKU", 72, 96);
+  ctx.font = `400 20px ${mono}`; ctx.fillStyle = DIM;
+  ctx.fillText("PLAY RESULT", 72, 128);
+  if(tr && tr.tour){
+    ctx.textAlign = "right"; ctx.font = `400 21px ${mono}`; ctx.fillStyle = GOFUN;
+    ctx.fillText(`${tr.tag}  ·  WORLD TOUR VOL.${tr.tour.vol}`, W - 72, art ? 236 : 100);
+  }
+
+  /* 曲名（最大 2 行）と難易度 */
+  ctx.textAlign = "center";
+  const titleFont = size => `500 ${size}px ${disp}`;
+  let size = 54; ctx.font = titleFont(size);
+  const lines = [];
+  let words = rec.title.split(/(\s+)/), cur1 = "";
+  for(const w of words){
+    if(measure(cur1 + w) > W - 200 && cur1){ lines.push(cur1.trim()); cur1 = w; } else cur1 += w;
+  }
+  if(cur1.trim()) lines.push(cur1.trim());
+  while(lines.length > 2){ lines[1] += lines.splice(2, 1)[0]; }
+  if(lines.length === 2 && measure(lines[1]) > W - 200){ size = 44; ctx.font = titleFont(size); }
+  ctx.fillStyle = GOFUN;
+  const ty = lines.length === 2 ? 384 : 412;
+  lines.forEach((l, i) => ctx.fillText(l, C, ty + i * (size + 8)));
+  ctx.font = `400 22px ${mono}`; ctx.fillStyle = DIM;
+  const diffLabel = (DIFF[rec.diff] || DIFF.normal).label;
+  ctx.fillText(diffLabel + (rec.n ? "  ·  " + rec.n + " NOTES" : ""), C, (lines.length === 2 ? 384 + size + 8 : 412) + 44);
+
+  /* 段位（判定） */
+  const rank = rec.a != null ? rankOf(rec.a) : "—";
+  ctx.font = `800 232px ${disp}`;
+  const rg = ctx.createLinearGradient(C - 120, 500, C + 120, 720);
+  rg.addColorStop(0, KIN_HI); rg.addColorStop(.45, KIN); rg.addColorStop(1, SHU);
+  ctx.fillStyle = rg;
+  ctx.fillText(rank, C, 706);
+
+  /* 点数・精度 */
+  ctx.font = `700 74px ${mono}`; ctx.fillStyle = GOFUN;
+  ctx.fillText((rec.s || 0).toLocaleString(), C, 794);
+  ctx.font = `400 30px ${mono}`; ctx.fillStyle = KIN;
+  ctx.fillText(rec.a != null ? rec.a.toFixed(2) + "%" : "—", C, 836);
+  /* フルコンボ / 全冴 */
+  const c = rec.c || [];
+  const fc = c.length === 4 && c[3] === 0 && rec.n > 0, all = fc && c[0] === rec.n;
+  if(fc){
+    const label = all ? "全冴  ALL SAE" : "FULL COMBO";
+    ctx.font = `400 22px ${mono}`;
+    const tw = measure(label) + 64;
+    ctx.strokeStyle = all ? KIN_HI : KIN; ctx.lineWidth = 2;
+    ctx.strokeRect(C - tw / 2, 856, tw, 44);
+    ctx.fillStyle = all ? KIN_HI : KIN;
+    ctx.fillText(label, C, 886);
+  }
+
+  /* 判定内訳 */
+  const names = ["冴", "良", "甘", "逃"], romaji = ["SAE", "RYŌ", "AMA", "NOGASHI"], cols = [KIN_HI, KIN, "#D2703A", SHU];
+  const bx = 96, bw = (W - bx * 2 - 3 * 12) / 4, by = 922, bh = 74;
+  for(let i = 0; i < 4; i++){
+    const x = bx + i * (bw + 12);
+    ctx.fillStyle = "#1B1613"; ctx.fillRect(x, by, bw, bh);
+    ctx.strokeStyle = LINE; ctx.lineWidth = 1; ctx.strokeRect(x + .5, by + .5, bw - 1, bh - 1);
+    ctx.textAlign = "left"; ctx.font = `800 30px ${disp}`; ctx.fillStyle = cols[i];
+    ctx.fillText(names[i], x + 18, by + 47);
+    ctx.font = `400 15px ${mono}`; ctx.fillStyle = DIM;
+    ctx.fillText(romaji[i], x + 60, by + 47);
+    ctx.textAlign = "right"; ctx.font = `700 30px ${mono}`; ctx.fillStyle = GOFUN;
+    ctx.fillText(c[i] != null ? String(c[i]) : "—", x + bw - 18, by + 48);
+  }
+  /* 脚注: 最大コンボ・日付・URL */
+  ctx.textAlign = "left"; ctx.font = `400 18px ${mono}`; ctx.fillStyle = DIM;
+  const dt = rec.d ? new Date(rec.d) : new Date();
+  const dstr = dt.getFullYear() + "." + String(dt.getMonth() + 1).padStart(2, "0") + "." + String(dt.getDate()).padStart(2, "0");
+  ctx.fillText((rec.m != null ? "MAX COMBO " + rec.m + "   ·   " : "") + dstr, 96, 1030);
+  ctx.textAlign = "right";
+  ctx.fillText("ken-mro.github.io/juroku", W - 96, 1030);
+  return cv;
+}
+function shareFileName(rec){
+  const safe = rec.title.replace(/[\\/:*?"<>|]+/g, "_").slice(0, 40);
+  return `JUROKU_${safe}_${(DIFF[rec.diff] || DIFF.normal).label}.png`;
+}
+/* 保存。モバイルの共有シートが使えればそれ（写真に保存できる）、無ければダウンロード。 */
+async function saveShareImage(rec, msgEl){
+  const say = (t, ok) => { if(msgEl){ msgEl.textContent = t; msgEl.hidden = false; msgEl.style.color = ok ? "" : "var(--shu)"; } };
+  try{
+    say("画像を作成中…", true);
+    const cv = await renderShareCanvas(rec);
+    const blob = await new Promise(r => (cv.toBlob ? cv.toBlob(r, "image/png") : r(null)));
+    if(!blob) throw new Error("no blob");
+    const name = shareFileName(rec);
+    const file = (typeof File === "function") ? new File([blob], name, { type: "image/png" }) : null;
+    const coarse = matchMedia("(pointer: coarse)").matches;
+    if(file && coarse && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
+      try{ await navigator.share({ files: [file], title: "十六 JŪROKU — " + rec.title }); say("共有しました", true); return; }
+      catch(e){ if(e && e.name === "AbortError"){ say("", true); msgEl && (msgEl.hidden = true); return; } }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    say("画像を保存しました（" + name + "）", true);
+  }catch(e){
+    say("画像を作成できませんでした", false);
+  }
+}
+$("share").onclick   = () => { if(lastResult) saveShareImage(lastResult, $("rmsg")); };
+$("bmshare").onclick = () => { if(bestShown)  saveShareImage(bestShown,  $("bmmsg")); };
 
 /* ═══════════ ワールドツアー「地球の鼓動 / Pulse of the Earth」 ═══════════
    1 枚の世界地図（点描）に、行程 tourJourney() の国と航路を Vol をまたいで累積して描く。
