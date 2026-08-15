@@ -38,7 +38,7 @@ async function main(){
 
   const screens = Array.from(document.querySelectorAll(".screen"));
   const ids = screens.map(s => s.id).slice().sort();
-  const expectedIds = ["game", "load", "result", "sync", "title"];
+  const expectedIds = ["game", "load", "result", "sync", "title", "tour"];
   if(ids.length !== expectedIds.length || ids.some((id, i) => id !== expectedIds[i])){
     fail(`expected .screen ids [${expectedIds.join(",")}], got [${ids.join(",")}]`);
   }
@@ -53,7 +53,7 @@ async function main(){
     fail(`expected <title> to mention 十六 or JŪROKU, got "${title}"`);
   }
 
-  console.log(`[domtest] PASS — no script errors, 17 tracks, 5 screens (only #title active), title="${title}"`);
+  console.log(`[domtest] PASS — no script errors, 17 tracks, 6 screens (only #title active), title="${title}"`);
   process.exit(0);
 }
 

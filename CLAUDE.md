@@ -55,6 +55,15 @@ JŪROKU は独自の視覚言語・タイミング提示・判定表現を持つ
   エフェクトは足さない。ゲームプレイ中にノーツ位置が認識しづらくなる変更は入れない。
 - 新しいマーカーを足す場合も同じ基準に従う。
 
+### ワールドツアーの地図と演出
+
+- 世界地図は **点描**（胡粉の点の集合、手書きの簡略ポリゴン `TOUR_LAND` から point-in-polygon で生成）。
+  外部の地図データ・ライブラリは使わない。粗い輪郭は点描で吸収する設計なので、精密化しない。
+- クリア済み＝**朱印**（朱の丸に金縁と「印」）、次の目的地＝金の脈動リング、未訪問＝薄い輪。
+  飛行済みの航路は金の実線、これからの航路は点線。訪問済みの国の周囲の点だけ金に灯る。
+- 飛行機は二次ベジェの弧を JS で補間して動かす（`prefers-reduced-motion` では即完了）。
+  過度な発光やパーティクルは足さない。地図は全 Vol で 1 枚（累積）。
+
 ### ブランド
 
 - UI・配色・判定名（冴 / 良 / 甘 / 逃）・段位（極 / 秀 / 優 / 良 / 可 / 不可）・マーカー名は
@@ -103,6 +112,26 @@ JŪROKU は独自の視覚言語・タイミング提示・判定表現を持つ
 - 難易度別パラメータは `DIFF`。`riseFrac`（最小アタック床）と `salFloor`（セクション内
   相対床）が「曲と合っていないノーツ」の抑制を担う。
 - 配置は両手モデル（左手 = 列0-2 / 右手 = 列1-3）。`validate()` が押下可能性を検証する。
+
+### ワールドツアー「地球の鼓動 / Pulse of the Earth」
+
+```
+TOUR_COUNTRIES  ISO2 → {en, lon, lat}              /* TOUR_COUNTRIES_END */ の前に追記
+TOUR_VOLS       [{vol, title, tracks:[{id, title, cc}]}]   /* TOUR_VOLS_END */ の前に追記
+tourState       {cleared:{[trackId]:{d, diff, acc}}}   localStorage juroku:tour
+```
+
+- 進行は **行程 `tourJourney()`**（表示できる Vol の曲を順に連結した 1 本の列）で管理する。
+  曲 k は「k-1 までクリア済み」で解放（`tourNextSeq()`）。クリア＝精度 50%（可）以上、難易度は問わない。
+- Vol.N は Vol.N-1 完走で現れる。データが無ければ「準備中」の枠（`tourVisibleVols()` の placeholder）。
+  Vol の境界でも前 Vol の最終国から航路が続く（`prevCC`）。
+- ツアー経由のプレーは `pendingTour` → `play()` 冒頭で `cur.tour` に移す。`finish()` が `tourOnFinish()` を呼ぶ。
+  `quit()` / 結果画面の MAP はツアー画面に戻る。
+- クリア済みのツアー曲だけが収録曲タブ（`#ttracks`）に `tag`（国旗＋国名）付きで出る。未クリアは出さない。
+- **表示は英語のみ**（アルバム名 "Pulse of the Earth"、国名 JAPAN/CHINA…、曲名）。和名・ジャンル・BPM は
+  データにも持たない。地図は選択中の国の経度を中央にして描く（`tourLon0` / `tourRot`）。
+- **Vol の追加は `.claude/skills/add-tour-vol`（`node tests/tour-import.js <md> --apply`）で行う。**
+  番兵コメント `/* TOUR_VOLS_END */` `/* TOUR_COUNTRIES_END */` は消さない。手で `TOUR_VOLS` を書かない。
 
 ### 曲データ
 
@@ -154,7 +183,10 @@ CORS で読めず、無料の CORS 中継は 429 や停止が常態で、16 曲�
 node tests/smoke.js      # 起動→カウントイン→判定→ポーズ→再開
 node tests/domtest.js    # jsdom でのDOM構造・スクリプトエラー
 node tests/chart.js      # 既知の音源で譜面が変化していないか（時刻+パネルの完全一致）
+node tests/tour.js       # ワールドツアー（データ整合・解放ロジック・地図・finish 連携・失敗経路）
+node tests/tour-import.test.js  # Vol 追加スクリプト（fixture の md == index.html の Vol.1、合成 Vol.2 の挿入）
 ```
+（`cd tests && npm test` で全部通る）
 
 譜面の回帰は「全ノーツの時刻とパネル番号を文字列化して比較」する。ノーツ数の一致だけでは
 不十分。基準となる音源と期待値は `tests/fixtures/` に置く。
