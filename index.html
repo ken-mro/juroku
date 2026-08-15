@@ -2356,6 +2356,35 @@ setTimeout(() => {
 }, 600);
 
 const audioCache = new Map();   // url -> ArrayBuffer
+/* 音源の取得だけを行う。audioCache にあれば即返す。onProgress(got, total) は
+   ストリーム読取中に呼ばれる（total は content-length、不明なら 0）。
+   読み込み画面以外（演出中の先読みなど）からも使えるように切り出してある。 */
+async function fetchAudio(url, onProgress){
+  let ab = audioCache.get(url);
+  if(ab) return ab;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(res.status);
+  const totalH = +(res.headers.get("content-length") || 0);
+  if(res.body && res.body.getReader){
+    const reader = res.body.getReader();
+    const chunks = [];
+    let got = 0;
+    for(;;){
+      const { done, value } = await reader.read();
+      if(done) break;
+      chunks.push(value); got += value.length;
+      if(onProgress) onProgress(got, totalH);
+    }
+    const merged = new Uint8Array(got);
+    let at = 0;
+    for(const c of chunks){ merged.set(c, at); at += c.length; }
+    ab = merged.buffer;
+  }else{
+    ab = await res.arrayBuffer();       // ストリーム非対応の環境
+  }
+  audioCache.set(url, ab);
+  return ab;
+}
 async function loadRemote(tr){
   $("err").hidden = true;
   show("load");
@@ -2364,39 +2393,16 @@ async function loadRemote(tr){
   loadBase = 0;
   $("loadbar").style.width = "2%";
   try{
-    let ab = audioCache.get(tr.url);
-    if(ab){
-      $("loadbar").style.width = "34%";
-    }else{
-      const res = await fetch(tr.url);
-      if(!res.ok) throw new Error(res.status);
-      /* ダウンロードは体感で最も長い区間。ストリームを読みながら
-         2%→34% を実バイト比で進める。長さ不明のときは
-         「3MBで9割」の目安で漸近させ、止まって見えないようにする。 */
-      const totalH = +(res.headers.get("content-length") || 0);
-      const setDl = frac => { $("loadbar").style.width = (2 + Math.min(1, frac) * 32) + "%"; };
-      if(res.body && res.body.getReader){
-        const reader = res.body.getReader();
-        const chunks = [];
-        let got = 0;
-        for(;;){
-          const { done, value } = await reader.read();
-          if(done) break;
-          chunks.push(value); got += value.length;
-          setDl(totalH ? got / totalH : 1 - Math.exp(-got / 3.0e6));
-          $("loads").textContent = "DOWNLOADING · " + (got / 1048576).toFixed(1) + " MB" +
-            (totalH ? " / " + (totalH / 1048576).toFixed(1) + " MB" : "");
-        }
-        const merged = new Uint8Array(got);
-        let at = 0;
-        for(const c of chunks){ merged.set(c, at); at += c.length; }
-        ab = merged.buffer;
-      }else{
-        ab = await res.arrayBuffer();       // ストリーム非対応の環境
-      }
-      setDl(1);
-      audioCache.set(tr.url, ab);
-    }
+    /* ダウンロードは体感で最も長い区間。ストリームを読みながら
+       2%→34% を実バイト比で進める。長さ不明のときは
+       「3MBで9割」の目安で漸近させ、止まって見えないようにする。 */
+    const setDl = frac => { $("loadbar").style.width = (2 + Math.min(1, frac) * 32) + "%"; };
+    const ab = await fetchAudio(tr.url, (got, totalH) => {
+      setDl(totalH ? got / totalH : 1 - Math.exp(-got / 3.0e6));
+      $("loads").textContent = "DOWNLOADING · " + (got / 1048576).toFixed(1) + " MB" +
+        (totalH ? " / " + (totalH / 1048576).toFixed(1) + " MB" : "");
+    });
+    setDl(1);
     loadBase = 34;                       // 以降の解析は 34%→100% に写像
     await play(tr.title, ab, tr.url);
     loadBase = 0;
@@ -2737,13 +2743,17 @@ async function loadLocal(file){
 }
 
 /* 難易度・オフセット */
+/* 難易度の変更は 1 箇所に集約する（他の画面からも選べるようにするため）。 */
+function setDifficulty(d){
+  if(!DIFF[d]) return;
+  difficulty = d;
+  for(const x of document.querySelectorAll("#diff button[data-d]"))
+    x.setAttribute("aria-pressed", String(x.dataset.d === d));
+  renderTracks();
+}
 $("diff").onclick = e => {
   const b = e.target.closest("button[data-d]");
-  if(!b) return;
-  difficulty = b.dataset.d;
-  for(const x of $("diff").querySelectorAll("button"))
-    x.setAttribute("aria-pressed", String(x === b));
-  renderTracks();
+  if(b) setDifficulty(b.dataset.d);
 };
 $("markersel").onclick = e => {
   const b = e.target.closest("button[data-m]");
