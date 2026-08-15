@@ -71,11 +71,12 @@
 
 - クリアした国には朱印が押され、飛んだ航路が金の線で残る
 - クリアした曲は「収録曲」タブにも国旗・国名付きで並び、いつでも遊べる
-- Vol を完走すると次の Vol が現れる（未実装なら「準備中」）。Vol.2 以降は前 Vol の最終国から旅が続く
+- Vol を完走すると次の Vol が現れ、前 Vol の最終国から旅が続く
 
 | Vol | 行程 | 曲数 |
 |---|---|---|
 | Vol.1 | 🇯🇵 JAPAN → 🇨🇳 CHINA → 🇮🇳 INDIA → 🇪🇬 EGYPT → 🇫🇷 FRANCE → 🇪🇸 SPAIN → 🇧🇷 BRAZIL → 🇺🇸 USA | 8 |
+| Vol.2 | 🇲🇽 MEXICO → 🇨🇺 CUBA → 🇯🇲 JAMAICA → 🇦🇷 ARGENTINA → 🇦🇺 AUSTRALIA → 🇮🇩 INDONESIA → 🇲🇳 MONGOLIA → 🇮🇪 IRELAND | 8 |
 
 進行は `localStorage`（`juroku:tour`）に保存される。
 
