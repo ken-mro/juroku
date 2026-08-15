@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.15-3</title>
+<title>十六 JŪROKU v2026.08.15-4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -679,6 +679,14 @@ const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上
   ES:{ en:"SPAIN",  lon:-3.7,   lat:40.4  },
   BR:{ en:"BRAZIL", lon:-43.2,  lat:-22.9 },
   US:{ en:"USA",    lon:-118.2, lat:34.1  },
+  MX:{ en:"MEXICO", lon:-99.13, lat:19.43 },
+  CU:{ en:"CUBA", lon:-82.37, lat:23.13 },
+  JM:{ en:"JAMAICA", lon:-76.8, lat:18 },
+  AR:{ en:"ARGENTINA", lon:-58.38, lat:-34.6 },
+  AU:{ en:"AUSTRALIA", lon:151.2, lat:-33.87 },
+  ID:{ en:"INDONESIA", lon:106.85, lat:-6.2 },
+  MN:{ en:"MONGOLIA", lon:106.9, lat:47.9 },
+  IE:{ en:"IRELAND", lon:-6.26, lat:53.35 },
   /* TOUR_COUNTRIES_END */
 };
 const TOUR_VOLS = [
@@ -692,6 +700,17 @@ const TOUR_VOLS = [
       { id:"1e9e9b3d-bd0c-4443-ac35-54a01b7512b1", title:"Duende Rush",        cc:"ES" },
       { id:"ee1506de-cc64-4a7b-9ce1-5281724d6ea0", title:"Batucada Blastoff",  cc:"BR" },
       { id:"83009c6e-c1b1-4512-9df4-0c7269620426", title:"Neon Freeway Funk",  cc:"US" },
+    ] },
+  { vol:2, title:"Pulse of the Earth: World Tour Vol.2",
+    tracks:[
+      { id:"dbab1125-0e24-46db-b204-96120e5127e9", title:"Mariachi Blaze",      cc:"MX" },
+      { id:"7c8accdf-3092-4112-bf06-c4a9530908d9", title:"Havana Heatwave",     cc:"CU" },
+      { id:"994138de-5cdb-4689-856e-5deee18757a4", title:"Riddim Rocket",       cc:"JM" },
+      { id:"93783a23-6cbb-45cd-aaa4-1013b75ade9e", title:"Tango Voltage",       cc:"AR" },
+      { id:"71e49086-6b9f-471e-b6a4-38dc17c3f3c3", title:"Outback Pulse",       cc:"AU" },
+      { id:"8ee09161-2435-4fb9-93c4-93f1ec42d745", title:"Kotekan Cascade",     cc:"ID" },
+      { id:"008c011c-d2b0-41d8-9779-a11d20cd90c5", title:"Steppe Thunder",      cc:"MN" },
+      { id:"f06a9538-ca26-4d03-9814-eac27e33d697", title:"Emerald Reel",        cc:"IE" },
     ] },
   /* TOUR_VOLS_END */
 ].map(v => ({ ...v, tracks: v.tracks.map((x, idx) => ({

@@ -76,6 +76,7 @@
 | Vol | 行程 | 曲数 |
 |---|---|---|
 | Vol.1 | 🇯🇵 JAPAN → 🇨🇳 CHINA → 🇮🇳 INDIA → 🇪🇬 EGYPT → 🇫🇷 FRANCE → 🇪🇸 SPAIN → 🇧🇷 BRAZIL → 🇺🇸 USA | 8 |
+| Vol.2 | 🇲🇽 MEXICO → 🇨🇺 CUBA → 🇯🇲 JAMAICA → 🇦🇷 ARGENTINA → 🇦🇺 AUSTRALIA → 🇮🇩 INDONESIA → 🇲🇳 MONGOLIA → 🇮🇪 IRELAND | 8 |
 
 進行は `localStorage`（`juroku:tour`）に保存される。
 
