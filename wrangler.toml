@@ -1,0 +1,26 @@
+# Cloudflare Workers の設定（デプロイは `npx wrangler deploy`）。
+#
+# 構成:
+#   public/  … 配信する静的ファイル（ゲーム本体・アイコン・プライバシーポリシー）
+#   worker/  … /api/* を処理する Worker。index.js が入口
+#
+# 秘密情報（GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / SESSION_SECRET）はここに書かない。
+# ダッシュボードの Settings → Variables and Secrets、または `npx wrangler secret put <名前>` で登録する
+# （Secret は wrangler deploy で消えない）。未設定の間は同期 API が 503 を返し、
+# ゲームはこれまでどおり localStorage だけで動く。
+
+name = "juroku"
+main = "worker/index.js"
+compatibility_date = "2026-08-16"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# ── 記録の同期に必要 ──
+# KV 名前空間を作ってから、id を入れてこの 3 行のコメントを外す:
+#   npx wrangler kv namespace create JUROKU_KV
+# （namespace を作る前に有効にすると wrangler deploy が失敗するので、必ず作成後に外すこと）
+# [[kv_namespaces]]
+# binding = "JUROKU_KV"
+# id = "<ここに KV namespace の id>"

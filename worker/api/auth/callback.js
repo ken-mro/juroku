@@ -1,7 +1,7 @@
-import { config, notConfigured, redirect, origin, callbackUrl, json } from "../../_lib/config.js";
-import { exchangeCode, verifyIdToken } from "../../_lib/google.js";
+import { config, notConfigured, redirect, origin, callbackUrl, json } from "../../lib/config.js";
+import { exchangeCode, verifyIdToken } from "../../lib/google.js";
 import { signToken, verifyToken, getCookie, setCookie, clearCookie,
-         SESSION_COOKIE, STATE_COOKIE, SESSION_MAX_AGE } from "../../_lib/session.js";
+         SESSION_COOKIE, STATE_COOKIE, SESSION_MAX_AGE } from "../../lib/session.js";
 
 /* Google からの戻り。state を照合し、コードをトークンに交換し、ID トークンを検証してから
    自前のセッション Cookie を発行する。Google のトークンは保存しない（用が済んだら捨てる）。 */

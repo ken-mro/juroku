@@ -10,19 +10,20 @@ Cloudflare Pages で静的ホストする。
 ### ディレクトリ構成
 
 ```
-public/     配信される静的ファイル（index.html / privacy.html / icons / site.webmanifest / _headers）
-functions/  Cloudflare Pages Functions（サーバー側。§6）
-tests/      ヘッドレステスト
+public/        配信される静的ファイル（index.html / privacy.html / icons / site.webmanifest / _headers）
+worker/        Cloudflare Worker（サーバー側。index.js が入口で /api/* を処理。§6）
+wrangler.toml  Worker の設定（main / assets / KV）
+tests/         ヘッドレステスト
 ```
 
-`public/` と `functions/` が**分かれていることが必須**。Cloudflare Pages は
-「ビルド出力ディレクトリの外にある `functions/`」だけを Functions としてコンパイルするため、
-両者を同じ場所に置くと `functions/` がただの静的ファイルとして配信されてしまう。
-Pages の設定は **ビルド出力ディレクトリ = `public`**。
+配信は **Cloudflare Workers（静的アセット付き）**。Pages ではないので、
+`functions/` にファイルを置けばルートになる Pages Functions の規約は**使えない**
+（実際に一度それで API が 404 になった）。API を増やす時は `worker/api/` にモジュールを作り、
+`worker/index.js` の `ROUTES` に 1 行足す。
 
 ### 単一ファイル構成
 `public/index.html` に HTML / CSS / JS がすべて入っている。**ファイル分割はしない。**
-（この規則はゲーム本体＝クライアントの話。サーバー側は `functions/` に分ける — §6 参照）
+（この規則はゲーム本体＝クライアントの話。サーバー側は `worker/` に分ける — §6 参照）
 配布と改変の容易さを優先した意図的な設計で、ビルド工程もパッケージマネージャも無い。
 
 外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ。
@@ -245,15 +246,17 @@ jsdom で動かす際は `matchMedia` / `ResizeObserver` / `AudioContext` / `Aud
 同期は上乗せの機能で、**ゲームの流れを止めないこと**が最優先（通信は必ず握りつぶす）。
 
 ```
-functions/_lib/merge.js    併合規則（純関数。可換・冪等・キー順も確定）
-functions/_lib/session.js  HMAC セッションと HttpOnly Cookie
-functions/_lib/google.js   認可URL・コード交換・IDトークン検証（JWKS/RS256、iss/aud/exp）
-functions/_lib/config.js   環境変数の取り出しと共通レスポンス
-functions/api/...          auth/{login,callback,logout}, me, sync(GET/PUT/POST/DELETE)
+worker/index.js       入口。/api/* を ROUTES で振り分け、それ以外は env.ASSETS へ委ねる
+worker/lib/merge.js   併合規則（純関数。可換・冪等・キー順も確定）
+worker/lib/session.js HMAC セッションと HttpOnly Cookie
+worker/lib/google.js  認可URL・コード交換・IDトークン検証（JWKS/RS256、iss/aud/exp）
+worker/lib/config.js  環境変数の取り出しと共通レスポンス
+worker/api/...        auth/{login,callback,logout}, me, sync(GET/PUT/POST/DELETE)
 ```
 
-- Cloudflare Pages Functions（**ビルド不要**）。KV は `JUROKU_KV` でバインド。
-  `functions/` はリポジトリのルート（＝出力ディレクトリ `public` の外）に置くこと
+- Cloudflare Workers（**ビルド不要**、`npx wrangler deploy`）。KV は `wrangler.toml` の
+  `[[kv_namespaces]]` で `JUROKU_KV` としてバインドする（ダッシュボードで足したバインディングは
+  deploy で消えるため、必ず `wrangler.toml` に書く）
 - 秘密情報 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `SESSION_SECRET` は Cloudflare の Secret。
   **リポジトリに置かない。** 未設定なら全 API が 503 を返し、クライアントは同期 UI ごと出さない
 - 同期対象は `juroku:bests` / `juroku:tour` / `juroku:usertracks` の 3 つだけ。
@@ -266,12 +269,13 @@ functions/api/...          auth/{login,callback,logout}, me, sync(GET/PUT/POST/D
 
 ## 7. デプロイ
 
-**Cloudflare Pages**（Git 連携、ビルドコマンド無し、**出力ディレクトリ `public`**、本番ブランチ `main`）で
-配信する。エントリポイントは `public/index.html`。ビルド不要。`main` へのマージで自動デプロイ、
-PR ごとにプレビュー URL が立つ。
+**Cloudflare Workers**（Git 連携、ビルドコマンド無し、デプロイコマンド `npx wrangler deploy`、
+本番ブランチ `main`）で配信する。設定は `wrangler.toml`。ビルド不要。`main` へのマージで自動デプロイ。
 
 - `public/_headers` でキャッシュ方針（HTML は no-cache、`icons/` は長期）を指定
-- Pages は `.html` を落とした URL を正とする（`/privacy.html` は `/privacy` へ 307）
+- `.html` を落とした URL が正（`/privacy.html` は `/privacy` へ 307）
+- ローカルで API ごと動かす: `npx wrangler dev`（`http://127.0.0.1:8787`）。
+  静的ファイルだけでよければ `python3 -m http.server -d public`
 - HTTPS 必須（Web Audio API と、Suno CDN からの取得のため）
 - `file://` で開くと CORS で音源が読めない。ローカル確認は `python3 -m http.server -d public` を使う
-  （ルートから実行できる。`functions/` はローカルでは動かないので、同期 UI は出ない＝未設定と同じ状態）
+  （API も動かすなら `npx wrangler dev`。静的配信だけなら同期 UI は出ない＝未設定と同じ状態）

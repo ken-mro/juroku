@@ -1,5 +1,5 @@
-import { config, notConfigured, json } from "../_lib/config.js";
-import { readSession } from "../_lib/session.js";
+import { config, notConfigured, json } from "../lib/config.js";
+import { readSession } from "../lib/session.js";
 
 /* ログイン状態の照会。クライアントは起動時にこれを見て同期するかどうかを決める。 */
 export async function onRequestGet({ request, env, now }){
