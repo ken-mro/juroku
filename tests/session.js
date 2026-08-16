@@ -11,7 +11,7 @@ function fail(msg){ console.error("[session] FAIL: " + msg); process.exit(1); }
 const assert = (c, m) => { if(!c) fail(m); };
 
 async function main(){
-  const S = await import(pathToFileURL(path.join(__dirname, "..", "functions", "_lib", "session.js")).href);
+  const S = await import(pathToFileURL(path.join(__dirname, "..", "worker", "lib", "session.js")).href);
   const SECRET = "test-secret-do-not-use-in-production";
   const now = 1_700_000_000_000;
 
