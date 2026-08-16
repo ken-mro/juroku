@@ -38,8 +38,12 @@ Google アカウントでログインすると、**ベスト記録・ワール�
                                               キー u:<sub>
 ```
 
-Cloudflare Pages Functions は `functions/` ディレクトリを置くだけで自動デプロイされ、
-**ビルド工程は増えない**（CLAUDE.md の「ビルド工程もパッケージマネージャも無い」を維持する）。
+配信は Cloudflare Workers（静的アセット付き）。`worker/index.js` が入口で `/api/*` を振り分け、
+それ以外は `env.ASSETS` に委ねる。**ビルド工程は増えない**（CLAUDE.md の「ビルド工程もパッケージ
+マネージャも無い」を維持する）。
+
+※ 当初は Cloudflare Pages Functions（`functions/` の規約）で実装したが、配信先が Pages ではなく
+Workers だったため API が 404 になり、Workers 構成に作り直した（PR #15）。
 
 ## 認証
 

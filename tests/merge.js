@@ -14,7 +14,7 @@ const assert = (c, m) => { if(!c) fail(m); };
 const eq = (a, b, m) => assert(JSON.stringify(a) === JSON.stringify(b), `${m}\n  got:      ${JSON.stringify(a)}\n  expected: ${JSON.stringify(b)}`);
 
 async function main(){
-  const M = await import(pathToFileURL(path.join(__dirname, "..", "functions", "_lib", "merge.js")).href);
+  const M = await import(pathToFileURL(path.join(__dirname, "..", "worker", "lib", "merge.js")).href);
 
   /* ── ベスト記録: スコアが高い方が残る ── */
   {
