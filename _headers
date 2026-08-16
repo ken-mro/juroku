@@ -1,0 +1,9 @@
+# Cloudflare Pages: HTML は毎回確認（更新をすぐ反映）、アイコンは長期キャッシュ
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/site.webmanifest
+  Cache-Control: max-age=3600
+/icons/*
+  Cache-Control: public, max-age=604800
