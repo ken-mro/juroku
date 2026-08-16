@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.16-7</title>
+<title>十六 JŪROKU v2026.08.16-8</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -463,7 +463,6 @@ body::before{
   <p class="foot">
     キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応
   </p>
-  <p class="foot" id="note" hidden style="color:var(--kin)"></p>
   <p class="err" id="err" hidden></p>
 </section>
 
@@ -906,68 +905,7 @@ window.storage = {
   }
 };
 
-/* ═══════════ 配信元と、旧 URL からのデータ移行 ═══════════
-   本番は Cloudflare Pages（SITE_URL）。以前の GitHub Pages（*.github.io）で開かれた時は、
-   端末内の localStorage（ベスト・ツアー進行・設定）を URL のフラグメントに詰めて SITE_URL へ転送し、
-   新しい配信元で一度だけ取り込む。データは端末の外には出ない。 */
-const SITE_URL = "https://ju-roku.com/";              // 本番（Cloudflare Pages の独自ドメイン）
-const MIGRATE_KEYS = ["juroku:bests", "juroku:tour", "juroku:usertracks", "juroku:marker", "juroku:offset",
-                      "juroku:vibms", "juroku:claptype", "juroku:clapvol", "juroku:durs"];
-const b64u = {
-  enc: s => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
-  dec: s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0))),
-};
-/* いまの端末のデータをフラグメント文字列に（無ければ ""） */
-function packMigration(){
-  const out = {};
-  for(const k of MIGRATE_KEYS){ try{ const v = localStorage.getItem(k); if(v != null) out[k] = v; }catch(e){} }
-  return Object.keys(out).length ? "migrate=" + b64u.enc(JSON.stringify(out)) : "";
-}
-/* フラグメントの migrate= を取り込む。既にある記録は消さず、ベストは高い方・ツアーは和集合で合わせる。
-   取り込んだキーの一覧を返す（無ければ []）。 */
-function importMigration(hash){
-  const m = /(?:^|[#&])migrate=([A-Za-z0-9_-]+)/.exec(hash || "");
-  if(!m) return [];
-  let data;
-  try{ data = JSON.parse(b64u.dec(m[1])); }catch(e){ return []; }
-  if(!data || typeof data !== "object") return [];
-  const done = [];
-  for(const k of MIGRATE_KEYS){
-    if(typeof data[k] !== "string") continue;
-    try{
-      const cur = localStorage.getItem(k);
-      if(k === "juroku:bests" && cur){
-        const a = JSON.parse(cur) || {}, b = JSON.parse(data[k]) || {};
-        for(const key in b){ const x = a[key], y = b[key]; const sx = x ? (typeof x === "number" ? x : x.s) : -1, sy = typeof y === "number" ? y : y.s;
-          if(!x || sy > sx) a[key] = y; }
-        localStorage.setItem(k, JSON.stringify(a));
-      }else if(k === "juroku:tour" && cur){
-        const a = JSON.parse(cur) || { cleared: {} }, b = JSON.parse(data[k]) || { cleared: {} };
-        a.cleared = Object.assign({}, b.cleared || {}, a.cleared || {});
-        localStorage.setItem(k, JSON.stringify(a));
-      }else if(k === "juroku:usertracks" && cur){
-        const a = JSON.parse(cur) || [], b = JSON.parse(data[k]) || [];
-        const seen = new Set(a.map(t => t && t.url)); for(const t of b) if(t && !seen.has(t.url)) a.push(t);
-        localStorage.setItem(k, JSON.stringify(a));
-      }else if(cur == null){
-        localStorage.setItem(k, data[k]);            // 新側に無い設定だけ持ってくる
-      }
-      done.push(k);
-    }catch(e){}
-  }
-  return done;
-}
-/* 旧 GitHub Pages で開かれたら、データを持って新しい配信元へ */
-function redirectFromLegacyHost(){
-  try{
-    const here = location.hostname, target = new URL(SITE_URL).hostname;
-    if(!/\.github\.io$/.test(here) || here === target) return false;
-    const frag = packMigration();
-    location.replace(SITE_URL + (frag ? "#" + frag : ""));
-    return true;
-  }catch(e){ return false; }
-}
-/* 表示用の URL（結果画像の脚注など）。配信元をそのまま使い、file:// 等では SITE_URL */
+/* 結果画像の脚注に載せる URL。配信元をそのまま使う（file:// 等では固定文字列） */
 function siteDisplayUrl(){
   try{
     if(location.protocol === "http:" || location.protocol === "https:"){
@@ -975,7 +913,7 @@ function siteDisplayUrl(){
       return location.host + (path === "/" ? "" : path.replace(/\/$/, ""));
     }
   }catch(e){}
-  return SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return "ju-roku.com";
 }
 async function loadPrefs(){
   try{
@@ -4151,15 +4089,7 @@ addEventListener("keydown", e => {
 });
 
 addEventListener("resize", resize);
-if(!redirectFromLegacyHost()){
-  /* 新しい配信元で、旧 URL から持ってきたデータがあれば取り込んでからプリファレンスを読む */
-  const imported = importMigration(location.hash);
-  if(imported.length){
-    try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
-    const n = $("note"); if(n){ n.textContent = "以前の配信元から記録と設定を引き継ぎました。"; n.hidden = false; }
-  }
-  loadPrefs();
-}
+loadPrefs();
 </script>
 </body>
 </html>
