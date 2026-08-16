@@ -121,7 +121,8 @@ python3 -m http.server
 
 ## 技術メモ
 
-- 単一 HTML ファイル構成（意図的な設計。分割しない）
+- 単一 HTML ファイル構成（意図的な設計。分割しない）。画像アセットは `icons/`（アプリアイコン）のみ
+- ホーム画面に追加すると「十六」のアイコンで起動する（`site.webmanifest` / apple-touch-icon）
 - 外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ
 - ベストスコア・設定は `localStorage` に保存される（プライベートブラウジング等で
   使えない場合は保存されないだけでアプリ自体は動作する）
