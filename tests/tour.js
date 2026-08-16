@@ -17,7 +17,7 @@ const path = require("path");
 const { buildEnv } = require("./lib/env.js");
 const { makeFixtureArrayBuffer } = require("./lib/fixture-audio.js");
 
-const HTML = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+const HTML = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function fail(msg){ console.error("[tour] FAIL: " + msg); process.exit(1); }
 function assert(c, msg){ if(!c) fail(msg); }

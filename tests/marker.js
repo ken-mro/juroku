@@ -21,7 +21,7 @@ function fail(msg){
   process.exit(1);
 }
 
-const HTML = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+const HTML = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
 
 /* Boot index.html with localStorage pre-seeded the way a real browser would
  * hand it to the page, then wait for loadPrefs()'s async reads to settle. */

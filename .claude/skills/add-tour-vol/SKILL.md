@@ -33,7 +33,7 @@ Suno を実行時に叩かない（CLAUDE.md §3）。
    ```
    テストは Vol の数に依存しない（`tests/tour.js` / `tests/tour-import.test.js` は「今ある Vol の次」を
    合成して検証する）。**Vol を足すためにテストを書き換える必要は無い**。落ちたらデータの問題。
-4. `index.html` の `<title>` のバージョンを上げる（`v<今日の日付 YYYY.MM.DD>-<その日の通し番号>`。
+4. `public/index.html` の `<title>` のバージョンを上げる（`v<今日の日付 YYYY.MM.DD>-<その日の通し番号>`。
    同じ日なら末尾の番号を +1）。画面には出さない。
 5. `README.md` の「ワールドツアー」節に Vol の行（Vol 番号・国の並び・曲数）を足す。
 6. コミット（依頼があれば）。
@@ -61,6 +61,6 @@ Suno を実行時に叩かない（CLAUDE.md §3）。
 
 ## 仕組み（読む必要が出た時だけ）
 
-- 挿入位置は `index.html` の `/* TOUR_COUNTRIES_END */` と `/* TOUR_VOLS_END */`。消さない。
+- 挿入位置は `public/index.html` の `/* TOUR_COUNTRIES_END */` と `/* TOUR_VOLS_END */`。消さない。
 - 追加した Vol は、前の Vol を完走したプレイヤーにだけ地図に現れ、前 Vol の最終国から航路が続く
   （`tourVisibleVols()` / `tourJourney()`）。コードの変更は不要。

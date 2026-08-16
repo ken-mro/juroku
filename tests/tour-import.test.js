@@ -18,7 +18,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function main(){
   const md = fs.readFileSync(path.join(__dirname, "fixtures", "tour-vol1.md"), "utf8");
-  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
 
   /* 1. parse == index.html */
   const v = imp.parseTourMarkdown(md);

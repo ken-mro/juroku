@@ -197,7 +197,7 @@ function main(argv){
   if(!file){ console.error("usage: node tests/tour-import.js <album.md> [--apply] [--html index.html]"); process.exit(2); }
   const apply = args.includes("--apply");
   const hi = args.indexOf("--html");
-  const htmlPath = hi >= 0 ? path.resolve(args[hi + 1]) : path.join(ROOT, "index.html");
+  const htmlPath = hi >= 0 ? path.resolve(args[hi + 1]) : path.join(ROOT, "public", "index.html");
 
   const md = fs.readFileSync(file, "utf8");
   const v = parseTourMarkdown(md);
