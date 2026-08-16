@@ -20,7 +20,7 @@ function fail(msg){
 }
 
 async function main(){
-  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
   const { window, testErrors } = buildEnv(html);
 
   await new Promise(r => setTimeout(r, 80));

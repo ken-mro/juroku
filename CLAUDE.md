@@ -7,9 +7,22 @@ Cloudflare Pages で静的ホストする。
 
 ## 1. まず知っておくこと
 
+### ディレクトリ構成
+
+```
+public/     配信される静的ファイル（index.html / privacy.html / icons / site.webmanifest / _headers）
+functions/  Cloudflare Pages Functions（サーバー側。§6）
+tests/      ヘッドレステスト
+```
+
+`public/` と `functions/` が**分かれていることが必須**。Cloudflare Pages は
+「ビルド出力ディレクトリの外にある `functions/`」だけを Functions としてコンパイルするため、
+両者を同じ場所に置くと `functions/` がただの静的ファイルとして配信されてしまう。
+Pages の設定は **ビルド出力ディレクトリ = `public`**。
+
 ### 単一ファイル構成
-`index.html` に HTML / CSS / JS がすべて入っている。**ファイル分割はしない。**
-（この規則はゲーム本体＝クライアントの話。サーバー側は `functions/` に分けて置く — §7 参照）
+`public/index.html` に HTML / CSS / JS がすべて入っている。**ファイル分割はしない。**
+（この規則はゲーム本体＝クライアントの話。サーバー側は `functions/` に分ける — §6 参照）
 配布と改変の容易さを優先した意図的な設計で、ビルド工程もパッケージマネージャも無い。
 
 外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ。
@@ -239,7 +252,8 @@ functions/_lib/config.js   環境変数の取り出しと共通レスポンス
 functions/api/...          auth/{login,callback,logout}, me, sync(GET/PUT/POST/DELETE)
 ```
 
-- Cloudflare Pages Functions（`functions/` を置くだけ・**ビルド不要**）。KV は `JUROKU_KV` でバインド
+- Cloudflare Pages Functions（**ビルド不要**）。KV は `JUROKU_KV` でバインド。
+  `functions/` はリポジトリのルート（＝出力ディレクトリ `public` の外）に置くこと
 - 秘密情報 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `SESSION_SECRET` は Cloudflare の Secret。
   **リポジトリに置かない。** 未設定なら全 API が 503 を返し、クライアントは同期 UI ごと出さない
 - 同期対象は `juroku:bests` / `juroku:tour` / `juroku:usertracks` の 3 つだけ。
@@ -252,9 +266,12 @@ functions/api/...          auth/{login,callback,logout}, me, sync(GET/PUT/POST/D
 
 ## 7. デプロイ
 
-**Cloudflare Pages**（Git 連携、ビルドコマンド無し、出力ディレクトリ `/`、本番ブランチ `main`）で配信する。
-エントリポイントは `index.html`。ビルド不要。`main` へのマージで自動デプロイ、PR ごとにプレビュー URL が立つ。
+**Cloudflare Pages**（Git 連携、ビルドコマンド無し、**出力ディレクトリ `public`**、本番ブランチ `main`）で
+配信する。エントリポイントは `public/index.html`。ビルド不要。`main` へのマージで自動デプロイ、
+PR ごとにプレビュー URL が立つ。
 
-- `_headers` でキャッシュ方針（HTML は no-cache、`icons/` は長期）を指定
+- `public/_headers` でキャッシュ方針（HTML は no-cache、`icons/` は長期）を指定
+- Pages は `.html` を落とした URL を正とする（`/privacy.html` は `/privacy` へ 307）
 - HTTPS 必須（Web Audio API と、Suno CDN からの取得のため）
-- `file://` で開くと CORS で音源が読めない。ローカル確認は `python3 -m http.server` などを使う
+- `file://` で開くと CORS で音源が読めない。ローカル確認は `python3 -m http.server -d public` を使う
+  （ルートから実行できる。`functions/` はローカルでは動かないので、同期 UI は出ない＝未設定と同じ状態）
