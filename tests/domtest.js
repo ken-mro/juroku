@@ -48,6 +48,10 @@ async function main(){
     fail(`expected only #title to have class "on" by default, got: [${onScreens.map(s => s.id).join(",")}]`);
   }
 
+  if(!document.querySelector('a[href="privacy.html"]')){
+    fail("expected a link to the privacy policy (required for the published Google OAuth consent screen)");
+  }
+
   for(const sel of ['link[rel="icon"][href="icons/icon.svg"]', 'link[rel="apple-touch-icon"]', 'link[rel="manifest"]']){
     if(!document.querySelector(sel)) fail(`expected <head> to contain ${sel}`);
   }
