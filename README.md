@@ -125,15 +125,15 @@ Web Audio API と Suno CDN からの音源取得のため HTTPS（または `loc
 `index.html` を `file://` で直接開いても CORS で音源が読み込めず動作しない。
 
 ```bash
-python3 -m http.server -d public
+python3 -m http.server -d public      # ゲーム本体だけ（http://localhost:8000/）
+npx wrangler dev                      # API も含めて動かす（http://127.0.0.1:8787/）
 ```
 
-起動後、`http://localhost:8000/` をブラウザで開く。
-（`functions/` はローカルでは動かないため、記録の同期は無効な状態で表示される）
+前者では記録の同期は無効な状態で表示される（サーバーが無いため）。
 
 ## 技術メモ
 
-- 単一 HTML ファイル構成（意図的な設計。分割しない）。配信物は `public/`、サーバー側は `functions/`
+- 単一 HTML ファイル構成（意図的な設計。分割しない）。配信物は `public/`、サーバー側は `worker/`
 - ホーム画面に追加すると「十六」のアイコンで起動する（`site.webmanifest` / apple-touch-icon）
 - 外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ
 - ベストスコア・設定は `localStorage` に保存される（プライベートブラウジング等で

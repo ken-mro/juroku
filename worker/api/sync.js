@@ -1,10 +1,10 @@
-import { config, notConfigured, unauthorized, json, KV_PREFIX } from "../_lib/config.js";
-import { readSession, clearCookie, SESSION_COOKIE } from "../_lib/session.js";
-import { mergeState, sanitize, SCHEMA_VERSION } from "../_lib/merge.js";
+import { config, notConfigured, unauthorized, json, KV_PREFIX } from "../lib/config.js";
+import { readSession, clearCookie, SESSION_COOKIE } from "../lib/session.js";
+import { mergeState, sanitize, SCHEMA_VERSION } from "../lib/merge.js";
 
 /* 同期の本体。
    クライアントは「自分の全体を PUT し、返ってきた併合結果を採用する」だけでよい。
-   併合は可換・冪等なので（_lib/merge.js）、どの端末がどの順で同期しても同じ結果になる。 */
+   併合は可換・冪等なので（lib/merge.js）、どの端末がどの順で同期しても同じ結果になる。 */
 
 const keyFor = sub => KV_PREFIX + sub;
 

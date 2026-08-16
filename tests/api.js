@@ -9,7 +9,7 @@
  */
 const path = require("path");
 const { pathToFileURL } = require("url");
-const F = p => pathToFileURL(path.join(__dirname, "..", "functions", p)).href;
+const F = p => pathToFileURL(path.join(__dirname, "..", "worker", p)).href;
 
 function fail(msg){ console.error("[api] FAIL: " + msg); process.exit(1); }
 const assert = (c, m) => { if(!c) fail(m); };
@@ -65,8 +65,8 @@ const envOK = kv => ({ JUROKU_KV: kv, GOOGLE_CLIENT_ID: CLIENT_ID, GOOGLE_CLIENT
 const req = (url, opts) => new Request(url, opts);
 
 async function main(){
-  const G = await import(F("_lib/google.js"));
-  const S = await import(F("_lib/session.js"));
+  const G = await import(F("lib/google.js"));
+  const S = await import(F("lib/session.js"));
   const google = await makeGoogle();
 
   /* ══ google.js ══ */

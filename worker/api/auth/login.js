@@ -1,6 +1,6 @@
-import { config, notConfigured, redirect, callbackUrl } from "../../_lib/config.js";
-import { authUrl } from "../../_lib/google.js";
-import { signToken, setCookie, STATE_COOKIE } from "../../_lib/session.js";
+import { config, notConfigured, redirect, callbackUrl } from "../../lib/config.js";
+import { authUrl } from "../../lib/google.js";
+import { signToken, setCookie, STATE_COOKIE } from "../../lib/session.js";
 
 /* Google の認可画面へ送る。CSRF 対策の state は署名して Cookie にも入れ、
    戻ってきた時に一致を確認する（Cookie を読めない第三者は state を偽造できない）。 */
