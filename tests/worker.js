@@ -36,6 +36,10 @@ async function main(){
   /* 末尾スラッシュでも同じルートに届く */
   assert((await worker.fetch(new Request("https://ju-roku.com/api/me/"), env)).status === 503, "末尾スラッシュも同じルートに解決する");
 
+  /* HEAD は GET と同じ扱い（監視やリンクチェックが 405 にならないように） */
+  const head = await worker.fetch(new Request("https://ju-roku.com/api/me", { method: "HEAD" }), env);
+  assert(head.status === 503, "HEAD は GET と同じハンドラに届く（got " + head.status + "）");
+
   /* 知らない API は 404、対応していないメソッドは 405 */
   const nf = await worker.fetch(new Request("https://ju-roku.com/api/nope"), env);
   assert(nf.status === 404, "未定義の API は 404（got " + nf.status + "）");
