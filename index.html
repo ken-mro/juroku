@@ -682,7 +682,10 @@ const DEFAULT_TRACKS = [
    各国を旅しながら、その国の伝統音楽×エレクトロの楽曲をプレーするモード。
    データは Vol 単位。Vol の追加は .claude/skills/add-tour-vol（tests/tour-import.js）が
    markdown から生成して番兵コメントの位置に挿入する。番兵は消さないこと。 */
-const flagOf = cc => String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+/* 国旗。ISO2 は regional indicator から作る。スコットランド等の「タグ列」の旗は
+   TOUR_COUNTRIES[cc].flag に持たせる（cc は SCT / WLS / ENG のような 3 文字） */
+const flagOf = cc => (typeof TOUR_COUNTRIES !== "undefined" && TOUR_COUNTRIES[cc] && TOUR_COUNTRIES[cc].flag)
+  || (cc.length === 2 ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : "🏳️");
 const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上の座標（代表都市）
   JP:{ en:"JAPAN",  lon:139.7,  lat:35.7  },
   CN:{ en:"CHINA",  lon:116.4,  lat:39.9  },
@@ -3137,6 +3140,9 @@ function renderTourMap(opts){
      重ならない位置を選ぶ（フランスとスペインのように近い国のため）。 */
   const nodes = tsvg("g", {}, svg);
   const pts = j.map(e => { const c = tourCC(e.cc); return { x: tmapX(c.lon), y: tmapY(c.lat) }; });
+  /* Vol が増えると国が密集するので、地名はフォーカス中の Vol（と次の目的地）だけに出し、
+     それ以外の Vol の国は国旗だけにする（名前は行程チップにある） */
+  const focusVol = (j[tourSel] || j[0] || { tour: { vol: 1 } }).tour.vol;
   const labels = [];                                     // 置いたラベルの矩形 {x0,x1,y0,y1}
   const labelByCC = {};                                  // 同じ国が別 Vol で再登場しても地名ラベルは 1 つ
   const placeLabel = (x, y, half) => {
@@ -3145,6 +3151,14 @@ function renderTourMap(opts){
       { x, y: y + 18, a: "middle", sub: y + 28 },
       { x: x + 12, y: y + 3, a: "start", sub: y + 13 },
       { x: x - 12, y: y + 3, a: "end",   sub: y + 13 },
+      { x: x + 10, y: y - 12, a: "start", sub: y - 22 },   // 斜め・遠めの候補（密集地帯用）
+      { x: x - 10, y: y - 12, a: "end",   sub: y - 22 },
+      { x: x + 10, y: y + 20, a: "start", sub: y + 30 },
+      { x: x - 10, y: y + 20, a: "end",   sub: y + 30 },
+      { x, y: y - 24, a: "middle", sub: y - 34 },
+      { x, y: y + 31, a: "middle", sub: y + 41 },
+      { x: x + 24, y: y + 3, a: "start", sub: y + 13 },
+      { x: x - 24, y: y + 3, a: "end",   sub: y + 13 },
     ];
     for(const c of cands){
       const x0 = c.a === "middle" ? c.x - half : c.a === "start" ? c.x : c.x - half * 2;
@@ -3172,12 +3186,16 @@ function renderTourMap(opts){
     if(isNext) tsvg("circle", { cx: x, cy: y, r: 6, fill: "none", stroke: "#E8C46A", "stroke-width": 1.2, class: "tnext-ring" }, g);
     /* ラベル（国ごとに 1 つ。再登場した時は色と副題だけ更新する） */
     let L = labelByCC[e.cc];
+    const named = e.tour.vol === focusVol || isNext;
+    if(L && named && !L.named){                        // 旗だけだったラベルを地名付きに格上げ
+      L.el.textContent = flagOf(e.cc) + " " + c.en; L.named = true;
+    }
     if(!L){
-      L = placeLabel(x, y, 7 + c.en.length * 3.1);
+      L = placeLabel(x, y, named ? 7 + c.en.length * 3.1 : 7);
       L.el = tsvg("text", { x: L.x, y: L.y, "text-anchor": L.a, "font-size": 8, "font-family": "var(--f-mono)",
                             "letter-spacing": ".14em" }, g);
-      L.el.textContent = flagOf(e.cc) + " " + c.en;
-      L.bright = false;
+      L.el.textContent = named ? flagOf(e.cc) + " " + c.en : flagOf(e.cc);
+      L.bright = false; L.named = named;
       labelByCC[e.cc] = L;
     }
     if((done || isNext) && !L.bright){ L.el.setAttribute("fill", "#EFE7DA"); L.bright = true; }
@@ -3186,6 +3204,9 @@ function renderTourMap(opts){
       const s2 = tsvg("text", { x: L.x, y: L.sub, "text-anchor": L.a, "font-size": 6.5,
                                 "font-family": "var(--f-mono)", "letter-spacing": ".12em", fill: "#D9A441" }, g);
       s2.textContent = e.title.toUpperCase();
+      const hw = e.title.length * 2.6;         // 副題の占有域も記録して、後続ラベルが避けるようにする
+      labels.push({ x0: L.a === "middle" ? L.x - hw : L.a === "start" ? L.x : L.x - hw * 2,
+                    x1: L.a === "middle" ? L.x + hw : L.a === "start" ? L.x + hw * 2 : L.x, y0: L.sub - 7, y1: L.sub + 2 });
     }
     if(unlocked){
       const hit = tsvg("circle", { cx: x, cy: y, r: 14, fill: "transparent", style: "cursor:pointer" }, g);
