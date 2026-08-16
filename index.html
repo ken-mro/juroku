@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.16-8</title>
+<title>十六 JŪROKU v2026.08.16-9</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -402,6 +402,15 @@ body::before{
 .tarrive .bx{max-width:300px}
 .tarrive .br{font-size:44px}
 
+.acct{width:100%;max-width:420px;margin:18px auto 0;padding:14px 16px 13px;
+  background:var(--urushi);border:1px solid var(--line);border-radius:4px}
+.acct .accnote{font-size:11px;line-height:1.8;color:var(--gofun-dim);margin:0 0 10px}
+.acct .accmail{font-size:11px;letter-spacing:.08em;color:var(--gofun)}
+.acct .accat{font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;color:var(--gofun-dim);margin-top:3px;min-height:11px}
+.acct a.btn{display:inline-block;text-decoration:none;line-height:1.2}
+.foot .plink{color:#5A5148;text-decoration:none;border-bottom:1px solid #322822}
+.foot .plink:hover{color:var(--kin);border-bottom-color:var(--kin)}
+
 .err{color:var(--shu);font-size:12px;margin-top:14px;max-width:380px;line-height:1.7}
 </style>
 </head>
@@ -461,7 +470,8 @@ body::before{
 
 
   <p class="foot">
-    キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応
+    キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応<br>
+    <a href="privacy.html" class="plink">プライバシーポリシー</a>
   </p>
   <p class="err" id="err" hidden></p>
 </section>
@@ -498,6 +508,23 @@ body::before{
   <div class="calib">バイブの長さ <input type="range" id="vibms" min="0" max="100" step="5" value="20">
     <span class="num" id="vibmsv">20ms</span>
     <button class="btn" id="vibtest" type="button" style="padding:3px 12px;font-size:10px">試す</button></div>
+
+  <div class="acct" id="account" hidden>
+    <div class="eyebrow" style="margin-bottom:8px">アカウント</div>
+    <div id="signin">
+      <p class="accnote">Google でログインすると、ベスト記録・ワールドツアーの進行・追加したリンク曲が
+        保存され、別の端末でも続きから遊べます。</p>
+      <a class="btn" id="signinbtn" href="/api/auth/login">Google でログイン</a>
+    </div>
+    <div id="signedin" hidden>
+      <div class="accmail num" id="accmail"></div>
+      <div class="accat num" id="accat"></div>
+      <div class="btns" style="margin-top:10px">
+        <button class="btn" id="signout" type="button">ログアウト</button>
+        <button class="btn" id="accdel" type="button">クラウドのデータを削除</button>
+      </div>
+    </div>
+  </div>
 
   <div class="btns" style="margin-top:14px">
     <button class="btn prime" id="sapply">ズレをOFFSETに反映</button>
@@ -997,6 +1024,97 @@ async function loadPrefs(){
 }
 async function savePrefs(key, val){
   try{ await window.storage.set(key, val); }catch(e){}
+  if(CLOUD_KEYS.includes(key)) cloudPushSoon();     // クラウドにも（ログイン中のみ・まとめて送る）
+}
+
+/* ═══════════ クラウド同期（Google ログイン + Cloudflare KV） ═══════════
+   同期は「上乗せ」の機能。未ログイン・未設定・通信断のいずれでも、
+   これまでどおり localStorage だけで全機能が動くことを最優先にする。
+   そのため、この節の通信は必ず握りつぶし、ゲームの流れを止めない。
+
+   仕組みは 1 経路だけ: 端末の全体を PUT → サーバーが併合して保存 → 併合結果を採用。
+   併合規則（functions/_lib/merge.js）が可換・冪等なので、取得と送信を分ける必要がなく、
+   クライアント側に併合ロジックを持たなくて済む。 */
+const CLOUD_KEYS = ["juroku:bests", "juroku:tour", "juroku:usertracks"];
+let CLOUD_DEBOUNCE_MS = 5000;                     // 連続保存をまとめる待ち時間（テストで短縮する）
+let cloudState = { avail: false, on: false, email: "", at: 0 };
+let cloudTimer = null, cloudBusy = false, cloudPending = false;
+
+async function cloudFetch(path, opts){
+  try{
+    const res = await fetch(path, { credentials: "same-origin", ...(opts || {}) });
+    if(!res || !res.ok) return { ok: false, status: (res && res.status) || 0 };
+    return { ok: true, status: res.status, body: await res.json() };
+  }catch(e){ return { ok: false, status: 0 }; }   // オフライン・CORS・JSON 崩れ すべてここで止める
+}
+
+/* 端末側の同期対象を 1 つのオブジェクトに */
+function cloudSnapshot(){
+  const read = (k, fallback) => { try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } };
+  return { bests: read("juroku:bests", {}), tour: read("juroku:tour", { cleared: {} }), usertracks: read("juroku:usertracks", []) };
+}
+
+/* 併合結果を端末に反映する（localStorage・メモリ上の変数・画面）。 */
+function cloudApply(m){
+  if(!m || typeof m !== "object") return;
+  try{
+    if(m.bests && typeof m.bests === "object"){
+      bests = m.bests;
+      localStorage.setItem("juroku:bests", JSON.stringify(bests));
+    }
+    if(m.tour && typeof m.tour === "object" && m.tour.cleared){
+      tourState = { cleared: m.tour.cleared };
+      localStorage.setItem("juroku:tour", JSON.stringify(tourState));
+    }
+    if(Array.isArray(m.usertracks)){
+      userTracks = m.usertracks.filter(x => x && x.kind === "link");
+      localStorage.setItem("juroku:usertracks", JSON.stringify(userTracks));
+    }
+    cloudState.at = Date.now();
+    renderTracks();                                // 収録曲・リンク曲・ツアー曲の表示を作り直す
+    renderTourVols();
+    if($("tour").classList.contains("on")) openTour({ focus: tourSel });
+  }catch(e){}
+  renderAccount();
+}
+
+/* 端末の内容を送り、返ってきた併合結果を採用する。 */
+async function cloudPush(){
+  if(!cloudState.on) return;
+  if(cloudBusy){ cloudPending = true; return; }     // 実行中に来た変更は終わってから 1 回だけ送る
+  cloudBusy = true;
+  const res = await cloudFetch("/api/sync", { method: "PUT", headers: { "content-type": "application/json" },
+                                             body: JSON.stringify(cloudSnapshot()) });
+  cloudBusy = false;
+  if(res.ok) cloudApply(res.body);
+  else if(res.status === 401){ cloudState.on = false; renderAccount(); }   // セッション切れ
+  if(cloudPending){ cloudPending = false; cloudPushSoon(); }
+}
+function cloudPushSoon(){
+  if(!cloudState.on) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(cloudPush, CLOUD_DEBOUNCE_MS);
+}
+
+/* 起動時とログイン状態の変化時に呼ぶ。 */
+async function cloudRefresh(){
+  const me = await cloudFetch("/api/me");
+  cloudState.avail = me.ok;                        // 503（Secret 未設定）や通信断なら同期 UI ごと出さない
+  cloudState.on = !!(me.ok && me.body && me.body.signedIn);
+  cloudState.email = (me.ok && me.body && me.body.email) || "";
+  renderAccount();
+  if(cloudState.on) await cloudPush();
+}
+
+function renderAccount(){
+  const box = $("account");
+  if(!box) return;
+  box.hidden = !cloudState.avail;
+  if(!cloudState.avail) return;
+  $("signin").hidden = cloudState.on;
+  $("signedin").hidden = !cloudState.on;
+  $("accmail").textContent = cloudState.email;
+  $("accat").textContent = cloudState.at ? "最終同期 " + new Date(cloudState.at).toLocaleTimeString() : "";
 }
 
 /* ═══════════ 画面遷移 ═══════════ */
@@ -4083,13 +4201,31 @@ addEventListener("keydown", e => {
 });
 
 $("bmclose").onclick = closeBest;
+
+$("signout").onclick = async () => {
+  await cloudFetch("/api/auth/logout", { method: "POST" });
+  cloudState.on = false; cloudState.email = ""; cloudState.at = 0;
+  renderAccount();
+};
+$("accdel").onclick = async () => {
+  if(!confirm("クラウドに保存された記録を削除してログアウトします。この端末の記録は残ります。")) return;
+  await cloudFetch("/api/sync", { method: "DELETE" });
+  cloudState.on = false; cloudState.email = ""; cloudState.at = 0;
+  renderAccount();
+};
 $("bmodal").onclick = e => { if(e.target === $("bmodal")) closeBest(); };
 addEventListener("keydown", e => {
   if(e.key === "Escape" && $("bmodal").dataset.on === "1"){ e.preventDefault(); closeBest(); }
 });
 
 addEventListener("resize", resize);
-loadPrefs();
+loadPrefs().then(cloudRefresh);
+
+/* 離脱時に未送信の変更が残っていたら送る（sendBeacon は POST なので API 側で PUT と同じ扱い） */
+addEventListener("pagehide", () => {
+  if(!cloudState.on || !cloudTimer) return;
+  try{ navigator.sendBeacon && navigator.sendBeacon("/api/sync", new Blob([JSON.stringify(cloudSnapshot())], { type: "application/json" })); }catch(e){}
+});
 </script>
 </body>
 </html>
