@@ -122,12 +122,16 @@ async function main(){
         for(var i = 0; i <= 40; i++){
           paintMarker(c, 10, 10, 100, 100, i/40, function(){ c.beginPath(); });
         }
+        /* 打点通過後（late 0→1）: 蚊は反対側へ抜けていく。どのマーカーでも例外なく描けること */
+        for(var j = 0; j <= 10; j++){
+          paintMarker(c, 10, 10, 100, 100, 1, function(){ c.beginPath(); }, j/10);
+        }
       })();`);
     }
     if(window.eval("marker") !== "ka"){
       fail("paint loop left the marker variable in an unexpected state");
     }
-    console.log("[marker] paintMarker OK for all five markers over p = 0..1");
+    console.log("[marker] paintMarker OK for all five markers over p = 0..1 and late = 0..1");
   }
 
   console.log("[marker] PASS — 満 is the first-run default, saved settings survive, all five markers work");
