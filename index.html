@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.16-3</title>
+<title>十六 JŪROKU v2026.08.16-4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -703,6 +703,14 @@ const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上
   ID:{ en:"INDONESIA", lon:106.85, lat:-6.2 },
   MN:{ en:"MONGOLIA", lon:106.9, lat:47.9 },
   IE:{ en:"IRELAND", lon:-6.26, lat:53.35 },
+  SCT:{ en:"SCOTLAND", lon:-3.19, lat:55.95, flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+  DE:{ en:"GERMANY", lon:13.4, lat:52.52 },
+  IT:{ en:"ITALY", lon:12.5, lat:41.9 },
+  GR:{ en:"GREECE", lon:23.73, lat:37.98 },
+  TR:{ en:"TURKEY", lon:28.98, lat:41.01 },
+  NG:{ en:"NIGERIA", lon:3.4, lat:6.45 },
+  ZA:{ en:"SOUTH AFRICA", lon:28.05, lat:-26.2 },
+  KR:{ en:"KOREA", lon:126.98, lat:37.57 },
   /* TOUR_COUNTRIES_END */
 };
 const TOUR_VOLS = [
@@ -727,6 +735,17 @@ const TOUR_VOLS = [
       { id:"8ee09161-2435-4fb9-93c4-93f1ec42d745", title:"Kotekan Cascade",     cc:"ID" },
       { id:"008c011c-d2b0-41d8-9779-a11d20cd90c5", title:"Steppe Thunder",      cc:"MN" },
       { id:"f06a9538-ca26-4d03-9814-eac27e33d697", title:"Emerald Reel",        cc:"IE" },
+    ] },
+  { vol:3, title:"Pulse of the Earth: World Tour Vol.3",
+    tracks:[
+      { id:"bf3451db-9593-4e3e-99ab-987f2ad58657", title:"Highland Charge",     cc:"SCT" },
+      { id:"c4f500ec-0e71-414b-b9da-072935c7c11e", title:"Oompah Overload",     cc:"DE" },
+      { id:"760d8200-9acc-41fb-9e0b-c04fa3cb0942", title:"Tarantella Neon",     cc:"IT" },
+      { id:"cce1bed6-d7ec-431e-aea8-cd88badc4210", title:"Aegean Spark",        cc:"GR" },
+      { id:"b578a54e-da51-4399-8380-7355213bdc09", title:"Bosphorus Nine",      cc:"TR" },
+      { id:"c4837b6e-7030-49fd-bddc-5666424e4cca", title:"Lagos Lightning",     cc:"NG" },
+      { id:"a4a0aee1-6b6c-4f44-b1fc-ac0cbe2dd5b4", title:"Township Thunderclap", cc:"ZA" },
+      { id:"9cdf893d-04db-4226-bd92-9e89b4b82066", title:"Samulnori Surge",     cc:"KR" },
     ] },
   /* TOUR_VOLS_END */
 ].map(v => ({ ...v, tracks: v.tracks.map((x, idx) => ({
