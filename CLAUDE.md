@@ -210,7 +210,6 @@ node tests/chart.js      # 既知の音源で譜面が変化していないか�
 node tests/tour.js       # ワールドツアー（データ整合・解放ロジック・地図・finish 連携・失敗経路）
 node tests/tour-import.test.js  # Vol 追加スクリプト（fixture の md == index.html の Vol.1、合成 Vol.2 の挿入）
 node tests/result.js     # 結果画面の段階表示・結果画像（記録の同一性、canvas が例外を出さない、ボタン配線）
-node tests/migrate.js    # 配信元移行（localStorage の詰め込み／取り込みの併合規則、起動時の取り込み）
 ```
 （`cd tests && npm test` で全部通る）
 
@@ -227,11 +226,6 @@ jsdom で動かす際は `matchMedia` / `ResizeObserver` / `AudioContext` / `Aud
 **Cloudflare Pages**（Git 連携、ビルドコマンド無し、出力ディレクトリ `/`、本番ブランチ `main`）で配信する。
 エントリポイントは `index.html`。ビルド不要。`main` へのマージで自動デプロイ、PR ごとにプレビュー URL が立つ。
 
-- 本番 URL は `index.html` の `SITE_URL`（Cloudflare Pages のプロジェクト名／独自ドメインに合わせる 1 箇所）
 - `_headers` でキャッシュ方針（HTML は no-cache、`icons/` は長期）を指定
-- 旧 GitHub Pages（`*.github.io`）で開かれた場合は `redirectFromLegacyHost()` が localStorage
-  （ベスト・ツアー進行・設定）を `#migrate=` に詰めて `SITE_URL` へ転送し、新側で `importMigration()` が
-  一度だけ取り込む（既存の記録は消さず、ベストは高い方・ツアーは和集合）。GitHub Pages は当面
-  リダイレクト役として残す。データは端末の外には出ない
 - HTTPS 必須（Web Audio API と、Suno CDN からの取得のため）
 - `file://` で開くと CORS で音源が読めない。ローカル確認は `python3 -m http.server` などを使う

@@ -103,10 +103,6 @@
 
 https://ju-roku.com/ （Cloudflare Pages）
 
-以前の https://ken-mro.github.io/juroku/ を開くと、端末内のベスト記録・ワールドツアーの進行・設定を
-持ったまま新しい URL へ自動で移動します（データは端末の外には送られません）。ホーム画面に追加していた
-場合は新しい URL で追加し直してください。
-
 ## 収録曲について
 
 収録されている全曲はこのリポジトリの作者（`ken_mro`）が [Suno](https://suno.com) で
