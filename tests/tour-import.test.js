@@ -34,6 +34,7 @@ async function main(){
       assert(h[k] === t[k], `Vol.1 #${i+1} ${k} differs: html=${JSON.stringify(h[k])} md=${JSON.stringify(t[k])}`);
   });
   assert(imp.flagToCC("🇯🇵 日本") === "JP" && imp.flagToCC("🇧🇷") === "BR" && imp.flagToCC("日本") === null, "flagToCC");
+  assert(imp.flagToCC("🏴󠁧󠁢󠁳󠁣󠁴󠁿 スコットランド") === "SCT" && imp.flagEmoji("🏴󠁧󠁢󠁳󠁣󠁴󠁿 スコットランド") === "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "tag-sequence flags (Scotland) → SCT");
   console.log("[tour-import] parse OK (fixture == index.html TOUR_VOLS[0], 8 tracks)");
 
   /* 2. synthetic next Vol applied to a copy boots and shows up

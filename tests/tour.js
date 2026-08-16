@@ -56,6 +56,9 @@ async function main(){
     const land = JSON.parse(window.eval("JSON.stringify(TOUR_LAND)"));
     for(const k in land) assert(land[k].length >= 3, `TOUR_LAND.${k} has < 3 points`);
     assert(window.eval('flagOf("JP")') === "🇯🇵", "flagOf(JP) should be 🇯🇵");
+    window.eval('TOUR_COUNTRIES.SCT = { en:"SCOTLAND", lon:-3.19, lat:55.95, flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿" };');
+    assert(window.eval('flagOf("SCT")') === "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "flagOf should use an explicit flag for tag-sequence countries");
+    window.eval('delete TOUR_COUNTRIES.SCT;');
     console.log(`[tour] data OK (${vols.length} vol(s), ${ids.size} tracks, ${Object.keys(land).length} land polygons)`);
   }
 
