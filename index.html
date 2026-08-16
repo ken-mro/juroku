@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.16-2</title>
+<title>十六 JŪROKU v2026.08.16-3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -1511,7 +1511,7 @@ function paintMarker(c, px, py, pw, ph, p, tracePath, late){
   /* 押す瞬間は面そのものも鮮色に寄せる。満・簾は各分岐で塗るため
      ここでは塗り面を持たない 環・火・蚊 の3方式だけを対象にする。 */
   if(p > 0.86 && (marker === "ring" || marker === "fuse" || marker === "ka")){
-    const vw = (p-0.86)/0.14 * (marker === "ka" ? 1 - late : 1);   // 蚊は通過後に鮮色が引いていく
+    const vw = (p-0.86)/0.14 * (1 - late);   // 打点通過後は鮮色が引いていく
     c.save(); tracePath(); c.clip();
     c.globalAlpha = vw*0.30;
     c.fillStyle = st.vivid;
@@ -1523,10 +1523,17 @@ function paintMarker(c, px, py, pw, ph, p, tracePath, late){
     c.strokeStyle = "rgba(239,231,218,.10)";
     c.lineWidth = Math.max(2, pw*0.030);
     c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.stroke();
-    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;      // 押す瞬間の鮮色の強さ
+    const vv = (p > 0.86 ? (p-0.86)/0.14 : 0) * (1 - late);   // 押す瞬間の鮮色の強さ（通過後は引く）
     c.strokeStyle = col(0.30+0.70*p);
     c.lineWidth = Math.max(2.5, pw*0.042); c.lineCap = "round";
     c.beginPath(); c.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + p*Math.PI*2); c.stroke();
+    if(late > 0){                                  // 一周した後もそのまま回り続ける（140ms で半周）
+      c.globalAlpha = 0.9;
+      c.strokeStyle = "#EFE7DA";
+      c.lineWidth = Math.max(3, pw*0.050);
+      c.beginPath(); c.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + late*Math.PI); c.stroke();
+      c.globalAlpha = 1;
+    }
     if(vv > 0){                                    // 弧を冴えた色で上塗り
       c.globalAlpha = vv;
       c.strokeStyle = st.vivid;
@@ -1534,8 +1541,8 @@ function paintMarker(c, px, py, pw, ph, p, tracePath, late){
       c.beginPath(); c.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + p*Math.PI*2); c.stroke();
       c.globalAlpha = 1;
     }
-    if(p > 0.86){
-      c.globalAlpha = (p-0.86)/0.14;
+    if(p > 0.86 && vv > 0){
+      c.globalAlpha = vv;
       c.fillStyle = st.vivid;                   // 押す瞬間だけ鮮色
       c.beginPath(); c.arc(cx, cy, r*0.24, 0, Math.PI*2); c.fill();
     }
@@ -1546,9 +1553,12 @@ function paintMarker(c, px, py, pw, ph, p, tracePath, late){
        満水までの隙間の高さがそのまま「あとどれだけ早いか」になる。 */
     c.save(); tracePath(); c.clip();
     const TOP = ph*0.085;                       // 打点線までの余白
-    const hh  = (ph - TOP) * p;                 // p=1 で打点線に一致（満水）
-    const sy  = py + ph - hh;                   // 水面のY
-    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;   // 押す瞬間の鮮色の強さ
+    /* p=1 で水面が打点線に一致（満水）。通過後は水がそのまま上へ抜けていく:
+       水面は打点線を越えて上端へ、水の底も上がり、140ms（逃の境）で打点線まで抜ける。 */
+    const sy  = late > 0 ? py + TOP*(1 - late) : py + ph - (ph - TOP)*p;   // 水面のY
+    const sb  = late > 0 ? py + ph - (ph - TOP)*late : py + ph;           // 水の底のY
+    const hh  = sb - sy;
+    const vv = (p > 0.86 ? (p-0.86)/0.14 : 0) * (1 - late);   // 押す瞬間の鮮色の強さ（通過後は引く）
     /* 打点線（目標高さ）。水面と読み違えないよう破線・低コントラストで置く */
     c.save();
     c.setLineDash([pw*0.07, pw*0.055]);
@@ -1596,9 +1606,17 @@ function paintMarker(c, px, py, pw, ph, p, tracePath, late){
       }
       c.stroke();
     }
-    /* 火花: 大きさ一定の点＋短い火の粉 */
-    const sp = at(Math.min(1, p));
-    const vvF = p > 0.86 ? (p-0.86)/0.14 : 0;
+    /* 火花: 大きさ一定の点＋短い火の粉。中心に達した後は同じ向き（下向き）へまっすぐ抜けていく */
+    const sp = late > 0 ? [cx, cy + pw*0.42*late] : at(Math.min(1, p));
+    const vvF = (p > 0.86 ? (p-0.86)/0.14 : 0) * (1 - late);
+    if(late > 0){                            // 通過後の航跡
+      c.strokeStyle = st.hi;
+      c.globalAlpha = 0.35 * (1 - late*0.5);
+      c.lineWidth = Math.max(1, pw*0.012);
+      c.setLineDash([Math.max(2, pw*0.03), Math.max(2, pw*0.03)]);
+      c.beginPath(); c.moveTo(cx, cy); c.lineTo(sp[0], sp[1]); c.stroke();
+      c.setLineDash([]);
+    }
     c.globalAlpha = 1;
     c.fillStyle = vvF > 0 ? st.vivid : st.hi;
     c.beginPath(); c.arc(sp[0], sp[1], Math.max(1.8, pw*0.030), 0, Math.PI*2); c.fill();
@@ -1617,9 +1635,9 @@ function paintMarker(c, px, py, pw, ph, p, tracePath, late){
       c.lineTo(sp[0]+Math.cos(a)*r2,       sp[1]+Math.sin(a)*r2);
       c.stroke();
     }
-    /* 燃え尽きた瞬間の「ドン」。大きさは変えず不透明度だけで出す */
-    if(p > 0.86){
-      const a = (p-0.86)/0.14;
+    /* 燃え尽きた瞬間の「ドン」。大きさは変えず不透明度だけで出す（通過後は薄れる） */
+    if(p > 0.86 && late < 1){
+      const a = (p-0.86)/0.14 * (1 - late);
       c.globalAlpha = a;
       c.fillStyle = st.vivid;                   // 押す瞬間だけ鮮色
       c.font = '800 ' + Math.round(pw*0.30) + 'px "Shippori Mincho", serif';
@@ -1704,18 +1722,26 @@ function paintMarker(c, px, py, pw, ph, p, tracePath, late){
     c.restore();
   }else{ /* sweep 簾 */
     c.save(); tracePath(); c.clip();
-    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;   // 押す瞬間の鮮色の強さ
+    const vv = (p > 0.86 ? (p-0.86)/0.14 : 0) * (1 - late);   // 押す瞬間の鮮色の強さ（通過後は引く）
+    /* 右端に届いた後もそのまま右へ抜けていく: 先端は右端に留まり、後端が右へ追いつく（140ms で抜けきる） */
+    const x0 = px + (late > 0 ? pw*late : 0);   // 掃いた面の左端（後端）
+    const x1 = px + pw*p;                       // 先端
     c.fillStyle = col(0.16 + 0.30*p);
-    c.fillRect(px, py, pw*p, ph);
+    c.fillRect(x0, py, Math.max(0, x1 - x0), ph);
     if(vv > 0){                                 // 掃いた面を冴えた色に染める
       c.globalAlpha = vv * 0.70;
       c.fillStyle = st.vivid;
-      c.fillRect(px, py, pw*p, ph);
+      c.fillRect(x0, py, Math.max(0, x1 - x0), ph);
+    }
+    if(late > 0){                               // 後端の線（抜けていく縁）
+      c.globalAlpha = 0.5;
+      c.fillStyle = "#EFE7DA";
+      c.fillRect(x0 - 1, py, 2, ph);
     }
     c.globalAlpha = 0.55 + 0.45*p;              // 先端の線
     c.fillStyle = vv > 0 ? st.vivid : st.hi;
     const lw = 3 + vv*3;
-    c.fillRect(px + pw*p - lw/2, py, lw, ph);
+    c.fillRect(x1 - lw/2, py, lw, ph);
     c.restore();
   }
 }
