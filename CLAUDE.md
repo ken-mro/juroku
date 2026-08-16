@@ -9,6 +9,7 @@ Cloudflare Pages で静的ホストする。
 
 ### 単一ファイル構成
 `index.html` に HTML / CSS / JS がすべて入っている。**ファイル分割はしない。**
+（この規則はゲーム本体＝クライアントの話。サーバー側は `functions/` に分けて置く — §7 参照）
 配布と改変の容易さを優先した意図的な設計で、ビルド工程もパッケージマネージャも無い。
 
 外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ。
@@ -210,6 +211,10 @@ node tests/chart.js      # 既知の音源で譜面が変化していないか�
 node tests/tour.js       # ワールドツアー（データ整合・解放ロジック・地図・finish 連携・失敗経路）
 node tests/tour-import.test.js  # Vol 追加スクリプト（fixture の md == index.html の Vol.1、合成 Vol.2 の挿入）
 node tests/result.js     # 結果画面の段階表示・結果画像（記録の同一性、canvas が例外を出さない、ボタン配線）
+node tests/merge.js      # 併合規則（高スコア優先・和集合・可換・冪等・検証・上限）
+node tests/session.js    # セッション署名（改ざん・期限切れ・別鍵の拒否）
+node tests/api.js        # OAuth 検証となりすまし拒否、API の認証ガード・併合保存・削除
+node tests/cloud.js      # クライアント同期（未設定/通信断/未ログインで無害、反映、デバウンス）
 ```
 （`cd tests && npm test` で全部通る）
 
@@ -221,7 +226,31 @@ jsdom で動かす際は `matchMedia` / `ResizeObserver` / `AudioContext` / `Aud
 
 ---
 
-## 6. デプロイ
+## 6. クラウド同期（Google ログイン + Cloudflare KV）
+
+ログインは**任意**。未ログイン・未設定・通信断のいずれでも `localStorage` だけで全機能が動く。
+同期は上乗せの機能で、**ゲームの流れを止めないこと**が最優先（通信は必ず握りつぶす）。
+
+```
+functions/_lib/merge.js    併合規則（純関数。可換・冪等・キー順も確定）
+functions/_lib/session.js  HMAC セッションと HttpOnly Cookie
+functions/_lib/google.js   認可URL・コード交換・IDトークン検証（JWKS/RS256、iss/aud/exp）
+functions/_lib/config.js   環境変数の取り出しと共通レスポンス
+functions/api/...          auth/{login,callback,logout}, me, sync(GET/PUT/POST/DELETE)
+```
+
+- Cloudflare Pages Functions（`functions/` を置くだけ・**ビルド不要**）。KV は `JUROKU_KV` でバインド
+- 秘密情報 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `SESSION_SECRET` は Cloudflare の Secret。
+  **リポジトリに置かない。** 未設定なら全 API が 503 を返し、クライアントは同期 UI ごと出さない
+- 同期対象は `juroku:bests` / `juroku:tour` / `juroku:usertracks` の 3 つだけ。
+  OFFSET・マーカー等の端末固有の設定と、曲の長さキャッシュ、音源そのものは同期しない
+- 経路は 1 つ：**端末の全体を PUT → サーバーが併合して保存 → 併合結果を採用**。
+  併合は「失われない方」を選ぶ（ベストは高スコア・クリアは古い日時・リンク曲は url で重複排除）。
+  可換かつ冪等なので競合解決が要らない。**この性質を壊す変更をしない**（`tests/merge.js` が検証）
+- クライアント側の識別子は `cloud*`（`#sync` 画面＝ズレ調整の `sync*` と紛らわしいため区別する）
+- 同意画面の公開に `privacy.html` が必要。取り扱いを変えたらこのページも必ず更新する
+
+## 7. デプロイ
 
 **Cloudflare Pages**（Git 連携、ビルドコマンド無し、出力ディレクトリ `/`、本番ブランチ `main`）で配信する。
 エントリポイントは `index.html`。ビルド不要。`main` へのマージで自動デプロイ、PR ごとにプレビュー URL が立つ。
