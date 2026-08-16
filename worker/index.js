@@ -21,8 +21,12 @@ const ROUTES = {
   "/api/sync": sync,
 };
 
-/* GET → onRequestGet のように、メソッドごとの関数名に直す */
-const handlerName = method => "onRequest" + method.charAt(0) + method.slice(1).toLowerCase();
+/* GET → onRequestGet のように、メソッドごとの関数名に直す。
+   HEAD は GET と同じ扱い（本文はランタイムが落とす）。 */
+const handlerName = method => {
+  const m = method === "HEAD" ? "GET" : method;
+  return "onRequest" + m.charAt(0) + m.slice(1).toLowerCase();
+};
 
 export default {
   async fetch(request, env, ctx){
