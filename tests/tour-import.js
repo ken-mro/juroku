@@ -23,13 +23,22 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 const COUNTRIES_JSON = path.join(__dirname, "lib", "tour-countries.json");
 
-/* 国旗絵文字（regional indicator ×2）→ ISO2 */
+/* 国旗絵文字 → 国コード。
+   regional indicator ×2（🇯🇵）→ ISO2、タグ列の旗（🏴 + gbsct 等）→ 末尾 3 文字を大文字に（SCT / WLS / ENG） */
 function flagToCC(str){
-  const cps = Array.from(str || "").map(c => c.codePointAt(0)).filter(c => c >= 0x1F1E6 && c <= 0x1F1FF);
-  if(cps.length < 2) return null;
-  return String.fromCharCode(65 + cps[0] - 0x1F1E6, 65 + cps[1] - 0x1F1E6);
+  const all = Array.from(str || "").map(c => c.codePointAt(0));
+  const ri = all.filter(c => c >= 0x1F1E6 && c <= 0x1F1FF);
+  if(ri.length >= 2) return String.fromCharCode(65 + ri[0] - 0x1F1E6, 65 + ri[1] - 0x1F1E6);
+  const tags = all.filter(c => c >= 0xE0061 && c <= 0xE007A).map(c => String.fromCharCode(c - 0xE0000));
+  if(all.includes(0x1F3F4) && tags.length >= 3) return tags.join("").slice(-3).toUpperCase();
+  return null;
 }
-const stripFlags = s => (s || "").replace(/[\u{1F1E6}-\u{1F1FF}]/gu, "").trim();
+/* 国旗絵文字そのもの（タグ列の旗をそのまま index.html に持たせるため） */
+function flagEmoji(str){
+  const m = (str || "").match(/(?:[\u{1F1E6}-\u{1F1FF}]{2})|(?:\u{1F3F4}[\u{E0061}-\u{E007A}]+\u{E007F})/u);
+  return m ? m[0] : null;
+}
+const stripFlags = s => (s || "").replace(/[\u{1F1E6}-\u{1F1FF}]|\u{1F3F4}[\u{E0061}-\u{E007A}]+\u{E007F}|\uFE0F/gu, "").trim();
 
 function splitRow(line){
   return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
@@ -63,7 +72,7 @@ function parseTourMarkdown(md){
     const c = splitRow(l);
     if(!/^\d+$/.test(c[iNo] || "")) continue;
     rows.push({
-      no: +c[iNo], title: c[iTitle], cc: flagToCC(c[iCountry]), countryJa: stripFlags(c[iCountry]),
+      no: +c[iNo], title: c[iTitle], cc: flagToCC(c[iCountry]), flag: flagEmoji(c[iCountry]), countryJa: stripFlags(c[iCountry]),
       pick: iPick >= 0 ? (c[iPick] || "").trim() : "",
     });
   }
@@ -96,7 +105,7 @@ function parseTourMarkdown(md){
     const id = sec.urls[ver];
     if(!id) throw new Error(`Track ${r.no} ${r.title}: 採用版（${ver || "不明"}）の song ID が取れません`);
     if(!r.cc) throw new Error(`Track ${r.no} ${r.title}: 国の国旗絵文字が読めません`);
-    return { id, title: r.title, cc: r.cc, countryJa: r.countryJa, version: ver };
+    return { id, title: r.title, cc: r.cc, flag: r.flag, countryJa: r.countryJa, version: ver };
   });
   return { vol, title, tracks };
 }
@@ -106,7 +115,7 @@ function knownCountries(html){
   const m = html.match(/const TOUR_COUNTRIES = \{([\s\S]*?)\/\* TOUR_COUNTRIES_END \*\//);
   if(!m) throw new Error("index.html に TOUR_COUNTRIES / TOUR_COUNTRIES_END が見つかりません");
   const out = new Set();
-  for(const x of m[1].matchAll(/^\s*([A-Z]{2}):\{/gm)) out.add(x[1]);
+  for(const x of m[1].matchAll(/^\s*([A-Z]{2,3}):\{/gm)) out.add(x[1]);
   return out;
 }
 /* index.html にある曲名（DEFAULT_TRACKS と TOUR_VOLS）。ベストスコアのキーが曲名なので重複は不可。 */
@@ -137,7 +146,7 @@ function renderVolLiteral(v){
   ].join("\n");
 }
 function renderCountryLiteral(cc, c){
-  return `  ${cc}:{ en:${q(c.en)}, lon:${c.lon}, lat:${c.lat} },`;
+  return `  ${cc}:{ en:${q(c.en)}, lon:${c.lon}, lat:${c.lat}${c.flag ? `, flag:${q(c.flag)}` : ""} },`;
 }
 
 /* 挿入。番兵がちょうど 1 回ずつあること、同じ Vol が無いことを assert する。 */
@@ -176,7 +185,7 @@ function resolveCountries(v, html){
   const add = [], missing = [];
   for(const t of v.tracks){
     if(known.has(t.cc) || add.some(([cc]) => cc === t.cc)) continue;
-    if(table[t.cc] && table[t.cc].en) add.push([t.cc, table[t.cc]]);
+    if(table[t.cc] && table[t.cc].en) add.push([t.cc, { ...table[t.cc], flag: table[t.cc].flag || (t.cc.length > 2 ? t.flag : undefined) }]);
     else missing.push(t);
   }
   return { add, missing };
@@ -224,5 +233,5 @@ function main(argv){
               `\n次に: cd tests && npm test / <title> のバージョン更新 / README 更新`);
 }
 
-module.exports = { parseTourMarkdown, renderVolLiteral, renderCountryLiteral, applyToHtml, resolveCountries, knownCountries, existingVols, existingTitles, duplicateTitles, flagToCC };
+module.exports = { parseTourMarkdown, renderVolLiteral, renderCountryLiteral, applyToHtml, resolveCountries, knownCountries, existingVols, existingTitles, duplicateTitles, flagToCC, flagEmoji };
 if(require.main === module) main(process.argv);
