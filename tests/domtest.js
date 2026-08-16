@@ -48,6 +48,10 @@ async function main(){
     fail(`expected only #title to have class "on" by default, got: [${onScreens.map(s => s.id).join(",")}]`);
   }
 
+  for(const sel of ['link[rel="icon"][href="icons/icon.svg"]', 'link[rel="apple-touch-icon"]', 'link[rel="manifest"]']){
+    if(!document.querySelector(sel)) fail(`expected <head> to contain ${sel}`);
+  }
+
   const title = document.title;
   if(!title.includes("十六") && !title.includes("JŪROKU")){
     fail(`expected <title> to mention 十六 or JŪROKU, got "${title}"`);
