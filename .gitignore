@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 *.log
+
+# wrangler のローカル開発キャッシュ（wrangler dev が作る）
+.wrangler/
