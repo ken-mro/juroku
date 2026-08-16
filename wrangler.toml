@@ -17,10 +17,10 @@ compatibility_date = "2026-08-16"
 directory = "./public"
 binding = "ASSETS"
 
-# ── 記録の同期に必要 ──
-# KV 名前空間を作ってから、id を入れてこの 3 行のコメントを外す:
-#   npx wrangler kv namespace create JUROKU_KV
-# （namespace を作る前に有効にすると wrangler deploy が失敗するので、必ず作成後に外すこと）
-# [[kv_namespaces]]
-# binding = "JUROKU_KV"
-# id = "<ここに KV namespace の id>"
+# ── 記録の同期に使う KV ──
+# 作成コマンド: npx wrangler kv namespace create JUROKU_KV
+# id は秘密情報ではない（この値だけでは中身を読めない）。アクセスできるのはこの Worker と
+# アカウント所有者だけなので、リポジトリに置いてよい。
+[[kv_namespaces]]
+binding = "JUROKU_KV"
+id = "0a98f98800b14a4ca4ee6e9c8f1aaab7"
