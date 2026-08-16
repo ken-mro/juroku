@@ -19,7 +19,7 @@ function fail(msg){
 }
 
 async function main(){
-  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
   const { document, testErrors } = buildEnv(html);
 
   // Let synchronous top-level script execution finish and give loadPrefs()'s

@@ -125,14 +125,15 @@ Web Audio API と Suno CDN からの音源取得のため HTTPS（または `loc
 `index.html` を `file://` で直接開いても CORS で音源が読み込めず動作しない。
 
 ```bash
-python3 -m http.server
+python3 -m http.server -d public
 ```
 
 起動後、`http://localhost:8000/` をブラウザで開く。
+（`functions/` はローカルでは動かないため、記録の同期は無効な状態で表示される）
 
 ## 技術メモ
 
-- 単一 HTML ファイル構成（意図的な設計。分割しない）。画像アセットは `icons/`（アプリアイコン）のみ
+- 単一 HTML ファイル構成（意図的な設計。分割しない）。配信物は `public/`、サーバー側は `functions/`
 - ホーム画面に追加すると「十六」のアイコンで起動する（`site.webmanifest` / apple-touch-icon）
 - 外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ
 - ベストスコア・設定は `localStorage` に保存される（プライベートブラウジング等で
