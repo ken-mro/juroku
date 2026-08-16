@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.16-1</title>
+<title>十六 JŪROKU v2026.08.16-2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -1493,7 +1493,10 @@ const MARKER_STYLE = {
   ka:    { rgb:[150,120,190], hi:"#C6B0E8", vivid:"#C77DFF" },   // 藤紫
 };
 const curStyle = () => MARKER_STYLE[marker] || MARKER_STYLE.fill;
-function paintMarker(c, px, py, pw, ph, p, tracePath){
+/* p: 0（出現）→1（打点）。late: 打点を過ぎてからの遅れ 0→1（1 = 逃の境 W_AMA）。
+   late は 蚊 だけが使う（打点通過後に反対側へ抜けていき、遅れが見える）。 */
+function paintMarker(c, px, py, pw, ph, p, tracePath, late){
+  late = Math.max(0, Math.min(1, late || 0));
   const e = Math.pow(p, 2.2);
   const st = curStyle();
   const R = st.rgb;
@@ -1508,7 +1511,7 @@ function paintMarker(c, px, py, pw, ph, p, tracePath){
   /* 押す瞬間は面そのものも鮮色に寄せる。満・簾は各分岐で塗るため
      ここでは塗り面を持たない 環・火・蚊 の3方式だけを対象にする。 */
   if(p > 0.86 && (marker === "ring" || marker === "fuse" || marker === "ka")){
-    const vw = (p-0.86)/0.14;
+    const vw = (p-0.86)/0.14 * (marker === "ka" ? 1 - late : 1);   // 蚊は通過後に鮮色が引いていく
     c.save(); tracePath(); c.clip();
     c.globalAlpha = vw*0.30;
     c.fillStyle = st.vivid;
@@ -1640,9 +1643,10 @@ function paintMarker(c, px, py, pw, ph, p, tracePath){
        丸は拡大も縮小もせず、手がかりは「的へ向かう移動体」に絞る。 */
     const rc = r*0.32;                       // 中央の丸（不変）
     const ez = Math.pow(p, 1.3);             // 進入は終盤ほど素早く
-    const vv = p > 0.86 ? (p-0.86)/0.14 : 0;
+    const vv = (p > 0.86 ? (p-0.86)/0.14 : 0) * (1 - late);   // 通過後は鮮色が引く
 
     c.save();
+    tracePath(); c.clip();                   // 蚊も航跡もパネルの外には出さない
     /* 中央の丸 */
     c.strokeStyle = vv > 0 ? st.vivid : "rgba(239,231,218,.20)";
     c.lineWidth = Math.max(1.6, pw*(0.022 + vv*0.016));
@@ -1658,17 +1662,32 @@ function paintMarker(c, px, py, pw, ph, p, tracePath){
     const seed = (Math.abs(px)*0.7 + Math.abs(py)*1.3) % 360;
     const a0 = seed/360 * Math.PI*2;
     const D0 = pw*0.58;
-    const d  = D0*(1-ez);                    // 中心までの距離
+    /* 中心までの距離。打点を過ぎたら同じ向きのまま反対側へ抜けていく:
+       遅れ 45ms（冴の外）で丸の縁を越え、140ms（逃）でパネルの端近くに届く（外へは出ない）。 */
+    const dOut = pw*0.42;
+    const d  = late > 0 ? -(rc + (dOut - rc) * late) : D0*(1-ez);
     const wob = Math.sin(p*17 + seed) * pw*0.10 * Math.pow(1-p, 1.4);   // 蚊のふらつき
     const wo2 = Math.cos(p*23 + seed*1.7) * pw*0.07 * Math.pow(1-p, 1.4);
     const mx = cx + Math.cos(a0)*d + Math.cos(a0+Math.PI/2)*wob + wo2*0.4;
     const my = cy + Math.sin(a0)*d + Math.sin(a0+Math.PI/2)*wob + wo2*0.4;
+    if(late > 0){                            // 通過後の航跡: 丸の縁から蚊まで薄く残す
+      c.strokeStyle = st.hi;
+      c.globalAlpha = 0.35 * (1 - late*0.5);
+      c.lineWidth = Math.max(1, pw*0.012);
+      c.setLineDash([Math.max(2, pw*0.03), Math.max(2, pw*0.03)]);
+      c.beginPath();
+      c.moveTo(cx - Math.cos(a0)*rc, cy - Math.sin(a0)*rc);
+      c.lineTo(mx, my);
+      c.stroke();
+      c.setLineDash([]);
+      c.globalAlpha = 1;
+    }
 
     /* 蚊本体（進行方向を向く）*/
     const bs = Math.max(2.0, pw*0.046);
     c.translate(mx, my);
-    c.rotate(a0 + Math.PI + Math.sin(p*17+seed)*0.5);
-    c.globalAlpha = 1;
+    c.rotate(a0 + Math.PI + Math.sin(p*17+seed)*0.5 * (1 - late));
+    c.globalAlpha = 1 - late*0.45;           // 遠ざかるほど薄く
     c.fillStyle = vv > 0 ? st.vivid : st.hi;
     c.beginPath(); c.ellipse(0, 0, bs, bs*0.42, 0, 0, Math.PI*2); c.fill();
     c.beginPath(); c.ellipse(bs*0.95, 0, bs*0.34, bs*0.34, 0, 0, Math.PI*2); c.fill();  // 頭
@@ -1746,7 +1765,8 @@ function draw(songTime){
       if(n.judged) continue;
       const p = 1 - (n.t - songTime)/AP;
       if(p < 0) continue;
-      if(!act[n.panel] || p > act[n.panel].p) act[n.panel] = { p };
+      const late = Math.max(0, (songTime - n.t) / W_AMA);   // 打点通過後の遅れ（1 = 逃の境）
+      if(!act[n.panel] || p > act[n.panel].p) act[n.panel] = { p, late };
     }
   }
 
@@ -1766,7 +1786,7 @@ function draw(songTime){
     g.restore();
 
     /* ノーツ表示（選択中のマーカーで描画） */
-    if(a) paintMarker(g, x, y, w, h, Math.max(0, Math.min(1, a.p)), ()=>rrect(x,y,w,h,rad));
+    if(a) paintMarker(g, x, y, w, h, Math.max(0, Math.min(1, a.p)), ()=>rrect(x,y,w,h,rad), a.late);
 
     /* 命中フラッシュ */
     if(fl > 0){
@@ -3908,7 +3928,7 @@ function syncDraw(){
   if(B){
     const p = 1 - (B.t - t)/APPROACH;
     if(p >= 0){
-      paintMarker(x, px, py, pw, ph, Math.min(1, p), rr);
+      paintMarker(x, px, py, pw, ph, Math.min(1, p), rr, Math.max(0, (t - B.t) / W_AMA));
     }
   }
 
