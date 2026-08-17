@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.17-3</title>
+<title>十六 JŪROKU v2026.08.18-1</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -184,6 +184,7 @@ body::before{
 .card .prev[data-on="1"][data-load="1"]::after{border-color:rgba(23,18,14,.35);border-top-color:#17120E}
 .card[data-loading="1"] .seek{opacity:.4;pointer-events:none}
 .card[data-loading="1"] .ptm::after{content:" 読み込み中"}
+html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
 /* 再生位置バー: 試聴中だけ出す。つまんで動かせる */
 .card .seek{position:absolute;left:0;right:0;bottom:0;height:9px;z-index:3;
   display:none;align-items:flex-end;cursor:pointer;touch-action:none}
@@ -449,23 +450,23 @@ body::before{
   </div>
 
   <div class="opts">
-    <div class="seg" id="diff" role="group" aria-label="難易度">
+    <div class="seg" id="diff" role="group" aria-label="難易度" data-i18n-attr="aria-label:difficulty">
       <button data-d="easy">EASY</button>
       <button data-d="normal" aria-pressed="true">NORMAL</button>
       <button data-d="hard">HARD</button>
       <button data-d="oni">EXTREME</button>
     </div>
-    <button class="btn" id="syncbtn" style="padding:8px 20px">設定</button>
+    <button class="btn" id="syncbtn" style="padding:8px 20px" data-i18n="settings">設定</button>
   </div>
 
   <div id="hometabs"
        style="display:flex;height:48px;width:100%;max-width:420px;margin:0 auto 16px;border:1px solid #322822;border-radius:3px">
     <button type="button" data-t="lib"
-      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:700;background:#D9A441;color:#100E0C">収録曲</button>
+      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:700;background:#D9A441;color:#100E0C" data-i18n="tab_lib">収録曲</button>
     <button type="button" data-t="own"
-      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:500;background:transparent;color:#8C8177">リンク・ファイル</button>
+      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:500;background:transparent;color:#8C8177" data-i18n="tab_own">リンク・ファイル</button>
     <button type="button" data-t="tour"
-      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:500;background:transparent;color:#8C8177">ワールドツアー</button>
+      style="flex:1 1 0;height:46px;padding:0;border:0;cursor:pointer;text-align:center;font-family:sans-serif;font-size:12px;letter-spacing:.06em;font-weight:500;background:transparent;color:#8C8177" data-i18n="tab_tour">ワールドツアー</button>
   </div>
 
   <div class="tabpanel" id="tab-lib">
@@ -475,19 +476,19 @@ body::before{
 
   <div class="tabpanel" id="tab-own" hidden>
     <div class="linkrow">
-      <input type="url" id="slink" placeholder="Sunoの曲リンクを貼り付け">
-      <button class="btn" id="slinkgo">読込</button>
+      <input type="url" id="slink" placeholder="Sunoの曲リンクを貼り付け" data-i18n-attr="placeholder:link_ph">
+      <button class="btn" id="slinkgo" data-i18n="load">読込</button>
     </div>
     <div id="utracks"></div>
     <div class="drop" id="drop" tabindex="0" role="button">
-      <strong id="droplabel">音源ファイルを選ぶ</strong>
-      <span>ドラッグ＆ドロップ、またはタップ<br>mp3 / wav / m4a / flac / ogg — 端末の外には出ません</span>
+      <strong id="droplabel" data-i18n="drop_t">音源ファイルを選ぶ</strong>
+      <span data-i18n-html="drop_s">ドラッグ＆ドロップ、またはタップ<br>mp3 / wav / m4a / flac / ogg — 端末の外には出ません</span>
     </div>
   </div>
 
   <div class="tabpanel" id="tab-tour" hidden>
     <div class="eyebrow" style="margin-top:2px">Pulse of the Earth</div>
-    <p class="tlead">飛行機で各国を巡り、その土地の音楽をプレーする旅。<br>可以上でクリアすると次の国へ進めます。</p>
+    <p class="tlead" data-i18n-html="tour_lead">飛行機で各国を巡り、その土地の音楽をプレーする旅。<br>可以上でクリアすると次の国へ進めます。</p>
     <div id="tourvols"></div>
   </div>
   <input type="file" id="file" accept="audio/*" hidden>
@@ -495,67 +496,73 @@ body::before{
 
 
   <p class="foot">
-    キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応<br>
-    <a href="privacy.html" class="plink">プライバシーポリシー</a>
+    <span data-i18n="keys_foot">キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応</span><br>
+    <a href="privacy.html" class="plink" id="plink" data-i18n="privacy">プライバシーポリシー</a>
   </p>
   <p class="err" id="err" hidden></p>
 </section>
 
 <!-- ══════════════ SYNC CHECK ══════════════ -->
 <section id="sync" class="screen" style="align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto;padding-top:max(26px,env(safe-area-inset-top))">
-  <div class="load-t">設定</div>
-  <div class="load-s">パネルは本編と同じ表示・判定 — タップ / SPACE で確認</div>
+  <div class="load-t" data-i18n="sync_t">設定</div>
+  <div class="load-s" data-i18n="sync_s">パネルは本編と同じ表示・判定 — タップ / SPACE で確認</div>
   <canvas id="scv" style="width:190px;height:190px;margin:14px 0 4px"></canvas>
   <div class="rscore num" id="serr" style="margin:0;font-size:22px">—</div>
   <div class="racc" id="smed">中央値 — / OFFSET <span class="num" id="soff">0</span>ms</div>
 
   <div class="opts" style="margin:16px 0 2px">
-    <div class="seg" id="markersel" role="group" aria-label="マーカー">
-      <button data-m="ring">環</button>
-      <button data-m="fill" aria-pressed="true">満</button>
-      <button data-m="fuse">火</button>
-      <button data-m="sweep">簾</button>
-      <button data-m="ka">蚊</button>
+    <div class="seg" id="markersel" role="group" aria-label="マーカー" data-i18n-attr="aria-label:marker">
+      <button data-m="ring" data-kj="環">環</button>
+      <button data-m="fill" aria-pressed="true" data-kj="満">満</button>
+      <button data-m="fuse" data-kj="火">火</button>
+      <button data-m="sweep" data-kj="簾">簾</button>
+      <button data-m="ka" data-kj="蚊">蚊</button>
     </div>
   </div>
   <div class="opts" style="margin:2px 0">
-    <div class="seg" id="soundsel" role="group" aria-label="打点音">
+    <div class="seg" id="soundsel" role="group" aria-label="打点音" data-i18n-attr="aria-label:clap">
       <button data-c="off" aria-pressed="true">OFF</button>
-      <button data-c="click">刻</button>
-      <button data-c="clap">拍</button>
-      <button data-c="wood">鼓</button>
+      <button data-c="click" data-kj="刻">刻</button>
+      <button data-c="clap" data-kj="拍">拍</button>
+      <button data-c="wood" data-kj="鼓">鼓</button>
     </div>
   </div>
-  <label class="calib">打点音量 <input type="range" id="svol" min="0" max="100" step="5" value="70">
+  <label class="calib"><span data-i18n="clap_vol">打点音量 </span><input type="range" id="svol" min="0" max="100" step="5" value="70">
     <span class="num" id="svolv">70%</span></label>
   <div class="calib">OFFSET <input type="range" id="offset" min="-200" max="200" step="5" value="0">
     <input type="number" id="offsetn" min="-200" max="200" step="1" value="0">ms</div>
-  <div class="calib">バイブの長さ <input type="range" id="vibms" min="0" max="100" step="5" value="20">
+  <div class="calib"><span data-i18n="vib_len">バイブの長さ </span><input type="range" id="vibms" min="0" max="100" step="5" value="20">
     <span class="num" id="vibmsv">20ms</span>
-    <button class="btn" id="vibtest" type="button" style="padding:3px 12px;font-size:10px">試す</button></div>
+    <button class="btn" id="vibtest" type="button" style="padding:3px 12px;font-size:10px" data-i18n="try">試す</button></div>
+  <div class="opts" style="margin:14px 0 2px">
+    <div class="seg" id="langsel" role="group" aria-label="言語 / Language">
+      <button data-l="ja">日本語</button>
+      <button data-l="en">English</button>
+    </div>
+  </div>
 
   <div class="acct" id="account" hidden>
-    <div class="eyebrow" style="margin-bottom:8px">アカウント</div>
+    <div class="eyebrow" style="margin-bottom:8px" data-i18n="account">アカウント</div>
     <div id="signin">
-      <p class="accnote">Google でログインすると、ベスト記録・ワールドツアーの進行・追加したリンク曲が
+      <p class="accnote" data-i18n="signin_note">Google でログインすると、ベスト記録・ワールドツアーの進行・追加したリンク曲が
         保存され、別の端末でも続きから遊べます。</p>
-      <a class="btn" id="signinbtn" href="/api/auth/login">Google でログイン</a>
+      <a class="btn" id="signinbtn" href="/api/auth/login" data-i18n="signin">Google でログイン</a>
     </div>
     <div id="signedin" hidden>
       <div class="accmail num" id="accmail"></div>
       <div class="accat num" id="accat"></div>
       <div class="btns" style="margin-top:10px">
-        <button class="btn" id="signout" type="button">ログアウト</button>
-        <button class="btn" id="accdel" type="button">クラウドのデータを削除</button>
+        <button class="btn" id="signout" type="button" data-i18n="signout">ログアウト</button>
+        <button class="btn" id="accdel" type="button" data-i18n="del_cloud">クラウドのデータを削除</button>
       </div>
     </div>
   </div>
 
   <div class="btns" style="margin-top:14px">
-    <button class="btn prime" id="sapply">ズレをOFFSETに反映</button>
-    <button class="btn" id="sdone">戻る</button>
+    <button class="btn prime" id="sapply" data-i18n="apply_offset">ズレをOFFSETに反映</button>
+    <button class="btn" id="sdone" data-i18n="back">戻る</button>
   </div>
-  <p class="foot" style="margin-top:12px">マーカーが打点に達した瞬間が押し時。マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。</p>
+  <p class="foot" style="margin-top:12px" data-i18n-html="sync_foot">マーカーが打点に達した瞬間が押し時。マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。</p>
 </section>
 
 <!-- ══════════════ LOADING ══════════════ -->
@@ -582,7 +589,7 @@ body::before{
 
   <div class="stage">
     <button class="pausebtn" id="pausebtn">PAUSE</button>
-    <button class="pausebtn" id="clapg" style="right:74px">打点音</button>
+    <button class="pausebtn" id="clapg" style="right:74px" data-i18n="clap">打点音</button>
     <div class="board">
       <canvas id="cv"></canvas>
       <div class="combo" id="combo" hidden><div class="n num" id="combon">0</div><div class="lb">COMBO</div></div>
@@ -616,10 +623,10 @@ body::before{
   </div>
   <div class="rmax rv">MAX COMBO <span class="num" id="rmax">0</span></div>
   <div class="btns rv">
-    <button class="btn prime" id="tnext" hidden>次の国へ</button>
+    <button class="btn prime" id="tnext" hidden data-i18n="next_country">次の国へ</button>
     <button class="btn prime" id="retry">RETRY</button>
     <button class="btn" id="back">SELECT</button>
-    <button class="btn" id="share" type="button">画像を保存</button>
+    <button class="btn" id="share" type="button" data-i18n="save_image">画像を保存</button>
   </div>
   <p class="foot rmsg" id="rmsg" hidden></p>
 </section>
@@ -627,36 +634,36 @@ body::before{
 <!-- ══════════════ WORLD TOUR ══════════════ -->
 <section id="tour" class="screen">
   <div class="thead">
-    <button class="btn" id="tback" type="button" style="padding:8px 14px">戻る</button>
+    <button class="btn" id="tback" type="button" style="padding:8px 14px" data-i18n="back">戻る</button>
     <div class="tht">
       <div class="eyebrow" id="teyebrow">World Tour</div>
       <div class="load-t" id="ttitle">Pulse of the Earth</div>
       <div class="load-s" id="tprog">—</div>
     </div>
-    <div class="tdone" id="tdone" hidden>完走</div>
+    <div class="tdone" id="tdone" hidden data-i18n="done_badge">完走</div>
   </div>
   <div class="opts topts">
-    <div class="seg" id="tdiffsel" role="group" aria-label="難易度">
+    <div class="seg" id="tdiffsel" role="group" aria-label="難易度" data-i18n-attr="aria-label:difficulty">
       <button data-d="easy">EASY</button>
       <button data-d="normal" aria-pressed="true">NORMAL</button>
       <button data-d="hard">HARD</button>
       <button data-d="oni">EXTREME</button>
     </div>
-    <button class="btn" id="tsettings" type="button" style="padding:8px 20px">設定</button>
+    <button class="btn" id="tsettings" type="button" style="padding:8px 20px" data-i18n="settings">設定</button>
   </div>
   <div class="tmapwrap" id="tmapwrap">
-    <svg id="tmap" viewBox="0 0 720 300" role="img" aria-label="世界地図：訪れた国と航路"></svg>
+    <svg id="tmap" viewBox="0 0 720 300" role="img" aria-label="世界地図：訪れた国と航路" data-i18n-attr="aria-label:world_map"></svg>
     <div class="tload" id="tload" hidden>DOWNLOADING</div>
   </div>
-  <div class="titin" id="tchips" role="listbox" aria-label="行程"></div>
+  <div class="titin" id="tchips" role="listbox" aria-label="行程" data-i18n-attr="aria-label:itinerary"></div>
   <div class="tnav" id="tnav" hidden></div>
   <div class="tcard" id="tcard">
     <div class="tflag" id="tflag">—</div>
     <div class="tcountry" id="tcen">—</div>
     <div class="ttitle" id="ttrack">—</div>
-    <div class="tdiff" id="tdiff">難易度 <b class="num" id="tdiffv">NORMAL</b></div>
+    <div class="tdiff" id="tdiff"><span data-i18n="difficulty">難易度</span> <b class="num" id="tdiffv">NORMAL</b></div>
     <div class="tbest" id="tbest">—</div>
-    <div class="btns"><button class="btn prime" id="tgo" type="button">出発する</button></div>
+    <div class="btns"><button class="btn prime" id="tgo" type="button" data-i18n="depart">出発する</button></div>
     <p class="err" id="terr" hidden></p>
   </div>
 </section>
@@ -669,7 +676,7 @@ body::before{
     <div class="bd" id="tarrs"></div>
   </div>
 </div>
-<div class="bmodal" id="bmodal" data-on="0" role="dialog" aria-modal="true" aria-label="ベスト記録">
+<div class="bmodal" id="bmodal" data-on="0" role="dialog" aria-modal="true" aria-label="ベスト記録" data-i18n-attr="aria-label:best_record">
   <div class="bx">
     <div class="bt" id="bmt"></div>
     <div class="bd" id="bmd"></div>
@@ -683,8 +690,8 @@ body::before{
       <div><div class="k" style="color:var(--shu)">逃</div><div class="v num" id="bm3">0</div><div class="l">NOGASHI</div></div>
     </div>
     <div class="bm" id="bmm"></div>
-    <button class="bc" id="bmshare" type="button">画像を保存</button>
-    <button class="bc" id="bmclose" type="button">とじる</button>
+    <button class="bc" id="bmshare" type="button" data-i18n="save_image">画像を保存</button>
+    <button class="bc" id="bmclose" type="button" data-i18n="close">とじる</button>
     <p class="bm" id="bmmsg" hidden></p>
   </div>
 </div>
@@ -872,6 +879,117 @@ const NOTE_RGB = [217,164,65];   // --kin
 const APPROACH = 0.35;                            // ノーツ表示リードタイム(秒)
 const COUNT_LEAD = 1.90;                          // カウントイン長（音声クロック同期）
 const W_SAE = 0.045, W_RYO = 0.090, W_AMA = 0.140;
+/* ═══════════ 言語（日本語 / English） ═══════════
+   文言は I18N の辞書に持ち、t(key) で引く。HTML の静的文言は data-i18n 属性で一括置換する。
+   初回はブラウザの言語（ja* なら日本語、それ以外は英語）、設定画面で切り替えて juroku:lang に保存。
+   判定名・段位・マーカー名は JŪROKU の世界観なので漢字を残し、英語表示ではローマ字を添える。 */
+const I18N = {
+  ja: {
+    settings:"設定", back:"戻る", close:"とじる",
+    tab_lib:"収録曲", tab_own:"リンク・ファイル", tab_tour:"ワールドツアー",
+    load:"読込", link_ph:"Sunoの曲リンクを貼り付け",
+    drop_t:"音源ファイルを選ぶ", drop_s:"ドラッグ＆ドロップ、またはタップ<br>mp3 / wav / m4a / flac / ogg — 端末の外には出ません",
+    keys_foot:"キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応", privacy:"プライバシーポリシー",
+    tour_lead:"飛行機で各国を巡り、その土地の音楽をプレーする旅。<br>可以上でクリアすると次の国へ進めます。",
+    sync_t:"設定", sync_s:"パネルは本編と同じ表示・判定 — タップ / SPACE で確認",
+    median:"中央値", marker:"マーカー", clap:"打点音", clap_vol:"打点音量 ", vib_len:"バイブの長さ ", try:"試す",
+    account:"アカウント", signin_note:"Google でログインすると、ベスト記録・ワールドツアーの進行・追加したリンク曲が保存され、別の端末でも続きから遊べます。",
+    signin:"Google でログイン", signout:"ログアウト", del_cloud:"クラウドのデータを削除",
+    last_sync:"最終同期 ", apply_offset:"ズレをOFFSETに反映",
+    sync_foot:"マーカーが打点に達した瞬間が押し時。マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。",
+    applied:"反映しました", lang:"言語 / Language",
+    next_country:"次の国へ", to_map_done:"地図へ（完走）", save_image:"画像を保存",
+    difficulty:"難易度", depart:"出発する", depart_again:"もう一度旅する", done_badge:"完走", not_played:" は未プレー",
+    prev_vol:"前の Vol", next_vol:"次の Vol", open_map:" · 地図を開く ▸", cleared_mark:"済",
+    world_map:"世界地図：訪れた国と航路", itinerary:"行程",
+    preview:"試聴", stop:"停止", preview_of:"試聴する: ", stop_of:"試聴を止める: ", play_hint:"プレイ ▸",
+    loading:"読み込み中", loading_sfx:" 読み込み中",
+    load_fail:"読み込みに失敗しました", check_net:"通信状況を確認して、もう一度お試しください。", retry:"再試行",
+    best_of:"ベスト記録の詳細: ", no_acc:"精度の記録なし", max_combo:"最大コンボ ", full_combo:"フルコンボ", all_sae:"全冴",
+    art_alt:" ジャケット", local_file:"ローカルファイル", loaded_change:"読み込み済み — 別の曲に変える",
+    err_decode:"この音声ファイルはデコードできませんでした。mp3 / wav / m4a などを試してください。",
+    err_no_notes:"この音源からはノーツを検出できませんでした。難易度を下げるか、別の音源を試してください。",
+    err_fetch:"音源を取得できませんでした。ネットワーク、または配信元のCORS設定が原因の可能性があります。その場合はSunoからmp3をダウンロードして、ファイル読み込みで遊べます。",
+    err_fetch_tour:"音源を取得できませんでした。ネットワーク、または配信元のCORS設定が原因の可能性があります。",
+    err_short:"短縮リンクを解決できませんでした。短縮リンクの解決には外部の中継サービスが必要で、無料枠の混雑（429）や停止が重なると失敗します。確実なのは、リンクをブラウザで開いてアドレス欄の suno.com/song/… を貼る方法です（この形式なら中継なしで読み込めます）。",
+    err_url:"Sunoの曲URLを貼ってください。suno.com/song/… ・ /s/… ・ cdn1.suno.ai/….mp3 のほか、/song/… のような相対リンクや曲ID単体でも読み込めます。",
+    err_generic:"エラーが発生しました。",
+    img_making:"画像を作成中…", img_shared:"共有しました", img_saved:"画像を保存しました（", img_fail:"画像を作成できませんでした",
+    del_confirm:"クラウドに保存された記録を削除してログアウトします。この端末の記録は残ります。",
+    tour_map_alt:"世界地図：訪れた国と航路", best_record:"ベスト記録",
+  },
+  en: {
+    settings:"Settings", back:"Back", close:"Close",
+    tab_lib:"Library", tab_own:"Link / File", tab_tour:"World Tour",
+    load:"Load", link_ph:"Paste a Suno song link",
+    drop_t:"Choose an audio file", drop_s:"Drag & drop, or tap<br>mp3 / wav / m4a / flac / ogg — never leaves your device",
+    keys_foot:"Keyboard: 1234 / QWER / ASDF / ZXCV · Touch supported", privacy:"Privacy Policy",
+    tour_lead:"Fly from country to country and play the music of each land.<br>Clear with 可 KA or better to move on to the next country.",
+    sync_t:"Settings", sync_s:"Same panel and judgment as in play — tap / SPACE to check",
+    median:"Median", marker:"Marker", clap:"Hit sound", clap_vol:"Hit volume ", vib_len:"Vibration ", try:"Try",
+    account:"Account", signin_note:"Sign in with Google to save your best scores, World Tour progress and added links, and continue on any device.",
+    signin:"Sign in with Google", signout:"Sign out", del_cloud:"Delete cloud data",
+    last_sync:"Last sync ", apply_offset:"Apply drift to OFFSET",
+    sync_foot:"Press when the marker reaches the Hit Point. Try markers and hit sounds here. 冴/良/甘 mean you are hitting at that accuracy.<br>Drift sign: − early, + late. Applying the median adjusts it automatically.",
+    applied:"Applied", lang:"言語 / Language",
+    next_country:"Next country", to_map_done:"To map (complete)", save_image:"Save image",
+    difficulty:"Difficulty", depart:"Depart", depart_again:"Travel again", done_badge:"Complete", not_played:" not played yet",
+    prev_vol:"Previous Vol", next_vol:"Next Vol", open_map:" · Open map ▸", cleared_mark:"✓",
+    world_map:"World map: visited countries and routes", itinerary:"Itinerary",
+    preview:"Preview", stop:"Stop", preview_of:"Preview: ", stop_of:"Stop preview: ", play_hint:"PLAY ▸",
+    loading:"Loading", loading_sfx:" loading",
+    load_fail:"Failed to load", check_net:"Check your connection and try again.", retry:"Retry",
+    best_of:"Best record: ", no_acc:"No accuracy recorded", max_combo:"Max combo ", full_combo:"Full combo", all_sae:"All 冴 SAE",
+    art_alt:" artwork", local_file:"Local file", loaded_change:"Loaded — choose another file",
+    err_decode:"This audio file could not be decoded. Try mp3 / wav / m4a.",
+    err_no_notes:"No notes could be detected in this audio. Try a lower difficulty or another file.",
+    err_fetch:"Could not fetch the audio. This may be a network issue or the source's CORS settings. In that case, download the mp3 from Suno and load it as a file.",
+    err_fetch_tour:"Could not fetch the audio. This may be a network issue or the source's CORS settings.",
+    err_short:"Could not resolve the short link. Resolving it needs an external relay, which fails when the free tier is busy (429) or down. The reliable way is to open the link in your browser and paste the suno.com/song/… address (that form loads without a relay).",
+    err_url:"Paste a Suno song URL. suno.com/song/… · /s/… · cdn1.suno.ai/….mp3, or a relative /song/… link or a bare song ID also work.",
+    err_generic:"Something went wrong.",
+    img_making:"Creating image…", img_shared:"Shared", img_saved:"Image saved (", img_fail:"Could not create the image",
+    del_confirm:"Delete the records saved in the cloud and sign out. Records on this device are kept.",
+    tour_map_alt:"World map: visited countries and routes", best_record:"Best record",
+  },
+};
+/* 判定名・段位・マーカー名のローマ字（英語表示で漢字に添える） */
+const ROMAJI = { "冴":"SAE", "良":"RYŌ", "甘":"AMA", "逃":"NOGASHI",
+                 "極":"KIWAMI", "秀":"SHŪ", "優":"YŪ", "可":"KA", "不可":"FUKA",
+                 "満":"MITSU", "環":"WA", "火":"HI", "簾":"SUDARE", "蚊":"KA",
+                 "刻":"KIZAMI", "拍":"HAKU", "鼓":"TSUZUMI", "印":"IN", "済":"DONE" };
+let lang = (navigator.language || "ja").toLowerCase().startsWith("ja") ? "ja" : "en";
+const t = key => (I18N[lang] && I18N[lang][key] != null ? I18N[lang][key] : (I18N.ja[key] != null ? I18N.ja[key] : key));
+/* 漢字のブランド語。英語表示では「極 KIWAMI」のようにローマ字を添える */
+const kj = k => lang === "en" && ROMAJI[k] ? k + " " + ROMAJI[k] : k;
+/* HTML の静的文言を辞書で置き換える。data-i18n="key" はテキスト、data-i18n-html は HTML、
+   data-i18n-attr="attr:key" は属性。切り替え時にも呼ぶ */
+function applyLang(){
+  document.documentElement.lang = lang;
+  for(const el of document.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
+  for(const el of document.querySelectorAll("[data-i18n-html]")) el.innerHTML = t(el.dataset.i18nHtml);
+  for(const el of document.querySelectorAll("[data-i18n-attr]")){
+    for(const pair of el.dataset.i18nAttr.split(",")){ const [attr, key] = pair.split(":"); el.setAttribute(attr, t(key)); }
+  }
+  for(const el of document.querySelectorAll("[data-kj]")) el.textContent = kj(el.dataset.kj);
+  const pl = $("plink"); if(pl) pl.setAttribute("href", lang === "en" ? "privacy-en.html" : "privacy.html");
+  for(const b of document.querySelectorAll("#langsel button[data-l]")) b.setAttribute("aria-pressed", String(b.dataset.l === lang));
+  const sm = $("smed");
+  if(sm && sm.firstChild && sm.firstChild.nodeType === 3 && /—/.test(sm.firstChild.textContent))
+    sm.firstChild.textContent = t("median") + " — / OFFSET ";
+}
+function setLang(l, opts){
+  if(l !== "ja" && l !== "en") return;
+  lang = l;
+  applyLang();
+  if(!(opts && opts.silent)) savePrefs("juroku:lang", l);
+  /* 動的に組み立てている画面は描き直す */
+  if(typeof renderTracks === "function") renderTracks();
+  if(typeof renderTourVols === "function") renderTourVols();
+  if(typeof renderAccount === "function") renderAccount();
+  if($("tour") && $("tour").classList.contains("on") && typeof openTour === "function") openTour({ focus: tourSel });
+}
+
 const DIFF = {
   /* 新EASY は完全初心者向け: 明確なアクセント（ほぼ拍）だけを、
      ゆっくり(approach 0.55s)・まばらに(≦1.7/s)・単押しのみで出す。
@@ -991,6 +1109,11 @@ function siteDisplayUrl(){
   return "ju-roku.com";
 }
 async function loadPrefs(){
+  try{
+    const lg = await window.storage.get("juroku:lang");
+    if(lg && lg.value && (lg.value === "ja" || lg.value === "en")) lang = lg.value;
+  }catch(e){}
+  applyLang();
   try{
     const dd = await window.storage.get("juroku:difficulty");
     if(dd && dd.value && DIFF[dd.value]) setDifficulty(dd.value, { silent: true });
@@ -1166,7 +1289,7 @@ function renderAccount(){
   $("signin").hidden = cloudState.on;
   $("signedin").hidden = !cloudState.on;
   $("accmail").textContent = cloudState.email;
-  $("accat").textContent = cloudState.at ? "最終同期 " + new Date(cloudState.at).toLocaleTimeString() : "";
+  $("accat").textContent = cloudState.at ? t("last_sync") + new Date(cloudState.at).toLocaleTimeString(lang === "en" ? "en-US" : "ja-JP") : "";
 }
 
 /* ═══════════ 画面遷移 ═══════════ */
@@ -1630,7 +1753,7 @@ async function prepare(name, arrayBuffer){
   try{
     buffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
   }catch(e){
-    fail("この音声ファイルはデコードできませんでした。mp3 / wav / m4a などを試してください。");
+    fail(t("err_decode"));
     return null;
   }
 
@@ -1664,7 +1787,7 @@ async function prepare(name, arrayBuffer){
   const chart = buildChart(peaks, sections, energy, loud, DIFF[difficulty], seed);
 
   if(!chart.length){
-    fail("この音源からはノーツを検出できませんでした。難易度を下げるか、別の音源を試してください。");
+    fail(t("err_no_notes"));
     return null;
   }
   const v = validate(chart, DIFF[difficulty]);
@@ -2400,9 +2523,9 @@ function finish(){
      50%未満は「半数近くを取りこぼしている」状態にあたる。 */
   const rank = rankOf(acc);
 
-  $("rrank").textContent  = rank;
+  $("rrank").textContent  = rank;                     // 段位の漢字は世界観の中心なので言語によらず漢字
   $("rsong").textContent  = cur.name;
-  $("rdiff").textContent  = DIFF[cur.diff].label + " · " + total + " NOTES";
+  $("rdiff").textContent  = (lang === "en" && ROMAJI[rank] ? ROMAJI[rank] + " · " : "") + DIFF[cur.diff].label + " · " + total + " NOTES";
   $("rscore").textContent = cur.score.toLocaleString();
   $("racc").textContent   = acc.toFixed(2) + "%";
   for(let i=0;i<4;i++) $("c"+i).textContent = cur.counts[i];
@@ -2432,7 +2555,7 @@ function finish(){
   const tn = cur.tour ? tourOnFinish(cur.tour, acc) : null;
   $("back").textContent = cur.tour ? "MAP" : "SELECT";
   $("tnext").hidden = !(tn && tn.cleared);
-  if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? "次の国へ" : "地図へ（完走）";
+  if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? t("next_country") : t("to_map_done");
 
   /* 結果画像用の記録（ベスト記録と同じ形 + 曲名・難易度） */
   lastResult = { title: cur.name, diff: cur.diff, s: cur.score, a: +acc.toFixed(2), c: cur.counts.slice(),
@@ -2588,8 +2711,8 @@ function syncPreviewIcons(){
     b.dataset.on = on ? "1" : "0";
     b.innerHTML = `<span class="ic"></span><span class="lb"></span>`;
     b.querySelector(".ic").textContent = on ? "\u25A0" : "\u25B6";
-    b.querySelector(".lb").textContent = on ? "停止" : "試聴";
-    b.setAttribute("aria-label", (on ? "試聴を止める: " : "試聴する: ") + (b.dataset.t || ""));
+    b.querySelector(".lb").textContent = on ? t("stop") : t("preview");
+    b.setAttribute("aria-label", (on ? t("stop_of") : t("preview_of")) + (b.dataset.t || ""));
     b.dataset.load = (on && previewLoading) ? "1" : "0";
     const card = b.closest && b.closest(".card");
     if(card){
@@ -2620,12 +2743,12 @@ function showPreviewError(tr){
     const ov = document.createElement("div");
     ov.className = "perr";
     const msg = document.createElement("b");
-    msg.textContent = "読み込みに失敗しました";
+    msg.textContent = t("load_fail");
     const sub = document.createElement("span");
-    sub.textContent = "通信状況を確認して、もう一度お試しください。";
+    sub.textContent = t("check_net");
     const rt = document.createElement("button");
     rt.type = "button";
-    rt.textContent = "再試行";
+    rt.textContent = t("retry");
     rt.onclick = e => { e.stopPropagation(); ov.remove(); togglePreview(tr); };
     ov.onclick = e => { e.stopPropagation(); ov.remove(); };
     ov.appendChild(msg); ov.appendChild(sub); ov.appendChild(rt);
@@ -2681,15 +2804,15 @@ function openBest(title, b){
   $("bmmsg").hidden = true;
   $("bmt").textContent = title;
   $("bmd").textContent = DIFF[difficulty].label + (b.n ? " · " + b.n + " NOTES" : "");
-  $("bmr").textContent = (b.a != null) ? rankOf(b.a) : "—";
+  $("bmr").textContent = (b.a != null) ? kj(rankOf(b.a)) : "—";
   $("bms").textContent = b.s.toLocaleString();
-  $("bma").textContent = (b.a != null) ? b.a.toFixed(2) + "%" : "精度の記録なし";
+  $("bma").textContent = (b.a != null) ? b.a.toFixed(2) + "%" : t("no_acc");
   const c = b.c || [];
   for(let i=0;i<4;i++) $("bm" + i).textContent = (c[i] != null) ? c[i] : "—";
   const bits = [];
-  if(b.m != null) bits.push("最大コンボ " + b.m);
-  if(c.length === 4 && c[3] === 0) bits.push(c[0] === (b.n || -1) ? "全冴" : "フルコンボ");
-  if(b.d) bits.push(new Date(b.d).toLocaleDateString());
+  if(b.m != null) bits.push(t("max_combo") + b.m);
+  if(c.length === 4 && c[3] === 0) bits.push(c[0] === (b.n || -1) ? t("all_sae") : t("full_combo"));
+  if(b.d) bits.push(new Date(b.d).toLocaleDateString(lang === "en" ? "en-US" : "ja-JP"));
   $("bmm").textContent = bits.join(" · ");
   $("bmodal").dataset.on = "1";
   $("bmclose").focus();
@@ -2710,7 +2833,7 @@ function cardInto(wrap, tr, onclick, best){
   if(tr.art){
     const img = document.createElement("img");
     img.loading = "lazy";
-    img.alt = tr.title + " ジャケット";
+    img.alt = tr.title + t("art_alt");
     img.onerror = () => {
       if(img.dataset.bare !== "1"){        // クエリ付きが弾かれた場合の保険
         img.dataset.bare = "1";
@@ -2728,7 +2851,8 @@ function cardInto(wrap, tr, onclick, best){
 
   const cb = document.createElement("span");
   cb.className = "cb";
-  cb.innerHTML = `<span class="t"></span><span class="a"></span><span class="go" aria-hidden="true">プレイ ▸</span>`;
+  cb.innerHTML = `<span class="t"></span><span class="a"></span><span class="go" aria-hidden="true"></span>`;
+  cb.querySelector(".go").textContent = t("play_hint");
   const bs = document.createElement("button");
   bs.type = "button"; bs.className = "best num";
   cb.appendChild(bs);
@@ -2744,9 +2868,9 @@ function cardInto(wrap, tr, onclick, best){
     bs.dataset.empty = "0";
     bs.innerHTML = `<span class="sc"></span><span class="rk"></span><span class="cv"></span>`;
     bs.querySelector(".sc").textContent = best.s.toLocaleString();
-    bs.querySelector(".rk").textContent = (best.a != null) ? rankOf(best.a) : "";
+    bs.querySelector(".rk").textContent = (best.a != null) ? kj(rankOf(best.a)) : "";
     bs.querySelector(".cv").textContent = (best.a != null) ? best.a.toFixed(2) + "%" : "";
-    bs.setAttribute("aria-label", "ベスト記録の詳細: " + tr.title);
+    bs.setAttribute("aria-label", t("best_of") + tr.title);
     bs.onclick = e => { e.stopPropagation(); openBest(tr.title, best); };
     bs.onkeydown = e => e.stopPropagation();
   }else{
@@ -2763,7 +2887,7 @@ function cardInto(wrap, tr, onclick, best){
     const ld = document.createElement("div");
     ld.className = "ld";
     ld.innerHTML = `<s></s>`;
-    ld.appendChild(document.createTextNode("読み込み中"));
+    ld.appendChild(document.createTextNode(t("loading")));
     b.appendChild(ld);
     wrap.appendChild(b);
     return;                                   // 押下も試聴もさせない
@@ -2873,10 +2997,10 @@ function rebuildTabs(){
   tb.removeAttribute("style");
   Object.assign(tb.style, { display:"block", width:"100%", maxWidth:"420px",
     margin:"0 auto 16px", height:"48px", border:"1px solid #322822", borderRadius:"3px" });
-  const tabs = [["lib","収録曲"],["own","リンク・ファイル"],["tour","ワールドツアー"]];
-  for(const [t, label] of tabs){
+  const tabs = [["lib","tab_lib"],["own","tab_own"],["tour","tab_tour"]];
+  for(const [tk, key] of tabs){
     const b = document.createElement("button");
-    b.type = "button"; b.dataset.t = t; b.textContent = label;
+    b.type = "button"; b.dataset.t = tk; b.dataset.i18n = key; b.textContent = t(key);
     Object.assign(b.style, { display:"inline-block", width:(100/tabs.length)+"%", height:"46px",
       verticalAlign:"top", border:"0", cursor:"pointer", textAlign:"center",
       fontFamily:"sans-serif", fontSize:"12px", letterSpacing:".06em" });
@@ -2957,8 +3081,7 @@ async function loadRemote(tr){
     loadBase = 0;
   }catch(e){
     loadBase = 0;
-    fail("音源を取得できませんでした。ネットワーク、または配信元のCORS設定が原因の可能性があります。" +
-         "その場合はSunoからmp3をダウンロードして、ファイル読み込みで遊べます。");
+    fail(t("err_fetch"));
   }
 }
 
@@ -3193,7 +3316,7 @@ function shareFileName(rec){
 async function saveShareImage(rec, msgEl){
   const say = (t, ok) => { if(msgEl){ msgEl.textContent = t; msgEl.hidden = false; msgEl.style.color = ok ? "" : "var(--shu)"; } };
   try{
-    say("画像を作成中…", true);
+    say(t("img_making"), true);
     const cv = await renderShareCanvas(rec);
     const blob = await new Promise(r => (cv.toBlob ? cv.toBlob(r, "image/png") : r(null)));
     if(!blob) throw new Error("no blob");
@@ -3201,16 +3324,16 @@ async function saveShareImage(rec, msgEl){
     const file = (typeof File === "function") ? new File([blob], name, { type: "image/png" }) : null;
     const coarse = matchMedia("(pointer: coarse)").matches;
     if(file && coarse && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
-      try{ await navigator.share({ files: [file], title: "十六 JŪROKU — " + rec.title }); say("共有しました", true); return; }
+      try{ await navigator.share({ files: [file], title: "十六 JŪROKU — " + rec.title }); say(t("img_shared"), true); return; }
       catch(e){ if(e && e.name === "AbortError"){ say("", true); msgEl && (msgEl.hidden = true); return; } }
     }
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
-    say("画像を保存しました（" + name + "）", true);
+    say(t("img_saved") + name + (lang === "ja" ? "）" : ")"), true);
   }catch(e){
-    say("画像を作成できませんでした", false);
+    say(t("img_fail"), false);
   }
 }
 $("share").onclick   = () => { if(lastResult) saveShareImage(lastResult, $("rmsg")); };
@@ -3496,9 +3619,9 @@ function renderTourChips(){
   /* Vol が 1 つだけならページ送りは要らない */
   const nav = $("tnav");
   nav.hidden = pages.length < 2;
-  nav.innerHTML = `<button class="tarrow" id="tprev" type="button" aria-label="前の Vol">‹</button>
+  nav.innerHTML = `<button class="tarrow" id="tprev" type="button" aria-label="${t("prev_vol")}">‹</button>
     <span class="tnavlabel num" id="tnavlabel"></span>
-    <button class="tarrow" id="tnext-vol" type="button" aria-label="次の Vol">›</button>`;
+    <button class="tarrow" id="tnext-vol" type="button" aria-label="${t("next_vol")}">›</button>`;
   if(pages.length > 1){
     $("tprev").onclick = () => tourStepVolPage(-1);
     $("tnext-vol").onclick = () => tourStepVolPage(1);
@@ -3545,7 +3668,7 @@ function tourStepVolPage(d){
 function tourBestRank(title){
   let acc = -1;
   for(const d in DIFF){ const b = bestOf(title + "|" + d); if(b && typeof b.a === "number" && b.a > acc) acc = b.a; }
-  return acc < 0 ? "済" : rankOf(acc);
+  return acc < 0 ? t("cleared_mark") : rankOf(acc);
 }
 
 function renderTourCard(){
@@ -3562,13 +3685,13 @@ function renderTourCard(){
   if(b && typeof b.s === "number"){
     tb.innerHTML = `BEST <b></b> · <span class="rk"></span> · <span class="ac"></span>`;
     tb.querySelector("b").textContent = b.s.toLocaleString();
-    tb.querySelector(".rk").textContent = typeof b.a === "number" ? rankOf(b.a) : "—";
+    tb.querySelector(".rk").textContent = typeof b.a === "number" ? kj(rankOf(b.a)) : "—";
     tb.querySelector(".ac").textContent = typeof b.a === "number" ? b.a.toFixed(2) + "%" : "";
   }else{
-    tb.textContent = DIFF[difficulty].label + " は未プレー";
+    tb.textContent = DIFF[difficulty].label + t("not_played");
   }
   const done = tourIsCleared(e.id);
-  $("tgo").textContent = done ? "もう一度旅する" : "出発する";
+  $("tgo").textContent = done ? t("depart_again") : t("depart");
   $("tgo").disabled = tourBusy || e.seq > next;
 }
 function renderTourHeader(){
@@ -3623,7 +3746,7 @@ function openTour(opts){
 }
 function tourError(msg){
   const el = $("terr");
-  el.textContent = msg || "エラーが発生しました。";
+  el.textContent = msg || t("err_generic");
   el.hidden = false;
 }
 
@@ -3643,7 +3766,7 @@ function renderTourVols(){
     b.querySelector(".eyebrow").textContent = "World Tour · Vol." + v.vol;
     const n = v.tracks.filter(t => tourIsCleared(t.id)).length;
     b.querySelector(".vt").textContent = v.title;
-    b.querySelector(".vs").textContent = `${n} / ${v.tracks.length}` + (n === v.tracks.length ? " · 完走" : "") + " · 地図を開く ▸";
+    b.querySelector(".vs").textContent = `${n} / ${v.tracks.length}` + (n === v.tracks.length ? " · " + t("done_badge") : "") + t("open_map");
     const vd = b.querySelector(".vd");
     for(const t of v.tracks){
       const i = document.createElement("i");
@@ -3757,7 +3880,7 @@ async function tourDepart(seq){
     tl.hidden = true;
     $("tarrive").dataset.on = "0";
     openTour({ focus: seq });
-    tourError("音源を取得できませんでした。ネットワーク、または配信元のCORS設定が原因の可能性があります。");
+    tourError(t("err_fetch_tour"));
   }finally{
     tourBusy = false;
     $("tgo").disabled = false;
@@ -3787,6 +3910,10 @@ $("tdiffsel").onclick = e => {
   if(b) setDifficulty(b.dataset.d);
 };
 $("tsettings").onclick = () => syncStart();
+$("langsel").onclick = e => {
+  const b = e.target.closest("button[data-l]");
+  if(b) setLang(b.dataset.l);
+};
 
 /* ═══ Sunoリンクからの読み込み ═══
    suno.com 本体はブラウザからのクロスオリジン読取を許可しないため、
@@ -4031,15 +4158,12 @@ async function loadFromLink(rawIn){
     });
     if(html){ meta = parseSunoMeta(html); id = meta.id || null; }
     if(!id){
-      fail("短縮リンクを解決できませんでした。短縮リンクの解決には外部の中継" +
-           "サービスが必要で、無料枠の混雑（429）や停止が重なると失敗します。" +
-           "確実なのは、リンクをブラウザで開いてアドレス欄の suno.com/song/… を" +
-           "貼る方法です（この形式なら中継なしで読み込めます）。");
+      fail(t("err_short"));
       return;
     }
   }
   if(!id){
-    fail("Sunoの曲URLを貼ってください。suno.com/song/… ・ /s/… ・ cdn1.suno.ai/….mp3 のほか、/song/… のような相対リンクや曲ID単体でも読み込めます。");
+    fail(t("err_url"));
     return;
   }
 
@@ -4112,9 +4236,9 @@ async function loadLocal(file){
   const name = file.name.replace(/\.[^.]+$/, "");
   const ab = await file.arrayBuffer();
   lastSong = { name, arrayBuffer: ab };
-  addUserTrack({ kind:"file", title:name, artist:"ローカルファイル", ab });
+  addUserTrack({ kind:"file", title:name, artist:t("local_file"), ab });
   setTab("own");
-  $("droplabel").textContent = "読み込み済み — 別の曲に変える";
+  $("droplabel").textContent = t("loaded_change");
 }
 
 /* 難易度・オフセット */
@@ -4200,7 +4324,7 @@ async function syncStart(){
   syncOn = true; syncErrs = []; syncBeeps = []; syncFx = []; syncFlash = 0;
   syncNext = audioCtx.currentTime + 0.6;
   $("serr").textContent = "—"; $("serr").style.color = "";
-  $("smed").firstChild.textContent = "中央値 — / OFFSET ";
+  $("smed").firstChild.textContent = t("median") + " — / OFFSET ";
   $("soff").textContent = offsetMs;
   show("sync");
   syncTimer = setInterval(()=>{
@@ -4237,7 +4361,7 @@ function syncShowErr(j, ms){
     $("serr").style.color = JUDGE[j].col;
     const sorted = [...syncErrs].sort((a,b)=>a-b);
     const med = sorted[sorted.length>>1];
-    $("smed").firstChild.textContent = "中央値 " + (med>0?"+":"") + med + "ms / OFFSET ";
+    $("smed").firstChild.textContent = t("median") + " " + (med>0?"+":"") + med + "ms / OFFSET ";
   }else{
     $("serr").textContent = "—";
     $("serr").style.color = JUDGE[3].col;
@@ -4339,7 +4463,7 @@ $("sapply").onclick  = () => {
   $("soff").textContent = offsetMs;
   savePrefs("juroku:offset", String(offsetMs));
   syncErrs = [];
-  $("serr").textContent = "反映しました";
+  $("serr").textContent = t("applied");
   $("serr").style.color = "var(--kin)";
 };
 $("sync").addEventListener("pointerdown", e => {
@@ -4358,7 +4482,7 @@ $("signout").onclick = async () => {
   renderAccount();
 };
 $("accdel").onclick = async () => {
-  if(!confirm("クラウドに保存された記録を削除してログアウトします。この端末の記録は残ります。")) return;
+  if(!confirm(t("del_confirm"))) return;
   await cloudFetch("/api/sync", { method: "DELETE" });
   cloudState.on = false; cloudState.email = ""; cloudState.at = 0;
   renderAccount();
