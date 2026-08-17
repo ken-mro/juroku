@@ -1,5 +1,5 @@
 {
-  "_comment": "ISO2 → 英語名（ゲーム内表示）と地図座標（代表都市）。ja は参照用で index.html には入れない。tests/tour-import.js が TOUR_COUNTRIES に無い国を補うための参照表。index.html 側が正。",
+  "_comment": "コード → 英語名（ゲーム内表示）と地図座標（代表都市）。ISO2 のほか、タグ列の旗（SCT 等、flag 欄）や国に紐づかない文化（KLZ クレズマー・HAW ハワイ 等、emoji 欄＝表の絵文字と照合）も置ける。ja は参照用で index.html には入れない。tests/tour-import.js が TOUR_COUNTRIES に無い項目を補うための参照表。index.html 側が正。",
   "JP":{"ja":"日本","en":"JAPAN","lon":139.7,"lat":35.7},
   "CN":{"ja":"中国","en":"CHINA","lon":116.4,"lat":39.9},
   "KR":{"ja":"韓国","en":"KOREA","lon":126.98,"lat":37.57},
@@ -40,6 +40,8 @@
   "PT":{"ja":"ポルトガル","en":"PORTUGAL","lon":-9.14,"lat":38.72},
   "FR":{"ja":"フランス","en":"FRANCE","lon":2.35,"lat":48.9},
   "GB":{"ja":"イギリス","en":"UK","lon":-0.13,"lat":51.5},
+  "KLZ":{"ja":"クレズマー","en":"KLEZMER","lon":30.73,"lat":46.48,"emoji":"🕎"},
+  "HAW":{"ja":"ハワイ","en":"HAWAII","lon":-157.86,"lat":21.31,"emoji":"🌺"},
   "SCT":{"ja":"スコットランド","en":"SCOTLAND","lon":-3.19,"lat":55.95,"flag":"🏴󠁧󠁢󠁳󠁣󠁴󠁿"},
   "WLS":{"ja":"ウェールズ","en":"WALES","lon":-3.18,"lat":51.48,"flag":"🏴󠁧󠁢󠁷󠁬󠁳󠁿"},
   "ENG":{"ja":"イングランド","en":"ENGLAND","lon":-0.13,"lat":51.5,"flag":"🏴󠁧󠁢󠁥󠁮󠁧󠁿"},
