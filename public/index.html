@@ -757,6 +757,14 @@ const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上
   NG:{ en:"NIGERIA", lon:3.4, lat:6.45 },
   ZA:{ en:"SOUTH AFRICA", lon:28.05, lat:-26.2 },
   KR:{ en:"KOREA", lon:126.98, lat:37.57 },
+  GB:{ en:"UK", lon:-0.13, lat:51.5 },
+  PT:{ en:"PORTUGAL", lon:-9.14, lat:38.72 },
+  MA:{ en:"MOROCCO", lon:-7.6, lat:33.6 },
+  KLZ:{ en:"KLEZMER", lon:30.73, lat:46.48, flag:"🕎" },
+  IR:{ en:"IRAN", lon:51.4, lat:35.7 },
+  PH:{ en:"PHILIPPINES", lon:121, lat:14.6 },
+  HAW:{ en:"HAWAII", lon:-157.86, lat:21.31, flag:"🌺" },
+  CA:{ en:"CANADA", lon:-79.38, lat:43.65 },
   /* TOUR_COUNTRIES_END */
 };
 const TOUR_VOLS = [
@@ -792,6 +800,17 @@ const TOUR_VOLS = [
       { id:"c4837b6e-7030-49fd-bddc-5666424e4cca", title:"Lagos Lightning",     cc:"NG" },
       { id:"a4a0aee1-6b6c-4f44-b1fc-ac0cbe2dd5b4", title:"Township Thunderclap", cc:"ZA" },
       { id:"9cdf893d-04db-4226-bd92-9e89b4b82066", title:"Samulnori Surge",     cc:"KR" },
+    ] },
+  { vol:4, title:"Pulse of the Earth: World Tour Vol.4",
+    tracks:[
+      { id:"a1fdb2ea-3a1a-4bfc-a5c9-f53f33977720", title:"Brass Bank Holiday",  cc:"GB" },
+      { id:"cab75fbb-76d3-4c98-a01b-6c5f2f39fa33", title:"Saudade Circuit",     cc:"PT" },
+      { id:"88654e07-e72c-4291-bb45-3d1a5761b133", title:"Gnawa Groove",        cc:"MA" },
+      { id:"131064e3-5a21-4612-acce-26717dcd8992", title:"Freylekh Frenzy",     cc:"KLZ" },
+      { id:"2cc93769-311a-4537-a1fb-5bf167591e15", title:"Santoor Nights",      cc:"IR" },
+      { id:"2071793f-042d-4690-ae99-2a71d52454e4", title:"Kulintang Clash",     cc:"PH" },
+      { id:"978ab457-b04b-4256-a27c-965308db30a7", title:"Aloha Skyline",       cc:"HAW" },
+      { id:"112fe03c-5046-4dee-93ec-0346a6e8aa54", title:"Reel Around the World", cc:"CA" },
     ] },
   /* TOUR_VOLS_END */
 ].map(v => ({ ...v, tracks: v.tracks.map((x, idx) => ({
