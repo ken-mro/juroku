@@ -123,6 +123,18 @@ async function main(){
     const legs = window.document.querySelectorAll(`#tmap path[data-leg="${total}"]`);
     const shifted = window.document.querySelectorAll('#tmap path[transform]');
     assert(legs.length === 1 && shifted.length >= 1, `${lastCC}→${firstCC} leg should have a shifted copy (legs=${legs.length}, shifted=${shifted.length})`);
+    /* Vol が複数になったらチップは Vol ごとのページに分かれ、ページ送りが出る */
+    const pgs = window.document.querySelectorAll("#tchips .tpage");
+    assert(pgs.length === nextVol, `Vol の数だけページができる（got ${pgs.length}, want ${nextVol}）`);
+    assert(!window.document.getElementById("tnav").hidden, "Vol が複数ならページ送りを出す");
+    assert(window.document.getElementById("tprev") && window.document.getElementById("tnext-vol"), "‹ › のボタンがある");
+    assert(/VOL\.\d+\s+1 \/ /.test(window.document.getElementById("tnavlabel").textContent),
+      "ページ送りに現在の Vol と位置を出す: " + window.document.getElementById("tnavlabel").textContent);
+    const volsOnPages = Array.from(pgs).map(p => +p.dataset.vol);
+    assert(JSON.stringify(volsOnPages) === JSON.stringify(volsOnPages.slice().sort((a,b)=>a-b)), "ページは Vol 順に並ぶ");
+    /* 別 Vol の国を選ぶと、その Vol のページへ送る（jsdom は寸法 0 なので呼べることを確認） */
+    window.tourShowVolPage(nextVol);
+    window.eval("tourSyncVolNav();");
     console.log(`[tour] progression OK (sequential unlock, no placeholder, Vol.${nextVol} appears with data, Vol boundary prevCC=${lastCC}, antimeridian leg ${lastCC}→${firstCC})`);
   }
 
@@ -146,11 +158,32 @@ async function main(){
     assert(document.getElementById("ttrack").textContent === "Matsuri Overdrive", "card title wrong");
     assert(document.getElementById("tprog").textContent.includes("0 / 8"), "header progress wrong");
     assert(document.getElementById("ttitle").textContent === "Pulse of the Earth", "header title should be English only");
-    // 国チップは中央揃えの内箱（.tinner）に入る
-    assert(document.querySelector("#tchips > .tinner .chip"), "chips should live inside the centered .tinner box");
+    // 国チップは Vol ごとの 1 ページに入る（横スワイプで Vol を行き来する）
+    const pages = document.querySelectorAll("#tchips .tpage");
+    assert(pages.length === 1, `1 Vol しか見えていない時はページも 1 枚（got ${pages.length}）`);
+    assert(pages[0].dataset.vol === "1" && pages[0].querySelectorAll(".tinner .chip").length === 8,
+      "ページ 1 に Vol.1 の 8 か国が入る");
+    assert(document.getElementById("tnav").hidden, "Vol が 1 つだけならページ送りは出さない");
+
+    // 選択中の国は地図上でも位置が分かる（照準マーカー）
+    const mark = document.querySelector("#tmap #tselmark");
+    assert(mark, "選択中の国を示すマーカーが地図にある");
+    assert(mark.querySelectorAll("path").length === 4, "マーカーは囲みの角 4 つ");
+    const jp = document.querySelector('#tmap g[data-seq="0"] circle');
+    const near = (a, b) => Math.abs(a - b) < 20;
+    const md = mark.querySelector("path").getAttribute("d");
+    const mx = parseFloat(md.slice(1).split(",")[0]);
+    assert(near(mx, +jp.getAttribute("cx")), `マーカーは選択中の国（日本）の位置にある: mark=${mx} jp=${jp.getAttribute("cx")}`);
+
+    // クリア済みの別の国を選ぶと、マーカーがその国へ移る
     window.eval("for(const t of TOUR_VOLS[0].tracks) tourState.cleared[t.id] = {d:1};");
+    window.openTour();
     window.tourSelect(3);
     assert(document.querySelector('#tchips .chip[data-seq="3"]').getAttribute("aria-selected") === "true" && document.getElementById("tcen").textContent === "EGYPT", "tourSelect should select the chip and update the card");
+    const eg = document.querySelector('#tmap g[data-seq="3"] circle');
+    const md3 = document.querySelector("#tmap #tselmark path").getAttribute("d");
+    const mx3 = parseFloat(md3.slice(1).split(",")[0]);
+    assert(near(mx3, +eg.getAttribute("cx")), `マーカーがエジプトへ移る: mark=${mx3} eg=${eg.getAttribute("cx")}`);
     window.eval("tourState.cleared = {};"); window.openTour();
     assert(document.getElementById("tgo").textContent === "出発する", "depart button label wrong");
     // difficulty seg on the card syncs with the title one
