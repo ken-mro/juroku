@@ -20,7 +20,7 @@ function fail(msg){
 
 async function main(){
   const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
-  const { document, testErrors } = buildEnv(html);
+  const { window, document, testErrors } = buildEnv(html);
 
   // Let synchronous top-level script execution finish and give loadPrefs()'s
   // async storage reads (backed by jsdom localStorage, resolves as
@@ -31,9 +31,11 @@ async function main(){
     fail("script error(s) captured during load:\n" + testErrors.join("\n---\n"));
   }
 
+  /* 収録曲の枚数はデータ（DEFAULT_TRACKS）と一致すること。数を決め打ちしない（曲を足すたびに直さない） */
   const tracks = document.querySelectorAll("#tracks > *");
-  if(tracks.length !== 17){
-    fail(`expected 17 track cards in #tracks, got ${tracks.length}`);
+  const nTracks = window.eval("DEFAULT_TRACKS.length");
+  if(tracks.length !== nTracks){
+    fail(`expected ${nTracks} track cards in #tracks (= DEFAULT_TRACKS.length), got ${tracks.length}`);
   }
 
   const screens = Array.from(document.querySelectorAll(".screen"));
@@ -61,7 +63,7 @@ async function main(){
     fail(`expected <title> to mention 十六 or JŪROKU, got "${title}"`);
   }
 
-  console.log(`[domtest] PASS — no script errors, 17 tracks, 6 screens (only #title active), title="${title}"`);
+  console.log(`[domtest] PASS — no script errors, ${nTracks} tracks, 6 screens (only #title active), title="${title}"`);
   process.exit(0);
 }
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.17-1</title>
+<title>十六 JŪROKU v2026.08.17-2</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -114,13 +114,18 @@ body::before{
 .card:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
 .card img{width:100%;aspect-ratio:1200/630;object-fit:cover;display:block;
   border-bottom:1px solid var(--line);background:#221C18}
-.card .cb{display:block;padding:8px 10px 9px}
+.card .cb{display:block;position:relative;padding:8px 10px 26px}
 .card .t{display:block;font-size:12px;font-weight:500;line-height:1.35}
 .card .a{display:block;font-size:9.5px;color:var(--gofun-dim);margin-top:2px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .best{display:flex;align-items:center;gap:6px;width:100%;margin-top:3px;min-height:16px;
   padding:1px 3px;border:0;border-radius:2px;background:transparent;cursor:pointer;
   font-family:var(--f-mono);font-size:10px;color:var(--kin);text-align:left}
 .card .best:hover,.card .best:focus-visible{background:rgba(217,164,65,.12)}
+/* カード本体を押すとプレイが始まる。それが伝わるよう「プレイ ▸」を本文の右下に置く */
+.card .go{position:absolute;right:10px;bottom:9px;z-index:2;font-family:var(--f-mono);
+  font-size:9px;letter-spacing:.2em;color:var(--kin);opacity:.85;pointer-events:none}
+.card:hover .go,.card:focus-visible .go{opacity:1}
+.card.loading .go{display:none}
 .card .best:focus-visible{outline:1px solid var(--kin);outline-offset:1px}
 .card .best[data-empty="1"]{cursor:default;pointer-events:none}
 .card .best .rk{font-family:var(--f-disp);font-size:11px;font-weight:800;letter-spacing:.06em}
@@ -159,19 +164,21 @@ body::before{
 .bmodal .bc:hover{border-color:var(--kin);color:var(--kin)}
 .card{position:relative}
 .card .art{position:relative;display:block;line-height:0}
-.card .prev{position:absolute;left:7px;bottom:11px;z-index:3;
-  width:30px;height:30px;padding:0;border-radius:50%;cursor:pointer;
-  border:1px solid rgba(217,164,65,.55);background:rgba(23,18,14,.72);
-  color:var(--kin);font-family:inherit;font-size:11px;line-height:1;
-  display:flex;align-items:center;justify-content:center;
+/* 試聴ボタン: 「▶ 試聴」と文字を添えて、カード本体（＝プレイ開始）と役割が違うことを示す */
+.card .prev{position:absolute;left:7px;bottom:9px;z-index:3;
+  height:26px;padding:0 10px 0 8px;border-radius:13px;cursor:pointer;
+  border:1px solid rgba(217,164,65,.55);background:rgba(23,18,14,.78);
+  color:var(--kin);font-family:var(--f-body);font-size:10px;letter-spacing:.08em;line-height:1;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
   backdrop-filter:blur(2px);transition:background .14s,border-color .14s,color .14s}
+.card .prev .ic{font-size:9px;line-height:1}
 .card .prev:hover,.card .prev:focus-visible{background:rgba(217,164,65,.20);border-color:var(--kin)}
 .card .prev[data-on="1"]{background:var(--kin);color:#17120E;border-color:var(--kin)}
 .card .prev:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
 /* 試聴の読み込み中: ボタン内を回転リングにし、押しても無反応にしない
    （もう一度押せば取り消せる）。バーはまだ動かせないので薄くする。 */
-.card .prev[data-load="1"]{color:transparent}
-.card .prev[data-load="1"]::after{content:"";position:absolute;width:13px;height:13px;
+.card .prev[data-load="1"] .ic{visibility:hidden}
+.card .prev[data-load="1"]::after{content:"";position:absolute;left:10px;width:11px;height:11px;
   border-radius:50%;border:2px solid rgba(217,164,65,.30);border-top-color:var(--kin);
   animation:spin .8s linear infinite}
 .card .prev[data-on="1"][data-load="1"]::after{border-color:rgba(23,18,14,.35);border-top-color:#17120E}
@@ -187,9 +194,11 @@ body::before{
 .card .seek i::after{content:"";position:absolute;right:-4px;top:-3px;width:9px;height:9px;
   border-radius:50%;background:var(--kin)}
 .card[data-playing="1"] .seek{display:flex}
-.card .ptm{position:absolute;right:7px;bottom:11px;z-index:3;display:none;
-  font-family:var(--f-mono);font-size:9px;letter-spacing:.06em;color:var(--gofun);
-  background:rgba(23,18,14,.72);border-radius:2px;padding:2px 5px}
+.card .ptm{position:absolute;right:7px;bottom:9px;z-index:3;display:none;
+  height:26px;line-height:26px;box-sizing:border-box;padding:0 8px;
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.06em;color:var(--gofun);
+  background:rgba(23,18,14,.78);border:1px solid var(--line);border-radius:13px;
+  backdrop-filter:blur(2px);white-space:nowrap}
 .card[data-playing="1"] .ptm{display:block}
 /* 曲情報がまだ取れていないカード: 押せない状態にして読み込み中を示す */
 .card.loading{cursor:default;opacity:.72}
@@ -397,6 +406,9 @@ body::before{
 .tcard .tflag{font-size:34px;line-height:1}
 .tcard .tcountry{font-family:var(--f-disp);font-size:18px;letter-spacing:.22em;margin-top:8px}
 .tcard .ttitle{font-size:14px;font-weight:500;margin-top:10px;line-height:1.4}
+.tcard .tdiff{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:var(--gofun-dim);margin:14px 0 4px}
+.tcard .tdiff b{color:var(--kin);font-weight:700;letter-spacing:.18em}
+.tcard .tdiffnote{font-family:var(--f-body);font-size:9.5px;letter-spacing:.04em;margin-left:4px;color:#5A5148}
 .tcard .tbest{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:var(--gofun-dim);margin-bottom:12px;min-height:14px}
 .tcard .tbest b{color:var(--kin);font-weight:500}
 .tcard .tbest .rk{font-family:var(--f-disp);font-weight:800;color:var(--kin)}
@@ -632,14 +644,7 @@ body::before{
     <div class="tflag" id="tflag">—</div>
     <div class="tcountry" id="tcen">—</div>
     <div class="ttitle" id="ttrack">—</div>
-    <div class="opts" style="margin:14px 0 8px">
-      <div class="seg" id="tdiff" role="group" aria-label="難易度">
-        <button data-d="easy">EASY</button>
-        <button data-d="normal" aria-pressed="true">NORMAL</button>
-        <button data-d="hard">HARD</button>
-        <button data-d="oni">EXTREME</button>
-      </div>
-    </div>
+    <div class="tdiff" id="tdiff">難易度 <b class="num" id="tdiffv">NORMAL</b><span class="tdiffnote">（タイトル画面で変更）</span></div>
     <div class="tbest" id="tbest">—</div>
     <div class="btns"><button class="btn prime" id="tgo" type="button">出発する</button></div>
     <p class="err" id="terr" hidden></p>
@@ -722,6 +727,7 @@ const DEFAULT_TRACKS = [
   { id:"fd44d96c-4e9f-4845-8c96-b24d23b00917", title:"Glass Tempest" },
   { id:"c5517b7e-7adc-41f7-9b8a-322ae236e4bc", title:"Adventure Begins" },
   { id:"9501f3e4-0a08-4477-9a33-6d7606306171", title:"Ten Little Toes" },
+  { id:"eb5c4d68-4386-4a61-8f13-cf87775657e4", title:"Market Bells At Dawn" },
 ].map(x => ({ ...x, ready:true, artist:"ken_mro", url:SUNO_CDN(x.id), art:SUNO_ART(x.id) }));
 
 /* ═══════════ ワールドツアー「地球の鼓動 / Pulse of the Earth」 ═══════════
@@ -757,6 +763,14 @@ const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上
   NG:{ en:"NIGERIA", lon:3.4, lat:6.45 },
   ZA:{ en:"SOUTH AFRICA", lon:28.05, lat:-26.2 },
   KR:{ en:"KOREA", lon:126.98, lat:37.57 },
+  GB:{ en:"UK", lon:-0.13, lat:51.5 },
+  PT:{ en:"PORTUGAL", lon:-9.14, lat:38.72 },
+  MA:{ en:"MOROCCO", lon:-7.6, lat:33.6 },
+  KLZ:{ en:"KLEZMER", lon:30.73, lat:46.48, flag:"🕎" },
+  IR:{ en:"IRAN", lon:51.4, lat:35.7 },
+  PH:{ en:"PHILIPPINES", lon:121, lat:14.6 },
+  HAW:{ en:"HAWAII", lon:-157.86, lat:21.31, flag:"🌺" },
+  CA:{ en:"CANADA", lon:-79.38, lat:43.65 },
   /* TOUR_COUNTRIES_END */
 };
 const TOUR_VOLS = [
@@ -792,6 +806,17 @@ const TOUR_VOLS = [
       { id:"c4837b6e-7030-49fd-bddc-5666424e4cca", title:"Lagos Lightning",     cc:"NG" },
       { id:"a4a0aee1-6b6c-4f44-b1fc-ac0cbe2dd5b4", title:"Township Thunderclap", cc:"ZA" },
       { id:"9cdf893d-04db-4226-bd92-9e89b4b82066", title:"Samulnori Surge",     cc:"KR" },
+    ] },
+  { vol:4, title:"Pulse of the Earth: World Tour Vol.4",
+    tracks:[
+      { id:"a1fdb2ea-3a1a-4bfc-a5c9-f53f33977720", title:"Brass Bank Holiday",  cc:"GB" },
+      { id:"cab75fbb-76d3-4c98-a01b-6c5f2f39fa33", title:"Saudade Circuit",     cc:"PT" },
+      { id:"88654e07-e72c-4291-bb45-3d1a5761b133", title:"Gnawa Groove",        cc:"MA" },
+      { id:"131064e3-5a21-4612-acce-26717dcd8992", title:"Freylekh Frenzy",     cc:"KLZ" },
+      { id:"2cc93769-311a-4537-a1fb-5bf167591e15", title:"Santoor Nights",      cc:"IR" },
+      { id:"2071793f-042d-4690-ae99-2a71d52454e4", title:"Kulintang Clash",     cc:"PH" },
+      { id:"978ab457-b04b-4256-a27c-965308db30a7", title:"Aloha Skyline",       cc:"HAW" },
+      { id:"112fe03c-5046-4dee-93ec-0346a6e8aa54", title:"Reel Around the World", cc:"CA" },
     ] },
   /* TOUR_VOLS_END */
 ].map(v => ({ ...v, tracks: v.tracks.map((x, idx) => ({
@@ -956,6 +981,10 @@ function siteDisplayUrl(){
   return "ju-roku.com";
 }
 async function loadPrefs(){
+  try{
+    const dd = await window.storage.get("juroku:difficulty");
+    if(dd && dd.value && DIFF[dd.value]) setDifficulty(dd.value, { silent: true });
+  }catch(e){}
   try{
     const o = await window.storage.get("juroku:offset");
     if(o) setOffsetUI(+o.value || 0);
@@ -2546,7 +2575,9 @@ function syncPreviewIcons(){
   for(const b of document.querySelectorAll(".card .prev")){
     const on = !!previewUrl && b.dataset.u === previewUrl;
     b.dataset.on = on ? "1" : "0";
-    b.textContent = on ? "\u25A0" : "\u25B6";
+    b.innerHTML = `<span class="ic"></span><span class="lb"></span>`;
+    b.querySelector(".ic").textContent = on ? "\u25A0" : "\u25B6";
+    b.querySelector(".lb").textContent = on ? "停止" : "試聴";
     b.setAttribute("aria-label", (on ? "試聴を止める: " : "試聴する: ") + (b.dataset.t || ""));
     b.dataset.load = (on && previewLoading) ? "1" : "0";
     const card = b.closest && b.closest(".card");
@@ -2686,7 +2717,7 @@ function cardInto(wrap, tr, onclick, best){
 
   const cb = document.createElement("span");
   cb.className = "cb";
-  cb.innerHTML = `<span class="t"></span><span class="a"></span>`;
+  cb.innerHTML = `<span class="t"></span><span class="a"></span><span class="go" aria-hidden="true">プレイ ▸</span>`;
   const bs = document.createElement("button");
   bs.type = "button"; bs.className = "best num";
   cb.appendChild(bs);
@@ -3514,8 +3545,7 @@ function renderTourCard(){
   $("tflag").textContent = flagOf(e.cc);
   $("tcen").textContent = c.en;
   $("ttrack").textContent = e.title;
-  for(const x of $("tdiff").querySelectorAll("button[data-d]"))
-    x.setAttribute("aria-pressed", String(x.dataset.d === difficulty));
+  $("tdiffv").textContent = DIFF[difficulty].label;      // 難易度はタイトル画面の 1 箇所で選ぶ。ここは現在値の表示だけ
   const b = bestOf(e.title + "|" + difficulty);
   const tb = $("tbest");
   if(b && typeof b.s === "number"){
@@ -3741,10 +3771,6 @@ $("tchips").addEventListener("scroll", () => {
 });
 $("tback").onclick = () => show("title");
 $("tgo").onclick = () => tourDepart(tourSel);
-$("tdiff").onclick = e => {
-  const b = e.target.closest("button[data-d]");
-  if(b) setDifficulty(b.dataset.d);
-};
 
 /* ═══ Sunoリンクからの読み込み ═══
    suno.com 本体はブラウザからのクロスオリジン読取を許可しないため、
@@ -4076,15 +4102,16 @@ async function loadLocal(file){
 }
 
 /* 難易度・オフセット */
-/* 難易度はタイトルの #diff とツアーの出発カード #tdiff の 2 箇所から選べる。
-   どちらで選んでも同じ変数に入り、両方の表示を揃える。 */
-function setDifficulty(d){
+/* 難易度はタイトル画面の #diff の 1 箇所で選ぶ（ワールドツアーの出発カードは現在値を表示するだけ）。
+   選んだ値は保存し、次回起動時も維持する。 */
+function setDifficulty(d, opts){
   if(!DIFF[d]) return;
   difficulty = d;
-  for(const x of document.querySelectorAll("#diff button[data-d], #tdiff button[data-d]"))
+  for(const x of document.querySelectorAll("#diff button[data-d]"))
     x.setAttribute("aria-pressed", String(x.dataset.d === d));
   renderTracks();
   if($("tour").classList.contains("on")) renderTourCard();
+  if(!(opts && opts.silent)) savePrefs("juroku:difficulty", d);
 }
 $("diff").onclick = e => {
   const b = e.target.closest("button[data-d]");
