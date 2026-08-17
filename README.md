@@ -24,7 +24,8 @@
 
 ## 遊び方
 
-1. タイトル画面から曲を選ぶ（収録曲 / Suno のリンク / 端末内の音源ファイル）
+1. タイトル画面で難易度を選び（次回以降も記憶される）、曲を選ぶ（収録曲 / Suno のリンク / 端末内の音源ファイル）。
+   ジャケットの「▶ 試聴」で聴くだけ、カード本体（「プレイ ▸」）でゲーム開始
 2. 解析（自動で譜面を生成）を待つ
 3. プレイ開始。**マーカーが打点に達したタイミングで押す**
    （Press when the marker reaches the Hit Point.）
@@ -89,7 +90,7 @@
 
 タイトル画面の「ワールドツアー」タブから。1 枚の世界地図（点描・選んだ国が中央に来る）の上を
 飛行機で移動し、その国の伝統音楽×エレクトロの楽曲をプレーする。楽曲は番号順に 1 曲ずつ解放され、
-**可以上**でクリアすると次の国へ進める（難易度は出発ごとに選べる。どの難易度でもよい）。
+**可以上**でクリアすると次の国へ進める（難易度はタイトル画面で選んだものが使われる。どの難易度でもよい）。
 
 - クリアした国には朱印が押され、飛んだ航路が金の線で残る
 - 地図の下の国一覧をタップすると、その国が地図のどこかを囲みで示す。一覧は Vol ごとのページで、
@@ -102,6 +103,7 @@
 | Vol.1 | 🇯🇵 JAPAN → 🇨🇳 CHINA → 🇮🇳 INDIA → 🇪🇬 EGYPT → 🇫🇷 FRANCE → 🇪🇸 SPAIN → 🇧🇷 BRAZIL → 🇺🇸 USA | 8 |
 | Vol.2 | 🇲🇽 MEXICO → 🇨🇺 CUBA → 🇯🇲 JAMAICA → 🇦🇷 ARGENTINA → 🇦🇺 AUSTRALIA → 🇮🇩 INDONESIA → 🇲🇳 MONGOLIA → 🇮🇪 IRELAND | 8 |
 | Vol.3 | 🏴󠁧󠁢󠁳󠁣󠁴󠁿 SCOTLAND → 🇩🇪 GERMANY → 🇮🇹 ITALY → 🇬🇷 GREECE → 🇹🇷 TURKEY → 🇳🇬 NIGERIA → 🇿🇦 SOUTH AFRICA → 🇰🇷 KOREA | 8 |
+| Vol.4 | 🇬🇧 UK → 🇵🇹 PORTUGAL → 🇲🇦 MOROCCO → 🕎 KLEZMER → 🇮🇷 IRAN → 🇵🇭 PHILIPPINES → 🌺 HAWAII → 🇨🇦 CANADA | 8 |
 
 進行は `localStorage`（`juroku:tour`）に保存される。
 

@@ -186,12 +186,14 @@ async function main(){
     assert(near(mx3, +eg.getAttribute("cx")), `マーカーがエジプトへ移る: mark=${mx3} eg=${eg.getAttribute("cx")}`);
     window.eval("tourState.cleared = {};"); window.openTour();
     assert(document.getElementById("tgo").textContent === "出発する", "depart button label wrong");
-    // difficulty seg on the card syncs with the title one
-    document.querySelector('#tdiff button[data-d="hard"]').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-    assert(window.eval("difficulty") === "hard", "tdiff should set difficulty");
-    assert(document.querySelector('#diff button[data-d="hard"]').getAttribute("aria-pressed") === "true", "#diff should follow");
+    // 難易度はタイトル画面の 1 箇所で選ぶ。出発カードは現在値を表示するだけで、セレクタは持たない
+    assert(!document.querySelector("#tdiff button[data-d]"), "出発カードに難易度セレクタを置かない（タイトルに集約）");
+    assert(document.getElementById("tdiffv").textContent === "NORMAL", "出発カードは現在の難易度を表示する");
+    document.querySelector('#diff button[data-d="hard"]').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    assert(window.eval("difficulty") === "hard", "#diff should set difficulty");
+    assert(document.getElementById("tdiffv").textContent === "HARD", "出発カードの表示がタイトルの選択に追従する");
+    assert(window.localStorage.getItem("juroku:difficulty") === "hard", "難易度は保存され、次回起動時も維持される");
     document.querySelector('#diff button[data-d="normal"]').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-    assert(document.querySelector('#tdiff button[data-d="normal"]').getAttribute("aria-pressed") === "true", "#tdiff should follow #diff");
     document.getElementById("tback").click();
     assert(document.getElementById("title").classList.contains("on"), "戻る should return to title");
     if(testErrors.length) fail("script errors during openTour:\n" + testErrors.join("\n---\n"));
@@ -257,7 +259,7 @@ async function main(){
     assert(kids[0].classList.contains("tgroup") && /VOL\.1/i.test(kids[0].textContent), "heading should name Vol.1");
     const a = kids[1].querySelector(".a").textContent;
     assert(a.startsWith("🇯🇵 JAPAN") && a.includes("ken_mro"), `card .a should start with the country tag, got "${a}"`);
-    assert(document.querySelectorAll("#tracks > *").length === 17, "#tracks must remain 17 cards");
+    assert(document.querySelectorAll("#tracks > *").length === window.eval("DEFAULT_TRACKS.length"), "#tracks must keep exactly DEFAULT_TRACKS.length cards (tour tracks go to #ttracks)");
     console.log("[tour] library reflection OK (cleared track appears with 🇯🇵 JAPAN tag under a Vol.1 heading)");
   }
 
@@ -291,6 +293,16 @@ async function main(){
     assert(document.getElementById("tgo").disabled === false, "出発 must be re-enabled");
     if(testErrors.length) fail("script errors during failed depart:\n" + testErrors.join("\n---\n"));
     console.log("[tour] failed depart OK (stays on map, error shown, state reset)");
+  }
+
+  /* ── 8b. 難易度の復元（juroku:difficulty を seed して起動） ── */
+  {
+    const { window, document } = await boot({ beforeParse(w){ w.localStorage.setItem("juroku:difficulty", "oni"); } });
+    assert(window.eval("difficulty") === "oni", "保存した難易度で起動する");
+    assert(document.querySelector('#diff button[data-d="oni"]').getAttribute("aria-pressed") === "true", "#diff の表示も復元される");
+    const bad = await boot({ beforeParse(w){ w.localStorage.setItem("juroku:difficulty", "nonsense"); } });
+    assert(bad.window.eval("difficulty") === "normal", "壊れた保存値は無視して既定の normal になる");
+    console.log("[tour] difficulty persistence OK");
   }
 
   /* ── 9. persistence ────────────────────────────────────────────────── */

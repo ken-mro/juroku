@@ -31,14 +31,35 @@ function flagToCC(str){
   if(ri.length >= 2) return String.fromCharCode(65 + ri[0] - 0x1F1E6, 65 + ri[1] - 0x1F1E6);
   const tags = all.filter(c => c >= 0xE0061 && c <= 0xE007A).map(c => String.fromCharCode(c - 0xE0000));
   if(all.includes(0x1F3F4) && tags.length >= 3) return tags.join("").slice(-3).toUpperCase();
+  /* 国旗ではない絵文字（🕎 クレズマー、🌺 ハワイ など「国に紐づかない文化」）は
+     tour-countries.json の "emoji" 欄と照合してコードを決める。表に無ければ null（＝追記を求めて停止） */
+  const emo = leadingEmoji(str);
+  if(emo){
+    const table = loadCountryTable();
+    for(const [cc, c] of Object.entries(table)) if(c && c.emoji === emo) return cc;
+  }
   return null;
+}
+/* 先頭の絵文字（国旗以外）を 1 つ取り出す */
+function leadingEmoji(str){
+  const m = (str || "").trim().match(/^(\p{Extended_Pictographic}\uFE0F?)/u);
+  return m ? m[1].replace(/\uFE0F$/, "") : null;
+}
+let _countryTable = null;
+function loadCountryTable(){
+  if(!_countryTable){
+    try{ _countryTable = JSON.parse(fs.readFileSync(COUNTRIES_JSON, "utf8")); }catch(e){ _countryTable = {}; }
+  }
+  return _countryTable;
 }
 /* 国旗絵文字そのもの（タグ列の旗をそのまま index.html に持たせるため） */
 function flagEmoji(str){
   const m = (str || "").match(/(?:[\u{1F1E6}-\u{1F1FF}]{2})|(?:\u{1F3F4}[\u{E0061}-\u{E007A}]+\u{E007F})/u);
-  return m ? m[0] : null;
+  if(m) return m[0];
+  return leadingEmoji(str);                        // 🕎 🌺 のような「文化」の絵文字
 }
-const stripFlags = s => (s || "").replace(/[\u{1F1E6}-\u{1F1FF}]|\u{1F3F4}[\u{E0061}-\u{E007A}]+\u{E007F}|\uFE0F/gu, "").trim();
+const stripFlags = s => (s || "").replace(/[\u{1F1E6}-\u{1F1FF}]|\u{1F3F4}[\u{E0061}-\u{E007A}]+\u{E007F}|\uFE0F/gu, "")
+  .replace(/^\p{Extended_Pictographic}/u, "").trim();
 
 function splitRow(line){
   return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
@@ -63,7 +84,9 @@ function parseTourMarkdown(md){
   if(head < 0) throw new Error("収録国一覧の表（| # | 曲名 | 国 | … |）が見つかりません");
   const cols = splitRow(lines[head]);
   const ci = name => { const k = cols.findIndex(c => c.replace(/\s/g, "") === name); if(k < 0) throw new Error(`表に「${name}」列がありません`); return k; };
-  const iNo = ci("#"), iTitle = ci("曲名"), iCountry = ci("国");
+  /* 「国」列は Vol.4 から「国/文化」になった（国に紐づかない文化も巡るため）。前方一致で受ける */
+  const ciStarts = name => { const k = cols.findIndex(c => c.replace(/\s/g, "").startsWith(name)); if(k < 0) throw new Error(`表に「${name}」で始まる列がありません`); return k; };
+  const iNo = ci("#"), iTitle = ci("曲名"), iCountry = ciStarts("国");
   const iPick = cols.findIndex(c => c.replace(/\s/g, "") === "採用");
   const rows = [];
   for(let i = head + 2; i < lines.length; i++){
@@ -185,7 +208,7 @@ function resolveCountries(v, html){
   const add = [], missing = [];
   for(const t of v.tracks){
     if(known.has(t.cc) || add.some(([cc]) => cc === t.cc)) continue;
-    if(table[t.cc] && table[t.cc].en) add.push([t.cc, { ...table[t.cc], flag: table[t.cc].flag || (t.cc.length > 2 ? t.flag : undefined) }]);
+    if(table[t.cc] && table[t.cc].en) add.push([t.cc, { ...table[t.cc], flag: table[t.cc].flag || table[t.cc].emoji || (t.cc.length > 2 ? t.flag : undefined) }]);
     else missing.push(t);
   }
   return { add, missing };
