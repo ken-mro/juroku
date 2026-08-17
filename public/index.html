@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.17-1</title>
+<title>十六 JŪROKU v2026.08.17-2</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -406,6 +406,9 @@ body::before{
 .tcard .tflag{font-size:34px;line-height:1}
 .tcard .tcountry{font-family:var(--f-disp);font-size:18px;letter-spacing:.22em;margin-top:8px}
 .tcard .ttitle{font-size:14px;font-weight:500;margin-top:10px;line-height:1.4}
+.tcard .tdiff{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:var(--gofun-dim);margin:14px 0 4px}
+.tcard .tdiff b{color:var(--kin);font-weight:700;letter-spacing:.18em}
+.tcard .tdiffnote{font-family:var(--f-body);font-size:9.5px;letter-spacing:.04em;margin-left:4px;color:#5A5148}
 .tcard .tbest{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:var(--gofun-dim);margin-bottom:12px;min-height:14px}
 .tcard .tbest b{color:var(--kin);font-weight:500}
 .tcard .tbest .rk{font-family:var(--f-disp);font-weight:800;color:var(--kin)}
@@ -641,14 +644,7 @@ body::before{
     <div class="tflag" id="tflag">—</div>
     <div class="tcountry" id="tcen">—</div>
     <div class="ttitle" id="ttrack">—</div>
-    <div class="opts" style="margin:14px 0 8px">
-      <div class="seg" id="tdiff" role="group" aria-label="難易度">
-        <button data-d="easy">EASY</button>
-        <button data-d="normal" aria-pressed="true">NORMAL</button>
-        <button data-d="hard">HARD</button>
-        <button data-d="oni">EXTREME</button>
-      </div>
-    </div>
+    <div class="tdiff" id="tdiff">難易度 <b class="num" id="tdiffv">NORMAL</b><span class="tdiffnote">（タイトル画面で変更）</span></div>
     <div class="tbest" id="tbest">—</div>
     <div class="btns"><button class="btn prime" id="tgo" type="button">出発する</button></div>
     <p class="err" id="terr" hidden></p>
@@ -985,6 +981,10 @@ function siteDisplayUrl(){
   return "ju-roku.com";
 }
 async function loadPrefs(){
+  try{
+    const dd = await window.storage.get("juroku:difficulty");
+    if(dd && dd.value && DIFF[dd.value]) setDifficulty(dd.value, { silent: true });
+  }catch(e){}
   try{
     const o = await window.storage.get("juroku:offset");
     if(o) setOffsetUI(+o.value || 0);
@@ -3545,8 +3545,7 @@ function renderTourCard(){
   $("tflag").textContent = flagOf(e.cc);
   $("tcen").textContent = c.en;
   $("ttrack").textContent = e.title;
-  for(const x of $("tdiff").querySelectorAll("button[data-d]"))
-    x.setAttribute("aria-pressed", String(x.dataset.d === difficulty));
+  $("tdiffv").textContent = DIFF[difficulty].label;      // 難易度はタイトル画面の 1 箇所で選ぶ。ここは現在値の表示だけ
   const b = bestOf(e.title + "|" + difficulty);
   const tb = $("tbest");
   if(b && typeof b.s === "number"){
@@ -3772,10 +3771,6 @@ $("tchips").addEventListener("scroll", () => {
 });
 $("tback").onclick = () => show("title");
 $("tgo").onclick = () => tourDepart(tourSel);
-$("tdiff").onclick = e => {
-  const b = e.target.closest("button[data-d]");
-  if(b) setDifficulty(b.dataset.d);
-};
 
 /* ═══ Sunoリンクからの読み込み ═══
    suno.com 本体はブラウザからのクロスオリジン読取を許可しないため、
@@ -4107,15 +4102,16 @@ async function loadLocal(file){
 }
 
 /* 難易度・オフセット */
-/* 難易度はタイトルの #diff とツアーの出発カード #tdiff の 2 箇所から選べる。
-   どちらで選んでも同じ変数に入り、両方の表示を揃える。 */
-function setDifficulty(d){
+/* 難易度はタイトル画面の #diff の 1 箇所で選ぶ（ワールドツアーの出発カードは現在値を表示するだけ）。
+   選んだ値は保存し、次回起動時も維持する。 */
+function setDifficulty(d, opts){
   if(!DIFF[d]) return;
   difficulty = d;
-  for(const x of document.querySelectorAll("#diff button[data-d], #tdiff button[data-d]"))
+  for(const x of document.querySelectorAll("#diff button[data-d]"))
     x.setAttribute("aria-pressed", String(x.dataset.d === d));
   renderTracks();
   if($("tour").classList.contains("on")) renderTourCard();
+  if(!(opts && opts.silent)) savePrefs("juroku:difficulty", d);
 }
 $("diff").onclick = e => {
   const b = e.target.closest("button[data-d]");
