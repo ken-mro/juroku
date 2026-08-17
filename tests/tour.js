@@ -186,14 +186,24 @@ async function main(){
     assert(near(mx3, +eg.getAttribute("cx")), `マーカーがエジプトへ移る: mark=${mx3} eg=${eg.getAttribute("cx")}`);
     window.eval("tourState.cleared = {};"); window.openTour();
     assert(document.getElementById("tgo").textContent === "出発する", "depart button label wrong");
-    // 難易度はタイトル画面の 1 箇所で選ぶ。出発カードは現在値を表示するだけで、セレクタは持たない
-    assert(!document.querySelector("#tdiff button[data-d]"), "出発カードに難易度セレクタを置かない（タイトルに集約）");
+    // 難易度はひとつの値。ツアー画面のセレクタ（#tdiffsel）はタイトルの #diff と同じ部品で、どちらで選んでも揃う
+    assert(!document.querySelector("#tdiff button[data-d]"), "出発カードにセレクタは置かない（現在値の表示だけ）");
+    assert(document.querySelectorAll("#tdiffsel button[data-d]").length === 4, "ツアー画面のヘッダー下に難易度セレクタがある");
     assert(document.getElementById("tdiffv").textContent === "NORMAL", "出発カードは現在の難易度を表示する");
-    document.querySelector('#diff button[data-d="hard"]').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-    assert(window.eval("difficulty") === "hard", "#diff should set difficulty");
-    assert(document.getElementById("tdiffv").textContent === "HARD", "出発カードの表示がタイトルの選択に追従する");
+    document.querySelector('#tdiffsel button[data-d="hard"]').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    assert(window.eval("difficulty") === "hard", "ツアー画面のセレクタで難易度が変わる（戻らなくてよい）");
+    assert(document.querySelector('#diff button[data-d="hard"]').getAttribute("aria-pressed") === "true", "タイトルのセレクタも同じ値を示す");
+    assert(document.getElementById("tdiffv").textContent === "HARD", "出発カードの表示も追従する");
     assert(window.localStorage.getItem("juroku:difficulty") === "hard", "難易度は保存され、次回起動時も維持される");
     document.querySelector('#diff button[data-d="normal"]').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    assert(document.querySelector('#tdiffsel button[data-d="normal"]').getAttribute("aria-pressed") === "true", "タイトルで変えればツアー側も揃う");
+    // 設定はツアー画面から開けて、閉じるとツアー画面に戻る（タイトルには戻らない）
+    assert(document.getElementById("tsettings"), "ツアー画面に設定ボタンがある");
+    document.getElementById("tsettings").click();
+    await sleep(30);
+    assert(document.getElementById("sync").classList.contains("on"), "設定画面が開く");
+    document.getElementById("sdone").click();
+    assert(document.getElementById("tour").classList.contains("on"), "設定を閉じるとツアー画面に戻る（元の画面へ）");
     document.getElementById("tback").click();
     assert(document.getElementById("title").classList.contains("on"), "戻る should return to title");
     if(testErrors.length) fail("script errors during openTour:\n" + testErrors.join("\n---\n"));
