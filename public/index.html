@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.16-9</title>
+<title>十六 JŪROKU v2026.08.17-1</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -364,8 +364,20 @@ body::before{
 @keyframes tdots{from{opacity:0}to{opacity:.85}}
 @keyframes tdraw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
 @media (prefers-reduced-motion: reduce){ .tnext-ring,.tstamp-in,.tleg-draw,.tdots-in{animation:none} }
-.titin{flex:none;display:flex;width:100%;max-width:720px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none}
+.titin{flex:none;display:flex;width:100%;max-width:720px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}   /* Vol ごとに 1 ページ、横スワイプで移動 */
+.titin::-webkit-scrollbar{display:none}
+.titin .tpage{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;display:flex;overflow-x:auto;scrollbar-width:none}
+.titin .tpage::-webkit-scrollbar{display:none}
 .titin .tinner{display:flex;gap:6px;margin:0 auto;padding:0 2px}   /* 収まる時は中央、溢れる時はスクロール */
+.tnav{flex:none;display:flex;align-items:center;justify-content:center;gap:14px;margin-top:2px}
+.tnav .tarrow{background:transparent;border:1px solid var(--line);border-radius:3px;color:var(--gofun);
+  font-family:var(--f-mono);font-size:14px;line-height:1;padding:4px 12px;cursor:pointer;transition:all .16s}
+.tnav .tarrow:hover:not(:disabled){border-color:var(--kin);color:var(--kin)}
+.tnav .tarrow:disabled{opacity:.3;cursor:default}
+.tnav .tarrow:focus-visible{outline:2px solid var(--kin);outline-offset:2px}
+.tnavlabel{font-size:9px;letter-spacing:.2em;color:var(--gofun-dim);min-width:96px;text-align:center}
+.tselmark{pointer-events:none}
 .titin::-webkit-scrollbar{display:none}
 .chip{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:66px;padding:7px 8px 6px;
   border:1px solid var(--line);border-radius:3px;background:var(--urushi);color:var(--gofun-dim);
@@ -615,6 +627,7 @@ body::before{
     <div class="tload" id="tload" hidden>DOWNLOADING</div>
   </div>
   <div class="titin" id="tchips" role="listbox" aria-label="行程"></div>
+  <div class="tnav" id="tnav" hidden></div>
   <div class="tcard" id="tcard">
     <div class="tflag" id="tflag">—</div>
     <div class="tcountry" id="tcen">—</div>
@@ -3369,6 +3382,25 @@ function renderTourMap(opts){
   }
 }
 
+/* 選択中の国を地図上で示す。朱印（クリア済み）や金の脈動（次の目的地）と混ざらないよう、
+   囲みの角（照準）で「いま見ている国はここ」だけを表す。 */
+function tourMarkSelected(seq){
+  const svg = $("tmap");
+  if(!svg) return;
+  const old = svg.querySelector("#tselmark");
+  if(old) old.remove();
+  const e = tourJourney()[seq];
+  if(!e) return;
+  const c = tourCC(e.cc), x = tmapX(c.lon), y = tmapY(c.lat);
+  const g = tsvg("g", { id: "tselmark", class: "tselmark" }, svg);   // 最後に足すので他の要素の上に出る
+  const R = 15, L = 5.5;
+  for(const [sx, sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+    const px = x + sx*R, py = y + sy*R;
+    tsvg("path", { d: `M${(px - sx*L).toFixed(1)},${py.toFixed(1)} L${px.toFixed(1)},${py.toFixed(1)} L${px.toFixed(1)},${(py - sy*L).toFixed(1)}`,
+                   fill: "none", stroke: "#EFE7DA", "stroke-width": 1.6, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+  }
+}
+
 /* 地図の横スクロールを行程 seq の国が中央に来るように */
 function tourScrollTo(seq){
   const wrap = $("tmapwrap"), svg = $("tmap");
@@ -3378,36 +3410,95 @@ function tourScrollTo(seq){
   wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
 }
 
+/* 国のチップは Vol ごとに 1 ページ。横スワイプ（CSS のスクロールスナップ）で Vol を行き来する。
+   スワイプできない環境のために ‹ › ボタンも置く。 */
 function renderTourChips(){
   const wrap = $("tchips");
   wrap.textContent = "";
   const j = tourJourney(), next = tourNextSeq();
-  /* 内側の箱を margin:auto で中央に置く。収まる時は中央揃え、溢れる時は横スクロール */
-  const inner = document.createElement("div");
-  inner.className = "tinner";
-  wrap.appendChild(inner);
-  let lastVol = null;
+
+  /* Vol ごとにまとめる（行程は Vol 順に並んでいる） */
+  const pages = [];
   for(const e of j){
-    if(e.tour.vol !== lastVol){
-      lastVol = e.tour.vol;
-      if(e.seq > 0){ const d = document.createElement("div"); d.className = "tvol"; d.textContent = "VOL." + e.tour.vol; inner.appendChild(d); }
-    }
-    const done = tourIsCleared(e.id), isNext = e.seq === next, unlocked = e.seq <= next;
-    const b = document.createElement("button");
-    b.type = "button"; b.className = "chip"; b.dataset.seq = e.seq;
-    b.dataset.st = done ? "done" : isNext ? "next" : "lock";
-    b.setAttribute("role", "option");
-    b.setAttribute("aria-selected", String(e.seq === tourSel));
-    b.disabled = !unlocked;
-    b.innerHTML = `<span class="f"></span><span class="n"></span><span class="s"></span>`;
-    b.querySelector(".f").textContent = flagOf(e.cc);
-    b.querySelector(".n").textContent = tourCC(e.cc).en;
-    b.querySelector(".s").textContent = done ? tourBestRank(e.title) : isNext ? "NEXT" : "🔒";
-    b.title = e.title;
-    if(unlocked) b.onclick = () => tourSelect(e.seq);
-    inner.appendChild(b);
+    let page = pages[pages.length - 1];
+    if(!page || page.vol !== e.tour.vol){ page = { vol: e.tour.vol, items: [] }; pages.push(page); }
+    page.items.push(e);
   }
+
+  for(const page of pages){
+    const el = document.createElement("div");
+    el.className = "tpage";
+    el.dataset.vol = page.vol;
+    const inner = document.createElement("div");
+    inner.className = "tinner";
+    el.appendChild(inner);
+    for(const e of page.items){
+      const done = tourIsCleared(e.id), isNext = e.seq === next, unlocked = e.seq <= next;
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.dataset.seq = e.seq;
+      b.dataset.st = done ? "done" : isNext ? "next" : "lock";
+      b.setAttribute("role", "option");
+      b.setAttribute("aria-selected", String(e.seq === tourSel));
+      b.disabled = !unlocked;
+      b.innerHTML = `<span class="f"></span><span class="n"></span><span class="s"></span>`;
+      b.querySelector(".f").textContent = flagOf(e.cc);
+      b.querySelector(".n").textContent = tourCC(e.cc).en;
+      b.querySelector(".s").textContent = done ? tourBestRank(e.title) : isNext ? "NEXT" : "🔒";
+      b.title = e.title;
+      if(unlocked) b.onclick = () => tourSelect(e.seq);
+      inner.appendChild(b);
+    }
+    wrap.appendChild(el);
+  }
+
+  /* Vol が 1 つだけならページ送りは要らない */
+  const nav = $("tnav");
+  nav.hidden = pages.length < 2;
+  nav.innerHTML = `<button class="tarrow" id="tprev" type="button" aria-label="前の Vol">‹</button>
+    <span class="tnavlabel num" id="tnavlabel"></span>
+    <button class="tarrow" id="tnext-vol" type="button" aria-label="次の Vol">›</button>`;
+  if(pages.length > 1){
+    $("tprev").onclick = () => tourStepVolPage(-1);
+    $("tnext-vol").onclick = () => tourStepVolPage(1);
+  }
+  tourSyncVolNav();
 }
+
+/* いま表示している Vol のページ番号（スクロール位置から求める） */
+function tourVolPageIndex(){
+  const wrap = $("tchips");
+  const pages = wrap ? wrap.querySelectorAll(".tpage") : [];
+  if(!pages.length || !wrap.clientWidth) return 0;
+  return Math.max(0, Math.min(pages.length - 1, Math.round(wrap.scrollLeft / wrap.clientWidth)));
+}
+function tourSyncVolNav(){
+  const wrap = $("tchips");
+  const pages = wrap ? wrap.querySelectorAll(".tpage") : [];
+  const i = tourVolPageIndex();
+  const label = $("tnavlabel");
+  if(label && pages.length) label.textContent = `VOL.${pages[i].dataset.vol}  ${i + 1} / ${pages.length}`;
+  if($("tprev")) $("tprev").disabled = i <= 0;
+  if($("tnext-vol")) $("tnext-vol").disabled = i >= pages.length - 1;
+}
+/* 指定の Vol のページを表示する */
+function tourShowVolPage(vol){
+  const wrap = $("tchips");
+  if(!wrap) return;
+  const pages = Array.from(wrap.querySelectorAll(".tpage"));
+  const i = pages.findIndex(p => +p.dataset.vol === vol);
+  if(i < 0) return;
+  const left = i * wrap.clientWidth;
+  if(typeof wrap.scrollTo === "function" && !reduceMotion) wrap.scrollTo({ left, behavior: "smooth" });
+  else wrap.scrollLeft = left;
+  tourSyncVolNav();
+}
+function tourStepVolPage(d){
+  const wrap = $("tchips");
+  const pages = wrap ? wrap.querySelectorAll(".tpage") : [];
+  const i = Math.max(0, Math.min(pages.length - 1, tourVolPageIndex() + d));
+  if(pages[i]) tourShowVolPage(+pages[i].dataset.vol);
+}
+
 /* その曲の全難易度でのベスト段位（チップ表示用） */
 function tourBestRank(title){
   let acc = -1;
@@ -3457,7 +3548,9 @@ function tourSelect(seq){
     b.setAttribute("aria-selected", String(+b.dataset.seq === seq));
   renderTourHeader();
   renderTourCard();
+  tourMarkSelected(seq);
   tourScrollTo(seq);
+  tourShowVolPage(tourJourney()[seq].tour.vol);   // 別 Vol の国を選んだらチップもその Vol に送る
 }
 /* ツアー画面を開く。opts: {vol} その Vol の次の国へ / {focus} その通し番号 / {justCleared} 直後の演出 */
 function openTour(opts){
@@ -3479,8 +3572,13 @@ function openTour(opts){
   renderTourMap({ justCleared: opts.justCleared });
   renderTourChips();
   renderTourCard();
+  tourMarkSelected(tourSel);
   show("tour");
-  requestAnimationFrame(() => tourScrollTo(opts.justCleared != null ? opts.justCleared : tourSel));
+  requestAnimationFrame(() => {
+    tourScrollTo(opts.justCleared != null ? opts.justCleared : tourSel);
+    const e = tourJourney()[tourSel];
+    if(e) tourShowVolPage(e.tour.vol);        // チップも選択中の国の Vol から始める
+  });
 }
 function tourError(msg){
   const el = $("terr");
@@ -3637,6 +3735,10 @@ function tourOnFinish(t, acc){
   const next = cleared && t.seq + 1 < j.length ? t.seq + 1 : null;
   return { cleared, next };
 }
+$("tchips").addEventListener("scroll", () => {
+  clearTimeout($("tchips")._navT);
+  $("tchips")._navT = setTimeout(tourSyncVolNav, 80);      // スワイプが止まってから表示を更新
+});
 $("tback").onclick = () => show("title");
 $("tgo").onclick = () => tourDepart(tourSel);
 $("tdiff").onclick = e => {
