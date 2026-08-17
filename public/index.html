@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.18-1</title>
+<title>十六 JŪROKU v2026.08.18-2</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -506,7 +506,7 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
 <section id="sync" class="screen" style="align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto;padding-top:max(26px,env(safe-area-inset-top))">
   <div class="load-t" data-i18n="sync_t">設定</div>
   <div class="load-s" data-i18n="sync_s">パネルは本編と同じ表示・判定 — タップ / SPACE で確認</div>
-  <canvas id="scv" style="width:190px;height:190px;margin:14px 0 4px"></canvas>
+  <canvas id="scv" style="width:190px;height:190px;margin:14px 0 4px;touch-action:manipulation;-webkit-user-select:none;user-select:none"></canvas>
   <div class="rscore num" id="serr" style="margin:0;font-size:22px">—</div>
   <div class="racc" id="smed">中央値 — / OFFSET <span class="num" id="soff">0</span>ms</div>
 
@@ -4298,6 +4298,9 @@ $("vibtest").onclick = () => { if(navigator.vibrate) navigator.vibrate(vibrateMs
    （currentTime − 出力遅延 + OFFSET）でビープを叩く。
    ここで冴が出る設定なら、本編でも冴が出る。            */
 const SYNC_IV = 1.2;
+/* 練習パネルの描画領域（canvas は 220×220 の論理座標。パネルはその中央 150×150）。
+   タップの当たり判定も同じ矩形を使う — パネルの外（余白・文字）は反応しない。 */
+const SYNC_CV = 220, SYNC_PX = 35, SYNC_PW = 150;
 let syncOn=false, syncNext=0, syncBeeps=[], syncErrs=[], syncTimer=null, syncFx=[], syncFlash=0;
 let syncBeepNodes=[], syncClapNodes=[];
 
@@ -4371,10 +4374,10 @@ function syncDraw(){
   if(!syncOn) return;
   const c = $("scv");
   const dpr = Math.min(devicePixelRatio||1, 2);
-  if(c.width !== 220*dpr){ c.width = 220*dpr; c.height = 220*dpr; }
+  if(c.width !== SYNC_CV*dpr){ c.width = SYNC_CV*dpr; c.height = SYNC_CV*dpr; }
   const x = c.getContext("2d");
   x.setTransform(dpr,0,0,dpr,0,0);
-  x.clearRect(0,0,220,220);
+  x.clearRect(0,0,SYNC_CV,SYNC_CV);
   const t = syncClock();
 
   /* 見逃し（ゲームの逃と同じ条件） */
@@ -4382,7 +4385,7 @@ function syncDraw(){
     if(!b.judged && t - b.t > W_AMA){ b.judged = true; syncShowErr(3, 0); }
   }
 
-  const px=35, py=35, pw=150, ph=150, rad=pw*0.055;
+  const px=SYNC_PX, py=SYNC_PX, pw=SYNC_PW, ph=SYNC_PW, rad=pw*0.055;
   const rr=()=>{x.beginPath();
     x.moveTo(px+rad,py);x.lineTo(px+pw-rad,py);x.quadraticCurveTo(px+pw,py,px+pw,py+rad);
     x.lineTo(px+pw,py+ph-rad);x.quadraticCurveTo(px+pw,py+ph,px+pw-rad,py+ph);
@@ -4466,8 +4469,18 @@ $("sapply").onclick  = () => {
   $("serr").textContent = t("applied");
   $("serr").style.color = "var(--kin)";
 };
-$("sync").addEventListener("pointerdown", e => {
-  if(e.target.closest(".btn")) return;
+/* パネルの矩形の中だけがタップに反応する（本編と同じく、パネル以外を叩いても何も起きない）。
+   キーボードの SPACE は場所を持たないので従来どおり。 */
+function syncInPanel(e){
+  const r = e.currentTarget.getBoundingClientRect();
+  if(!(r.width > 0 && r.height > 0)) return false;
+  const fx = (e.clientX - r.left) / r.width * SYNC_CV;
+  const fy = (e.clientY - r.top)  / r.height * SYNC_CV;
+  return fx >= SYNC_PX && fx <= SYNC_PX + SYNC_PW && fy >= SYNC_PX && fy <= SYNC_PX + SYNC_PW;
+}
+$("scv").addEventListener("pointerdown", e => {
+  if(!syncInPanel(e)) return;
+  e.preventDefault();
   syncTap();
 });
 addEventListener("keydown", e => {
