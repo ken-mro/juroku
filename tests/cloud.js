@@ -52,7 +52,7 @@ async function main(){
     window.savePrefs("juroku:bests", JSON.stringify({ "A|normal": { s: 1 } }));
     await sleep(30);
     assert(window.localStorage.getItem("juroku:bests"), "同期が使えなくても localStorage には保存される");
-    assert(document.querySelectorAll("#tracks > *").length === 17, "収録曲はいつもどおり出る");
+    assert(document.querySelectorAll("#tracks > *").length === window.eval("DEFAULT_TRACKS.length"), "収録曲はいつもどおり出る");
     console.log("[cloud] 同期なしでも動く OK");
   }
 
@@ -163,7 +163,7 @@ async function main(){
     window.savePrefs("juroku:bests", JSON.stringify({ "D|oni": { s: 4 } }));
     await sleep(60);
     assert(JSON.parse(window.localStorage.getItem("juroku:bests"))["D|oni"], "送信が 500 でもローカルには保存される");
-    assert(document.querySelectorAll("#tracks > *").length === 17, "送信失敗後も画面は生きている");
+    assert(document.querySelectorAll("#tracks > *").length === window.eval("DEFAULT_TRACKS.length"), "送信失敗後も画面は生きている");
     console.log("[cloud] 失敗してもゲームは動く OK");
   }
 
