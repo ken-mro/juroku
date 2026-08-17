@@ -106,6 +106,22 @@ JŪROKU は独自の視覚言語・タイミング提示・判定表現を持つ
   マーカーごとの固有色（金 / 藍 / 朱 / 若竹 / 藤紫）はこの下地の上に置くアクセント。
 - 設計基準は他作品との比較ではなく、JŪROKU 自身の操作性・視認性・独自性に置く。
 
+### 言語（日本語 / English）
+
+- UI 文言は辞書 `I18N.ja` / `I18N.en` に持ち、`t(key)` で引く。HTML 側は `data-i18n="key"`
+  （textContent）/ `data-i18n-html`（innerHTML）/ `data-i18n-attr="attr:key,attr:key"`（属性）を付け、
+  `applyLang()` が一括で差し替える。JS が組み立てる文言も必ず `t()` を通す（生の日本語を書かない）。
+- 初回はブラウザの言語（`navigator.language` が `ja*` なら日本語、それ以外は英語）。設定画面の
+  `#langsel` で切り替え、`juroku:lang` に保存する（保存済みなら自動判定より優先）。
+- **判定名・段位・マーカー名は英語表示でも漢字を残す**（JŪROKU の世界観）。英語ではローマ字読みを添える:
+  `kj(k)` が `ROMAJI` 表から `冴 SAE` / `満 MITSU` のように組み立てる。HTML 側は `data-kj="漢字"`。
+  結果画面の大きな段位（`#rrank`）は漢字のまま、副題行にローマ字を出す。
+- 結果画像は元から英字ベース（PLAY RESULT / 判定のローマ字入り）で言語に依存しない。
+- プライバシーポリシーは `privacy.html`（日本語）と `privacy-en.html`（英語）の 2 枚。設定画面のリンクは
+  言語に合わせて切り替わる。片方だけ更新しない。
+- 辞書のキーは ja / en で完全一致させる（`tests/i18n.js` が検証）。テスト環境（`tests/lib/env.js`）は
+  `navigator.language` を `ja-JP` に固定しているので、既存テストの日本語文言はそのまま通る。
+
 ### 既定マーカー
 
 初期値は **満**（`let marker = "fill"` / `#markersel` の `満` ボタンが `aria-pressed="true"`）。
@@ -245,6 +261,7 @@ node tests/merge.js      # 併合規則（高スコア優先・和集合・可�
 node tests/session.js    # セッション署名（改ざん・期限切れ・別鍵の拒否）
 node tests/api.js        # OAuth 検証となりすまし拒否、API の認証ガード・併合保存・削除
 node tests/cloud.js      # クライアント同期（未設定/通信断/未ログインで無害、反映、デバウンス）
+node tests/i18n.js       # 言語（辞書 ja/en の整合、ブラウザ言語の自動判定、切替と保存、漢字＋ローマ字）
 ```
 （`cd tests && npm test` で全部通る）
 

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy Policy — 十六 JŪROKU</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<meta name="theme-color" content="#100E0C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sumi:#100E0C; --urushi:#1B1613; --line:#322822;
+  --gofun:#EFE7DA; --gofun-dim:#8C8177; --kin:#D9A441;
+  --f-disp:"Shippori Mincho",serif; --f-body:"Zen Kaku Gothic New",sans-serif; --f-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sumi);color:var(--gofun);font-family:var(--f-body);line-height:1.9;
+  padding:max(28px,env(safe-area-inset-top)) 20px 60px}
+main{max-width:680px;margin:0 auto}
+.mark{font-family:var(--f-disp);font-weight:800;font-size:22px;letter-spacing:.22em;color:var(--kin)}
+.rom{font-family:var(--f-mono);font-size:9px;letter-spacing:.3em;color:var(--gofun-dim);margin-top:4px}
+h1{font-family:var(--f-disp);font-weight:500;font-size:22px;letter-spacing:.1em;margin:26px 0 6px}
+.upd{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;color:var(--gofun-dim);margin-bottom:26px}
+h2{font-family:var(--f-disp);font-weight:500;font-size:15px;letter-spacing:.08em;
+  margin:30px 0 8px;padding-top:16px;border-top:1px solid var(--line)}
+p,li{font-size:13.5px;color:var(--gofun)}
+ul{padding-left:1.2em}
+li{margin:4px 0}
+.note{color:var(--gofun-dim);font-size:12.5px}
+a{color:var(--kin)}
+.back{display:inline-block;margin-top:34px;font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;
+  text-decoration:none;color:var(--gofun);border:1px solid var(--line);border-radius:3px;padding:11px 22px}
+.back:hover{border-color:var(--kin);color:var(--kin)}
+</style>
+</head>
+<body>
+<main>
+  <div class="mark">十六</div>
+  <div class="rom">JŪROKU</div>
+
+  <h1>Privacy Policy</h1>
+  <div class="upd">Last updated 2026.08.18</div>
+
+  <p>十六 (JŪROKU, "the app") is a rhythm game that runs in your browser.
+     This policy describes how the app handles information.</p>
+
+  <h2>1. If you do not sign in</h2>
+  <p>Every feature of the app works without signing in. In that case your best scores,
+     World Tour progress and settings are <strong>stored only in your browser on your device (localStorage)
+     and are never sent anywhere</strong>. The app uses no advertising, analytics or tracking of any kind.</p>
+
+  <h2>2. What we receive when you sign in with Google</h2>
+  <p>You may optionally sign in with a Google account to carry your records across devices.
+     When you do, the app receives the following from Google:</p>
+  <ul>
+    <li>Your Google account identifier (sub) — a stable ID used only to tell users apart</li>
+    <li>Your email address — used only to show that you are signed in</li>
+  </ul>
+  <p class="note">The only scopes requested are <span class="num">openid</span> and <span class="num">email</span>.
+     The app does not access contacts, calendar, Drive or any other data,
+     and never receives your Google password.</p>
+
+  <h2>3. What is stored, and where</h2>
+  <p>While signed in, the following game data is stored in Cloudflare Workers KV
+     (storage provided by Cloudflare, Inc.):</p>
+  <ul>
+    <li>Best records per song (score, accuracy, judgment breakdown, max combo, date)</li>
+    <li>World Tour progress (cleared songs)</li>
+    <li>Song links you added (Suno URLs)</li>
+  </ul>
+  <p>These are keyed by the identifier above. Device-specific settings (OFFSET, marker, hit sound,
+     vibration) and any audio files you load are <strong>not stored</strong> and never leave your device.</p>
+
+  <h2>4. Purpose</h2>
+  <p>The information is used <strong>solely so that you can use the same records and progress on
+     multiple devices</strong>. It is not used for any other purpose.</p>
+
+  <h2>5. Sharing with third parties</h2>
+  <p>We do not sell, lend or otherwise share your information with third parties,
+     except where disclosure is required by law.</p>
+
+  <h2>6. Deleting your data</h2>
+  <p>You can delete the stored information at any time with "Delete cloud data" in the app's Settings.
+     Deleting also signs you out (records on your device are kept).
+     You can revoke the app's access to your Google account from your
+     <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google account settings</a>.</p>
+
+  <h2>7. Cookies</h2>
+  <p>One cookie is used to keep you signed in (valid for 90 days).
+     No advertising or analytics cookies are used.</p>
+
+  <h2>8. Contact</h2>
+  <p>For questions about this policy or your data, please open an issue on the
+     <a href="https://github.com/ken-mro/juroku/issues" target="_blank" rel="noopener">GitHub repository</a>.</p>
+
+  <h2>9. Changes to this policy</h2>
+  <p>When this policy changes, the "Last updated" date above will be revised.</p>
+
+  <p class="note"><a href="privacy.html">日本語版はこちら</a></p>
+  <a class="back" href="./">Back to 十六</a>
+</main>
+</body>
+</html>
