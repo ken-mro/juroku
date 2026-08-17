@@ -160,6 +160,11 @@ function buildEnv(html, opts){
     runScripts: "dangerously",
     pretendToBeVisual: true,
     beforeParse(window){
+      /* アプリは navigator.language で初期言語を決める（ja* → 日本語、他 → 英語）。
+         jsdom の既定は en-US なので、テストは日本語表示（アプリの母国語）を前提にできるよう
+         ja-JP に固定する。英語表示は tests/i18n.js が明示的に切り替えて検証する。 */
+      Object.defineProperty(window.navigator, "language", { value: "ja-JP", configurable: true });
+      Object.defineProperty(window.navigator, "languages", { value: ["ja-JP", "ja"], configurable: true });
       window.addEventListener("error", e => {
         const err = e.error;
         testErrors.push((err && (err.stack || err.message)) || e.message || String(e));
