@@ -74,6 +74,13 @@ async function main(){
     fail("script error(s) captured during preview stop:\n" + testErrors.join("\n---\n"));
   }
 
+  /* 表示時間の丸め: 59.6 秒は 1:00 であって 0:00 ではない（Market Bells At Dawn = 59.56 秒 で顕在化） */
+  for(const [sec, want] of [[59.56, "1:00"], [59.4, "0:59"], [60, "1:00"], [119.7, "2:00"], [118.2, "1:58"], [1, "0:01"]]){
+    const got = window.fmtDur ? window.fmtDur(sec) : window.eval(`fmtDur(${sec})`);
+    if(got !== want) fail(`fmtDur(${sec}) should be "${want}", got "${got}"`);
+  }
+  console.log("[preview] fmtDur boundaries OK (59.56s → 1:00)");
+
   console.log("[preview] PASS — stopping a preview does not show the load-failure overlay");
   process.exit(0);
 }

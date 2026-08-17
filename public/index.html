@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.17-2</title>
+<title>十六 JŪROKU v2026.08.17-3</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -349,7 +349,8 @@ body::before{
    地図は点描（胡粉の点）に朱印と金の航路。過度な発光は足さない。 */
 #tour{align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto;
   padding-top:max(18px,env(safe-area-inset-top))}
-.thead{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;width:100%;max-width:720px;margin-bottom:12px}
+.thead{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;width:100%;max-width:720px;margin-bottom:10px}
+.topts{flex:none;margin:0 0 12px}
 .thead #tback{justify-self:start;white-space:nowrap}
 .thead .eyebrow{letter-spacing:.2em;font-size:9px}
 .thead .tdone{justify-self:end}
@@ -634,6 +635,15 @@ body::before{
     </div>
     <div class="tdone" id="tdone" hidden>完走</div>
   </div>
+  <div class="opts topts">
+    <div class="seg" id="tdiffsel" role="group" aria-label="難易度">
+      <button data-d="easy">EASY</button>
+      <button data-d="normal" aria-pressed="true">NORMAL</button>
+      <button data-d="hard">HARD</button>
+      <button data-d="oni">EXTREME</button>
+    </div>
+    <button class="btn" id="tsettings" type="button" style="padding:8px 20px">設定</button>
+  </div>
   <div class="tmapwrap" id="tmapwrap">
     <svg id="tmap" viewBox="0 0 720 300" role="img" aria-label="世界地図：訪れた国と航路"></svg>
     <div class="tload" id="tload" hidden>DOWNLOADING</div>
@@ -644,7 +654,7 @@ body::before{
     <div class="tflag" id="tflag">—</div>
     <div class="tcountry" id="tcen">—</div>
     <div class="ttitle" id="ttrack">—</div>
-    <div class="tdiff" id="tdiff">難易度 <b class="num" id="tdiffv">NORMAL</b><span class="tdiffnote">（タイトル画面で変更）</span></div>
+    <div class="tdiff" id="tdiff">難易度 <b class="num" id="tdiffv">NORMAL</b></div>
     <div class="tbest" id="tbest">—</div>
     <div class="btns"><button class="btn prime" id="tgo" type="button">出発する</button></div>
     <p class="err" id="terr" hidden></p>
@@ -2546,7 +2556,8 @@ function renderTracks(){
 let userTracks = [];
 let durMap = {};                 // 曲の長さ（秒） key: url または file:タイトル
 const durKey = tr => tr.url || ("file:" + (tr.title||""));
-const fmtDur = s2 => !s2 ? "" : (s2/60|0) + ":" + String(Math.round(s2)%60).padStart(2,"0");
+/* 秒→ m:ss。先に秒を丸めてから分に割る（59.6 秒を「0:00」にしない） */
+const fmtDur = s2 => { if(!s2 || !isFinite(s2)) return ""; const t = Math.round(s2); return (t/60|0) + ":" + String(t%60).padStart(2,"0"); };
 function noteDuration(key, sec){
   if(!sec || !isFinite(sec) || durMap[key]) return;
   durMap[key] = Math.round(sec);
@@ -3771,6 +3782,11 @@ $("tchips").addEventListener("scroll", () => {
 });
 $("tback").onclick = () => show("title");
 $("tgo").onclick = () => tourDepart(tourSel);
+$("tdiffsel").onclick = e => {
+  const b = e.target.closest("button[data-d]");
+  if(b) setDifficulty(b.dataset.d);
+};
+$("tsettings").onclick = () => syncStart();
 
 /* ═══ Sunoリンクからの読み込み ═══
    suno.com 本体はブラウザからのクロスオリジン読取を許可しないため、
@@ -4102,12 +4118,13 @@ async function loadLocal(file){
 }
 
 /* 難易度・オフセット */
-/* 難易度はタイトル画面の #diff の 1 箇所で選ぶ（ワールドツアーの出発カードは現在値を表示するだけ）。
+/* 難易度はひとつの値。タイトル画面の #diff とワールドツアー画面の #tdiffsel は同じ部品で、
+   どちらで選んでも同じ変数に入り、両方の表示を揃える（出発カードは現在値を表示するだけ）。
    選んだ値は保存し、次回起動時も維持する。 */
 function setDifficulty(d, opts){
   if(!DIFF[d]) return;
   difficulty = d;
-  for(const x of document.querySelectorAll("#diff button[data-d]"))
+  for(const x of document.querySelectorAll("#diff button[data-d], #tdiffsel button[data-d]"))
     x.setAttribute("aria-pressed", String(x.dataset.d === d));
   renderTracks();
   if($("tour").classList.contains("on")) renderTourCard();
@@ -4174,7 +4191,10 @@ function syncClock(){
   const lat = audioCtx.outputLatency || audioCtx.baseLatency || 0;
   return audioCtx.currentTime - lat + offsetMs/1000;
 }
+let syncFrom = "title";      // 設定画面を開いた元の画面。閉じたらそこへ戻す（ツアーの途中からでも呼べる）
 async function syncStart(){
+  const cur = document.querySelector(".screen.on");
+  syncFrom = (cur && cur.id !== "sync") ? cur.id : "title";
   if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
   if(audioCtx.state === "suspended") await audioCtx.resume();
   syncOn = true; syncErrs = []; syncBeeps = []; syncFx = []; syncFlash = 0;
@@ -4203,7 +4223,8 @@ function syncStop(){
   for(const nd of syncBeepNodes){ try{ nd.stop(0); }catch(e){} }
   for(const nd of syncClapNodes){ try{ nd.stop(0); }catch(e){} }
   syncBeepNodes = []; syncClapNodes = [];
-  show("title");
+  if(syncFrom === "tour") openTour({ focus: tourSel });   // 設定を変えたので描き直して戻る
+  else show(syncFrom);
 }
 function syncShowErr(j, ms){
   syncFx.push({ j, age: 0 });
