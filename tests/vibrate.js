@@ -78,10 +78,20 @@ async function main(){
   vibeCalls.length = 0;
 
   const sync = window.document.getElementById("sync");
+  const scv  = window.document.getElementById("scv");
+  // jsdom はレイアウトを持たないので、canvas の矩形を 190×190 @ (100,100) に見立てる
+  scv.getBoundingClientRect = () => ({ left: 100, top: 100, width: 190, height: 190, right: 290, bottom: 290 });
+  const tapAt = (el, x, y) => el.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
 
-  // 空打ち（この時点でsyncBeepsに未消化のビートは無い想定タイミングではないので、
-  // 先にビートを消費させてから同じタイミングで再度叩き、空振りを再現する）
-  sync.dispatchEvent(new window.Event("pointerdown", { bubbles: true, cancelable: true }));
+  // パネルの外は反応しない: 画面の余白、canvas 内でもパネルの外（角の余白）
+  sync.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+  tapAt(scv, 105, 105);                                   // canvas 左上の余白（パネル矩形の外）
+  if(window.eval("syncBeeps[0].judged")) fail("a tap outside the practice panel must not judge the beep");
+  if(vibeCalls.length) fail(`a tap outside the practice panel must not vibrate, got calls=${JSON.stringify(vibeCalls)}`);
+  console.log("[vibrate] settings-panel outside tap OK (screen margin / canvas margin ignored)");
+
+  // パネルの中を叩く（中央）
+  tapAt(scv, 195, 195);
   let beepJudged = window.eval("syncBeeps[0].judged");
   if(!beepJudged) fail(`expected the practice beep to be judged after the first tap, got judged=${beepJudged}`);
   if(vibeCalls.length !== 1 || vibeCalls[0] !== 33){
@@ -91,7 +101,7 @@ async function main(){
   console.log("[vibrate] settings-panel note hit OK (judged, vibrate(33) called once)");
 
   vibeCalls.length = 0;
-  sync.dispatchEvent(new window.Event("pointerdown", { bubbles: true, cancelable: true }));
+  tapAt(scv, 195, 195);
   if(vibeCalls.length){
     fail(`expected no vibration on the settings panel for a tap with no note nearby, got calls=${JSON.stringify(vibeCalls)}`);
   }
