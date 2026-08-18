@@ -42,6 +42,7 @@
   "GB":{"ja":"イギリス","en":"UK","lon":-0.13,"lat":51.5},
   "KLZ":{"ja":"クレズマー","en":"KLEZMER","lon":30.73,"lat":46.48,"emoji":"🕎"},
   "HAW":{"ja":"ハワイ","en":"HAWAII","lon":-157.86,"lat":21.31,"emoji":"🌺"},
+  "RMN":{"ja":"ロマ（ハンガリー/バルカン）","en":"ROMANI","lon":19.04,"lat":47.5,"emoji":"🎻"},
   "SCT":{"ja":"スコットランド","en":"SCOTLAND","lon":-3.19,"lat":55.95,"flag":"🏴󠁧󠁢󠁳󠁣󠁴󠁿"},
   "WLS":{"ja":"ウェールズ","en":"WALES","lon":-3.18,"lat":51.48,"flag":"🏴󠁧󠁢󠁷󠁬󠁳󠁿"},
   "ENG":{"ja":"イングランド","en":"ENGLAND","lon":-0.13,"lat":51.5,"flag":"🏴󠁧󠁢󠁥󠁮󠁧󠁿"},
