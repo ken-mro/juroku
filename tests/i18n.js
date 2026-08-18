@@ -43,6 +43,8 @@ async function main(){
     assert(document.querySelector('#hometabs button[data-t="tour"]').textContent === "World Tour", "ワールドツアータブが World Tour");
     assert(document.getElementById("slink").placeholder === "Paste a Suno song link", "placeholder も英語");
     assert(document.getElementById("plink").getAttribute("href") === "privacy-en.html", "プライバシーポリシーは英語版へ");
+    assert(document.getElementById("tlink").getAttribute("href") === "terms-en.html" && document.getElementById("tlink").textContent === "Terms of Use", "利用規約も英語版へ");
+    assert(/right to use the linked track/.test(document.querySelector(".linknote").textContent), "リンク欄の注意書きも英語");
     /* 判定名・段位・マーカー名は漢字＋ローマ字 */
     assert(document.querySelector('#markersel button[data-m="fill"]').textContent === "満 MITSU", "マーカー名は漢字にローマ字を添える: " + document.querySelector('#markersel button[data-m="fill"]').textContent);
     assert(window.eval('kj("極")') === "極 KIWAMI" && window.eval('kj("不可")') === "不可 FUKA", "段位も漢字＋ローマ字");

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.18-3</title>
+<title>十六 JŪROKU v2026.08.18-4</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -430,11 +430,16 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
 .acct{width:100%;max-width:420px;margin:18px auto 0;padding:14px 16px 13px;
   background:var(--urushi);border:1px solid var(--line);border-radius:4px}
 .acct .accnote{font-size:11px;line-height:1.8;color:var(--gofun-dim);margin:0 0 10px}
+.acct .acclegal{margin:10px 0 0;font-size:10.5px}
+.acct .acclegal a{color:var(--gofun-dim);border-bottom:1px solid var(--line);text-decoration:none}
+.acct .acclegal a:hover{color:var(--kin);border-bottom-color:var(--kin)}
 .acct .accmail{font-size:11px;letter-spacing:.08em;color:var(--gofun)}
 .acct .accat{font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;color:var(--gofun-dim);margin-top:3px;min-height:11px}
 .acct a.btn{display:inline-block;text-decoration:none;line-height:1.2}
 .foot .plink{color:#5A5148;text-decoration:none;border-bottom:1px solid #322822}
 .foot .plink:hover{color:var(--kin);border-bottom-color:var(--kin)}
+.foot .psep{color:#5A5148;margin:0 4px}
+.linknote{font-family:var(--f-body);font-size:10.5px;line-height:1.7;color:var(--gofun-dim);margin:6px 2px 10px;text-align:left}
 
 .err{color:var(--shu);font-size:12px;margin-top:14px;max-width:380px;line-height:1.7}
 </style>
@@ -478,6 +483,7 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
       <input type="url" id="slink" placeholder="Sunoの曲リンクを貼り付け" data-i18n-attr="placeholder:link_ph">
       <button class="btn" id="slinkgo" data-i18n="load">読込</button>
     </div>
+    <p class="linknote" data-i18n="link_note">リンク先の楽曲を利用する権利は、貼り付ける方の責任でご確認ください。音源は複製せず、リンク先から直接再生します。</p>
     <div id="utracks"></div>
     <div class="drop" id="drop" tabindex="0" role="button">
       <strong id="droplabel" data-i18n="drop_t">音源ファイルを選ぶ</strong>
@@ -497,6 +503,8 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
   <p class="foot">
     <span data-i18n="keys_foot">キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応</span><br>
     <a href="privacy.html" class="plink" id="plink" data-i18n="privacy">プライバシーポリシー</a>
+    <span class="psep">・</span>
+    <a href="terms.html" class="plink" id="tlink" data-i18n="terms">利用規約</a>
   </p>
   <p class="err" id="err" hidden></p>
 </section>
@@ -546,6 +554,7 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
       <p class="accnote" data-i18n="signin_note">Google でログインすると、ベスト記録・ワールドツアーの進行・追加したリンク曲が
         保存され、別の端末でも続きから遊べます。</p>
       <a class="btn" id="signinbtn" href="/api/auth/login" data-i18n="signin">Google でログイン</a>
+      <p class="accnote acclegal" data-i18n-html="signin_terms">ログインすると、<a href="terms.html">利用規約</a>と<a href="privacy.html">プライバシーポリシー</a>に同意したものとみなします。</p>
     </div>
     <div id="signedin" hidden>
       <div class="accmail num" id="accmail"></div>
@@ -890,12 +899,14 @@ const I18N = {
     tab_lib:"収録曲", tab_own:"リンク・ファイル", tab_tour:"ワールドツアー",
     load:"読込", link_ph:"Sunoの曲リンクを貼り付け",
     drop_t:"音源ファイルを選ぶ", drop_s:"ドラッグ＆ドロップ、またはタップ<br>mp3 / wav / m4a / flac / ogg — 端末の外には出ません",
-    keys_foot:"キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応", privacy:"プライバシーポリシー",
+    keys_foot:"キーボード： 1234 / QWER / ASDF / ZXCV ・ 画面はタッチ対応", privacy:"プライバシーポリシー", terms:"利用規約",
+    link_note:"リンク先の楽曲を利用する権利は、貼り付ける方の責任でご確認ください。音源は複製せず、リンク先から直接再生します。",
     tour_lead:"飛行機で各国を巡り、その土地の音楽をプレーする旅。<br>可以上でクリアすると次の国へ進めます。",
     sync_t:"設定", sync_s:"パネルは本編と同じ表示・判定 — タップ / SPACE で確認",
     median:"中央値", marker:"マーカー", clap:"打点音", clap_vol:"打点音量 ", vib_len:"バイブの長さ ", try:"試す",
     account:"アカウント", signin_note:"Google でログインすると、ベスト記録・ワールドツアーの進行・追加したリンク曲が保存され、別の端末でも続きから遊べます。",
     signin:"Google でログイン", signout:"ログアウト", del_cloud:"クラウドのデータを削除",
+    signin_terms:'ログインすると、<a href="terms.html">利用規約</a>と<a href="privacy.html">プライバシーポリシー</a>に同意したものとみなします。',
     last_sync:"最終同期 ", apply_offset:"ズレをOFFSETに反映",
     sync_foot:"マーカーが打点に達した瞬間が押し時。マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。",
     applied:"反映しました", lang:"言語 / Language",
@@ -924,12 +935,14 @@ const I18N = {
     tab_lib:"Library", tab_own:"Link / File", tab_tour:"World Tour",
     load:"Load", link_ph:"Paste a Suno song link",
     drop_t:"Choose an audio file", drop_s:"Drag & drop, or tap<br>mp3 / wav / m4a / flac / ogg — never leaves your device",
-    keys_foot:"Keyboard: 1234 / QWER / ASDF / ZXCV · Touch supported", privacy:"Privacy Policy",
+    keys_foot:"Keyboard: 1234 / QWER / ASDF / ZXCV · Touch supported", privacy:"Privacy Policy", terms:"Terms of Use",
+    link_note:"Make sure you have the right to use the linked track. Audio is not copied — it streams straight from the link.",
     tour_lead:"Fly from country to country and play the music of each land.<br>Clear with 可 KA or better to move on to the next country.",
     sync_t:"Settings", sync_s:"Same panel and judgment as in play — tap / SPACE to check",
     median:"Median", marker:"Marker", clap:"Hit sound", clap_vol:"Hit volume ", vib_len:"Vibration ", try:"Try",
     account:"Account", signin_note:"Sign in with Google to save your best scores, World Tour progress and added links, and continue on any device.",
     signin:"Sign in with Google", signout:"Sign out", del_cloud:"Delete cloud data",
+    signin_terms:'By signing in you agree to the <a href="terms-en.html">Terms of Use</a> and <a href="privacy-en.html">Privacy Policy</a>.',
     last_sync:"Last sync ", apply_offset:"Apply drift to OFFSET",
     sync_foot:"Press when the marker reaches the Hit Point. Try markers and hit sounds here. 冴/良/甘 mean you are hitting at that accuracy.<br>Drift sign: − early, + late. Applying the median adjusts it automatically.",
     applied:"Applied", lang:"言語 / Language",
@@ -974,6 +987,7 @@ function applyLang(){
   }
   for(const el of document.querySelectorAll("[data-kj]")) el.textContent = kj(el.dataset.kj);
   const pl = $("plink"); if(pl) pl.setAttribute("href", lang === "en" ? "privacy-en.html" : "privacy.html");
+  const tl = $("tlink"); if(tl) tl.setAttribute("href", lang === "en" ? "terms-en.html" : "terms.html");
   for(const b of document.querySelectorAll("#langsel button[data-l]")) b.setAttribute("aria-pressed", String(b.dataset.l === lang));
   const sm = $("smed");
   if(sm && sm.firstChild && sm.firstChild.nodeType === 3 && /—/.test(sm.firstChild.textContent))
