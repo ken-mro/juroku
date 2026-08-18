@@ -7,9 +7,7 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <meta name="theme-color" content="#100E0C">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="fonts/fonts.css?v=1" rel="stylesheet">
 <style>
 :root{
   --sumi:#100E0C; --urushi:#1B1613; --line:#322822;
@@ -42,16 +40,17 @@ a{color:var(--kin)}
   <div class="rom">JŪROKU</div>
 
   <h1>プライバシーポリシー</h1>
-  <div class="upd">最終更新 2026.08.16</div>
+  <div class="upd">最終更新 2026.08.18</div>
 
   <p>十六（JŪROKU、以下「本アプリ」）は、ブラウザで動作するリズムゲームです。
-     本アプリにおける情報の取り扱いについて、以下のとおり定めます。</p>
+     本アプリにおける情報の取り扱いについて、以下のとおり定めます。
+     利用条件は<a href="terms.html">利用規約</a>に定めます。</p>
 
   <h2>1. ログインしない場合</h2>
   <p>本アプリはログインしなくてもすべての機能を利用できます。この場合、ベスト記録・
      ワールドツアーの進行・各種設定は<strong>お使いの端末のブラウザ内（localStorage）にのみ保存され、
      外部に送信されることはありません</strong>。本アプリは広告・アクセス解析・トラッキングのための
-     仕組みを一切使用していません。</p>
+     仕組みを一切使用していません（ページの表示や音源の取得にともなう通信については第 8 項をご覧ください）。</p>
 
   <h2>2. Google アカウントでログインした場合に取得する情報</h2>
   <p>複数の端末で記録を引き継ぐため、任意でGoogle アカウントによるログインを利用できます。
@@ -65,8 +64,8 @@ a{color:var(--kin)}
      また、Google のパスワードを本アプリが受け取ることはありません。</p>
 
   <h2>3. 保存される情報と保存場所</h2>
-  <p>ログイン中は、次のゲームデータが Cloudflare Workers KV（Cloudflare, Inc. が提供する保管領域）に
-     保存されます。</p>
+  <p>ログイン中は、次のゲームデータが Cloudflare Workers KV（米国 Cloudflare, Inc. が提供する保管領域。
+     データは同社の世界各地のデータセンターに複製されます）に保存されます。</p>
   <ul>
     <li>楽曲ごとのベスト記録（スコア・精度・判定の内訳・最大コンボ・記録日時）</li>
     <li>ワールドツアーモードの進行（クリアした楽曲）</li>
@@ -75,6 +74,8 @@ a{color:var(--kin)}
   <p>これらは前項の識別子に紐づけて保存されます。
      端末固有の設定（OFFSET・マーカー・打点音・バイブの長さ）および読み込んだ音源ファイルは
      <strong>保存対象外</strong>で、端末の外には出ません。</p>
+  <p><strong>保存期間：</strong>保存されたゲームデータは、利用者が第 6 項の方法で削除するまで保持します。
+     ログイン状態を保持するための情報（第 7 項）は 90 日で失効します。</p>
 
   <h2>4. 利用目的</h2>
   <p>取得した情報は、<strong>利用者本人が複数の端末で同じ記録・進行を利用できるようにする目的にのみ</strong>
@@ -95,15 +96,30 @@ a{color:var(--kin)}
   <p>ログイン状態を保持するための Cookie を 1 つ使用します（有効期間 90 日）。
      広告・解析目的の Cookie は使用していません。</p>
 
-  <h2>8. お問い合わせ</h2>
+  <h2>8. 外部サービスへの通信</h2>
+  <p>本アプリの利用にともない、ブラウザから次の外部サービスに通信が発生します。通信の際、
+     IP アドレスやブラウザの種類などの技術情報がそれぞれの事業者に送られ、各社の方針にしたがって取り扱われます。
+     本アプリがこれらの情報を受け取ることはありません。</p>
+  <ul>
+    <li><strong>Cloudflare, Inc.（米国）</strong> — 本アプリの配信元。ページや音声処理のためのファイルはすべてここから読み込みます
+        （フォントも本アプリ自身が配信し、外部のフォントサービスは使用していません）。</li>
+    <li><strong>Suno, Inc.（米国）の配信サーバー（cdn1.suno.ai / cdn2.suno.ai）</strong> — 収録曲の音源とジャケット画像の取得。
+        収録曲を選んだ時、および利用者が Suno のリンクを読み込んだ時に通信します。</li>
+    <li><strong>リンク解決の中継サービス</strong> — 利用者が Suno の共有リンク（短縮リンクなど）を貼り付けた場合に限り、
+        リンク先の曲名などを取得するため、貼り付けた URL を allorigins.win / codetabs.com / corsfix.com / jina.ai /
+        thingproxy.freeboard.io のいずれかに送ることがあります。収録曲のプレーや音源ファイルの読み込みでは使用しません。</li>
+    <li><strong>Google LLC</strong> — ログインを選んだ場合のみ、Google の認証画面に移動します（第 2 項）。</li>
+  </ul>
+
+  <h2>9. お問い合わせ</h2>
   <p>本ポリシーおよびデータの取り扱いに関するお問い合わせは、
      <a href="https://github.com/ken-mro/juroku/issues" target="_blank" rel="noopener">GitHub リポジトリの Issues</a>
      までご連絡ください。</p>
 
-  <h2>9. 本ポリシーの変更</h2>
+  <h2>10. 本ポリシーの変更</h2>
   <p>内容を変更する場合は、本ページの最終更新日を改めて掲載します。</p>
 
-  <p class="note"><a href="privacy-en.html">English version</a></p>
+  <p class="note"><a href="privacy-en.html">English version</a> ・ <a href="terms.html">利用規約</a></p>
   <a class="back" href="./">十六 に戻る</a>
 </main>
 </body>
