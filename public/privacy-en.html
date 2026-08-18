@@ -7,9 +7,7 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <meta name="theme-color" content="#100E0C">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="fonts/fonts.css?v=1" rel="stylesheet">
 <style>
 :root{
   --sumi:#100E0C; --urushi:#1B1613; --line:#322822;
@@ -45,12 +43,14 @@ a{color:var(--kin)}
   <div class="upd">Last updated 2026.08.18</div>
 
   <p>十六 (JŪROKU, "the app") is a rhythm game that runs in your browser.
-     This policy describes how the app handles information.</p>
+     This policy describes how the app handles information. Conditions of use are set out in the
+     <a href="terms-en.html">Terms of Use</a>.</p>
 
   <h2>1. If you do not sign in</h2>
   <p>Every feature of the app works without signing in. In that case your best scores,
      World Tour progress and settings are <strong>stored only in your browser on your device (localStorage)
-     and are never sent anywhere</strong>. The app uses no advertising, analytics or tracking of any kind.</p>
+     and are never sent anywhere</strong>. The app uses no advertising, analytics or tracking of any kind
+     (for the connections needed to load the page and audio, see section 8).</p>
 
   <h2>2. What we receive when you sign in with Google</h2>
   <p>You may optionally sign in with a Google account to carry your records across devices.
@@ -65,7 +65,8 @@ a{color:var(--kin)}
 
   <h2>3. What is stored, and where</h2>
   <p>While signed in, the following game data is stored in Cloudflare Workers KV
-     (storage provided by Cloudflare, Inc.):</p>
+     (storage provided by Cloudflare, Inc., United States; data is replicated across Cloudflare's data
+     centres worldwide):</p>
   <ul>
     <li>Best records per song (score, accuracy, judgment breakdown, max combo, date)</li>
     <li>World Tour progress (cleared songs)</li>
@@ -73,6 +74,8 @@ a{color:var(--kin)}
   </ul>
   <p>These are keyed by the identifier above. Device-specific settings (OFFSET, marker, hit sound,
      vibration) and any audio files you load are <strong>not stored</strong> and never leave your device.</p>
+  <p><strong>Retention:</strong> stored game data is kept until you delete it as described in section 6.
+     The sign-in cookie (section 7) expires after 90 days.</p>
 
   <h2>4. Purpose</h2>
   <p>The information is used <strong>solely so that you can use the same records and progress on
@@ -92,14 +95,29 @@ a{color:var(--kin)}
   <p>One cookie is used to keep you signed in (valid for 90 days).
      No advertising or analytics cookies are used.</p>
 
-  <h2>8. Contact</h2>
+  <h2>8. Connections to external services</h2>
+  <p>Using the app causes your browser to connect to the services below. Technical information such as your
+     IP address and browser type is sent to each provider and handled under its own policy. The app itself
+     does not receive this information.</p>
+  <ul>
+    <li><strong>Cloudflare, Inc. (United States)</strong> — hosts the app. The page, audio-processing code and
+        fonts are all served from here (no third-party font service is used).</li>
+    <li><strong>Suno, Inc. (United States) content servers (cdn1.suno.ai / cdn2.suno.ai)</strong> — audio and
+        cover art of the bundled songs, fetched when you pick a song or load a Suno link.</li>
+    <li><strong>Link-resolution relays</strong> — only when you paste a Suno share link (e.g. a short link), the
+        pasted URL may be sent to one of allorigins.win / codetabs.com / corsfix.com / jina.ai /
+        thingproxy.freeboard.io to read the song title. Not used for bundled songs or local files.</li>
+    <li><strong>Google LLC</strong> — only if you choose to sign in, you are taken to Google's sign-in page (section 2).</li>
+  </ul>
+
+  <h2>9. Contact</h2>
   <p>For questions about this policy or your data, please open an issue on the
      <a href="https://github.com/ken-mro/juroku/issues" target="_blank" rel="noopener">GitHub repository</a>.</p>
 
-  <h2>9. Changes to this policy</h2>
+  <h2>10. Changes to this policy</h2>
   <p>When this policy changes, the "Last updated" date above will be revised.</p>
 
-  <p class="note"><a href="privacy.html">日本語版はこちら</a></p>
+  <p class="note"><a href="privacy.html">日本語版はこちら</a> · <a href="terms-en.html">Terms of Use</a></p>
   <a class="back" href="./">Back to 十六</a>
 </main>
 </body>

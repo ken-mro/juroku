@@ -140,7 +140,9 @@ npx wrangler dev                      # API も含めて動かす（http://127.0
 
 - 単一 HTML ファイル構成（意図的な設計。分割しない）。配信物は `public/`、サーバー側は `worker/`
 - ホーム画面に追加すると「十六」のアイコンで起動する（`site.webmanifest` / apple-touch-icon）
-- 外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ
+- 外部サービスへの依存なし。フォント（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono、SIL OFL）は
+  `public/fonts/` から自前配信（Google Fonts のサーバーには接続しない）
+- 利用規約 `terms.html` / `terms-en.html`、プライバシーポリシー `privacy.html` / `privacy-en.html`
 - 表示言語は初回はブラウザの言語で決まり（日本語以外は英語）、設定画面で切り替えて保存できる。
   判定名・段位・マーカー名は英語でも漢字のまま、ローマ字読みを添える（冴 SAE / 満 MITSU）
 - ベストスコア・設定は `localStorage` に保存される（プライベートブラウジング等で
