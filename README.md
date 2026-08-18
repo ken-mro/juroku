@@ -105,6 +105,7 @@
 | Vol.2 | 🇲🇽 MEXICO → 🇨🇺 CUBA → 🇯🇲 JAMAICA → 🇦🇷 ARGENTINA → 🇦🇺 AUSTRALIA → 🇮🇩 INDONESIA → 🇲🇳 MONGOLIA → 🇮🇪 IRELAND | 8 |
 | Vol.3 | 🏴󠁧󠁢󠁳󠁣󠁴󠁿 SCOTLAND → 🇩🇪 GERMANY → 🇮🇹 ITALY → 🇬🇷 GREECE → 🇹🇷 TURKEY → 🇳🇬 NIGERIA → 🇿🇦 SOUTH AFRICA → 🇰🇷 KOREA | 8 |
 | Vol.4 | 🇬🇧 UK → 🇵🇹 PORTUGAL → 🇲🇦 MOROCCO → 🕎 KLEZMER → 🇮🇷 IRAN → 🇵🇭 PHILIPPINES → 🌺 HAWAII → 🇨🇦 CANADA | 8 |
+| Vol.5 | 🇸🇪 SWEDEN → 🇷🇺 RUSSIA → 🎻 ROMANI → 🇻🇳 VIETNAM → 🇹🇭 THAILAND → 🇵🇪 PERU → 🇨🇴 COLOMBIA → 🇳🇿 NEW ZEALAND | 8 |
 
 進行は `localStorage`（`juroku:tour`）に保存される。
 
