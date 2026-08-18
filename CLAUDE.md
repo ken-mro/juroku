@@ -10,7 +10,7 @@ Cloudflare Pages で静的ホストする。
 ### ディレクトリ構成
 
 ```
-public/        配信される静的ファイル（index.html / privacy.html / icons / site.webmanifest / _headers）
+public/        配信される静的ファイル（index.html / privacy(-en).html / terms(-en).html / fonts / icons / site.webmanifest / _headers）
 worker/        Cloudflare Worker（サーバー側。index.js が入口で /api/* を処理。§6）
 wrangler.toml  Worker の設定（main / assets / KV）
 tests/         ヘッドレステスト
@@ -26,8 +26,12 @@ tests/         ヘッドレステスト
 （この規則はゲーム本体＝クライアントの話。サーバー側は `worker/` に分ける — §6 参照）
 配布と改変の容易さを優先した意図的な設計で、ビルド工程もパッケージマネージャも無い。
 
-外部依存は Google Fonts（Shippori Mincho / Zen Kaku Gothic New / JetBrains Mono）のみ。
-それ以外のライブラリは使わない。追加を検討する前に、素の JS で書けないかを先に考える。
+外部のライブラリ・サービスへの依存は**無し**。フォント（Shippori Mincho / Zen Kaku Gothic New /
+JetBrains Mono、いずれも SIL OFL）は `public/fonts/` に自前で置き `fonts/fonts.css` から読む
+（Google Fonts のサーバーから読み込む形には**戻さない**。利用者の IP を第三者に送らないため —
+プライバシーポリシー第 8 項がそう約束している）。`fonts/fonts.css` は Google Fonts が配信する
+unicode-range 分割そのままの写しなので、読み込み量は以前と同じ。フォントを増やす時も同じ方式で
+`public/fonts/` に置く。ライブラリの追加を検討する前に、素の JS で書けないかを先に考える。
 
 ### 変更してはいけないもの
 譜面生成アルゴリズム（`detectOnsets` / `analyzeSections` / `buildChart` とその定数）は
@@ -117,8 +121,10 @@ JŪROKU は独自の視覚言語・タイミング提示・判定表現を持つ
   `kj(k)` が `ROMAJI` 表から `冴 SAE` / `満 MITSU` のように組み立てる。HTML 側は `data-kj="漢字"`。
   結果画面の大きな段位（`#rrank`）は漢字のまま、副題行にローマ字を出す。
 - 結果画像は元から英字ベース（PLAY RESULT / 判定のローマ字入り）で言語に依存しない。
-- プライバシーポリシーは `privacy.html`（日本語）と `privacy-en.html`（英語）の 2 枚。設定画面のリンクは
-  言語に合わせて切り替わる。片方だけ更新しない。
+- プライバシーポリシーは `privacy.html`（日本語）と `privacy-en.html`（英語）、利用規約は `terms.html` と
+  `terms-en.html`。設定画面・フッター・ログイン欄のリンクは言語に合わせて切り替わる。**片方だけ更新しない**。
+  外部サービスへの通信（Cloudflare / Suno CDN / リンク解決の中継 / Google）を増減した時は
+  ポリシー第 8 項も必ず直す。
 - 辞書のキーは ja / en で完全一致させる（`tests/i18n.js` が検証）。テスト環境（`tests/lib/env.js`）は
   `navigator.language` を `ja-JP` に固定しているので、既存テストの日本語文言はそのまま通る。
 
