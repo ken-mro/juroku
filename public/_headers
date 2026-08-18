@@ -1,4 +1,4 @@
-# Cloudflare Pages: HTML は毎回確認（更新をすぐ反映）、アイコンは長期キャッシュ
+# Cloudflare Workers 静的アセット: HTML は毎回確認（更新をすぐ反映）、アイコン・フォントは長期キャッシュ
 /
   Cache-Control: no-cache
 /index.html
@@ -7,3 +7,5 @@
   Cache-Control: max-age=3600
 /icons/*
   Cache-Control: public, max-age=604800
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
