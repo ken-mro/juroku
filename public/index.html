@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.18-2</title>
+<title>十六 JŪROKU v2026.08.18-3</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -360,7 +360,8 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
 .tdone{font-family:var(--f-mono);font-size:9px;letter-spacing:.24em;color:var(--kin);
   border:1px solid var(--kin);border-radius:2px;padding:6px 9px;white-space:nowrap}
 .tlead{font-size:11px;line-height:1.8;color:var(--gofun-dim);margin:0 0 4px}
-.tmapwrap{flex:none;position:relative;width:100%;max-width:720px;overflow-x:auto;overflow-y:hidden;
+.tmapouter{flex:none;position:relative;width:100%;max-width:720px}   /* 読込表示はスクロールしない外側に置く（地図を横に送っても左端に残る） */
+.tmapwrap{position:relative;width:100%;overflow-x:auto;overflow-y:hidden;
   background:var(--sumi);border:1px solid var(--line);border-radius:3px;
   -webkit-overflow-scrolling:touch;scrollbar-width:none}
 .tmapwrap::-webkit-scrollbar{display:none}
@@ -651,8 +652,10 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
     </div>
     <button class="btn" id="tsettings" type="button" style="padding:8px 20px" data-i18n="settings">設定</button>
   </div>
-  <div class="tmapwrap" id="tmapwrap">
-    <svg id="tmap" viewBox="0 0 720 300" role="img" aria-label="世界地図：訪れた国と航路" data-i18n-attr="aria-label:world_map"></svg>
+  <div class="tmapouter">
+    <div class="tmapwrap" id="tmapwrap">
+      <svg id="tmap" viewBox="0 0 720 300" role="img" aria-label="世界地図：訪れた国と航路" data-i18n-attr="aria-label:world_map"></svg>
+    </div>
     <div class="tload" id="tload" hidden>DOWNLOADING</div>
   </div>
   <div class="titin" id="tchips" role="listbox" aria-label="行程" data-i18n-attr="aria-label:itinerary"></div>
