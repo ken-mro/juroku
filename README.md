@@ -117,12 +117,18 @@
 
 ## 公開URL
 
-https://ju-roku.com/ （Cloudflare Pages）
+https://ju-roku.com/ （Cloudflare Workers）
 
 ## 収録曲について
 
 収録されている全曲はこのリポジトリの作者（`ken_mro`）が [Suno](https://suno.com) で
 制作したオリジナル楽曲。ライセンスの扱いは [LICENSE](LICENSE) を参照。
+
+## ライセンス
+
+コードは MIT License。楽曲・ジャケット画像、および「十六 JŪROKU」の名称・ロゴ・アイコンは
+MIT の対象外（改変版や再配布物を同じ名前・ロゴで公開しないでください）。詳細は [LICENSE](LICENSE)。
+セキュリティ上の問題の報告は [SECURITY.md](SECURITY.md) を参照。
 
 ## ローカルでの動かし方
 
