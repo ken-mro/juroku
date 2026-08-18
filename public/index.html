@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.18-4</title>
+<title>十六 JŪROKU v2026.08.19-1</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -798,6 +798,14 @@ const TOUR_COUNTRIES = {           // ISO2 → 表示名（英語）と地図上
   PH:{ en:"PHILIPPINES", lon:121, lat:14.6 },
   HAW:{ en:"HAWAII", lon:-157.86, lat:21.31, flag:"🌺" },
   CA:{ en:"CANADA", lon:-79.38, lat:43.65 },
+  SE:{ en:"SWEDEN", lon:18.07, lat:59.33 },
+  RU:{ en:"RUSSIA", lon:37.6, lat:55.75 },
+  RMN:{ en:"ROMANI", lon:19.04, lat:47.5, flag:"🎻" },
+  VN:{ en:"VIETNAM", lon:105.85, lat:21.03 },
+  TH:{ en:"THAILAND", lon:100.5, lat:13.75 },
+  PE:{ en:"PERU", lon:-77.04, lat:-12.05 },
+  CO:{ en:"COLOMBIA", lon:-74.07, lat:4.71 },
+  NZ:{ en:"NEW ZEALAND", lon:174.76, lat:-36.85 },
   /* TOUR_COUNTRIES_END */
 };
 const TOUR_VOLS = [
@@ -844,6 +852,17 @@ const TOUR_VOLS = [
       { id:"2071793f-042d-4690-ae99-2a71d52454e4", title:"Kulintang Clash",     cc:"PH" },
       { id:"978ab457-b04b-4256-a27c-965308db30a7", title:"Aloha Skyline",       cc:"HAW" },
       { id:"112fe03c-5046-4dee-93ec-0346a6e8aa54", title:"Reel Around the World", cc:"CA" },
+    ] },
+  { vol:5, title:"Pulse of the Earth: World Tour Vol.5",
+    tracks:[
+      { id:"2316f1fd-abd9-40d5-b880-23516c42df39", title:"Nyckelharpa Nights",  cc:"SE" },
+      { id:"1b487949-1902-4970-a2e6-a2480c0cfe11", title:"Troika Overdrive",    cc:"RU" },
+      { id:"771f25d3-be36-42a8-a1f9-e044c3397e98", title:"Cimbalom Circuit",    cc:"RMN" },
+      { id:"caf98536-4cc4-4a91-ac91-45f664753657", title:"Monochord Neon",      cc:"VN" },
+      { id:"f43531a3-022c-494c-bfa8-aa161c5d56d7", title:"Khaen Bass Bazaar",   cc:"TH" },
+      { id:"858c16c9-6b9e-4da4-9ede-3613539f31bc", title:"Sikuri Highlands",    cc:"PE" },
+      { id:"ff1cf2c7-d51f-467d-b71d-01cbc742f0c5", title:"Gaita Coastal Bounce", cc:"CO" },
+      { id:"392aeaa4-86b4-4c55-a314-9d9851acb157", title:"Poi Fire Horizon",    cc:"NZ" },
     ] },
   /* TOUR_VOLS_END */
 ].map(v => ({ ...v, tracks: v.tracks.map((x, idx) => ({
