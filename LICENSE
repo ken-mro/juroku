@@ -1,4 +1,4 @@
-MIT License (code only — see "Audio assets" below for songs)
+MIT License (code only — see "Audio assets" and "Name, logo and fonts" below)
 
 Copyright (c) 2026 ken_mro
 
@@ -24,10 +24,22 @@ SOFTWARE.
 
 ## Audio assets
 
-The above MIT License applies to the code in this repository (`index.html`)
-only. It does not apply to the songs streamed into the game from the Suno
-CDN (`cdn1.suno.ai` / `cdn2.suno.ai`).
+The above MIT License applies to the code in this repository (`public/`,
+`worker/`, `tests/`) only. It does not apply to the songs streamed into the
+game from the Suno CDN (`cdn1.suno.ai` / `cdn2.suno.ai`).
 
 All songs are original works by ken_mro, generated with Suno. All rights to
 the audio and cover art are reserved by the author; no license to copy,
 redistribute, remix, or otherwise reuse the audio or artwork is granted here.
+
+## Name, logo and fonts
+
+The name "十六 JŪROKU", the wordmark and the app icon (`public/icons/`) are
+not covered by the MIT License. You may run and modify the code, but do not
+present a modified or redistributed copy under the same name or logo, or in a
+way that suggests it is the original at https://ju-roku.com.
+
+The fonts in `public/fonts/` (Shippori Mincho, Zen Kaku Gothic New, JetBrains
+Mono) are distributed under the SIL Open Font License 1.1 by their respective
+authors and are included unmodified apart from Google Fonts' unicode-range
+subsetting.
