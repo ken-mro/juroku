@@ -3610,6 +3610,7 @@ function spaceIcon(e, size){
 }
 
 let tourSel = 0;          // 出発カードに出している行程の通し番号
+let tourFocusVol = null;  // 世界地図が強調表示している Vol（renderTourMap が更新）
 let tourBusy = false;     // 出発〜play() までの再入防止
 let tourFlyGen = 0;       // 飛行演出の世代（失敗時に古い演出を止める）
 
@@ -3650,14 +3651,21 @@ function renderTourMap(opts){
   const gold = tsvg("path", { d: dGold, fill: "#D9A441", opacity: .85 }, world);
   if(opts.justCleared != null) gold.setAttribute("class", "tdots-in");
 
-  /* 航路: 各行程要素への到着レグ（prevCC → cc） */
+  /* クリア済みが増えると地図が塗り潰されて読めなくなるため、強調はフォーカス中の Vol
+     （選択中の国の Vol）と次の目的地に絞る。他 Vol は痕跡（細い線・小さな印）だけ残す。 */
+  const focusVol = (j[tourSel] || j[0] || { tour: { vol: 1 } }).tour.vol;
+  tourFocusVol = focusVol;
+
+  /* 航路: 各行程要素への到着レグ（prevCC → cc）。フォーカス外の Vol のレグは細く淡く */
   const routes = tsvg("g", {}, world);
   for(const e of j){
     if(!e.prevCC) continue;
     const A = tourArc(tourCC(e.prevCC), tourCC(e.cc));
     const done = tourIsCleared(e.id), isNext = e.seq === next;
     const attrs = done
-      ? { stroke: "#D9A441", "stroke-width": 1.4, opacity: .9 }
+      ? (e.tour.vol === focusVol
+          ? { stroke: "#D9A441", "stroke-width": 1.4, opacity: .9 }
+          : { stroke: "#D9A441", "stroke-width": .8, opacity: .35 })
       : isNext ? { stroke: "#D9A441", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: .75 }
                : { stroke: "#8C8177", "stroke-width": 1, "stroke-dasharray": "2 4", opacity: .45 };
     const path = tourDrawArc(routes, A, attrs);
@@ -3679,9 +3687,6 @@ function renderTourMap(opts){
      重ならない位置を選ぶ（フランスとスペインのように近い国のため）。 */
   const nodes = tsvg("g", {}, world);
   const pts = j.map(e => { const c = tourCC(e.cc); return { x: tmapX(c.lon), y: tmapY(c.lat) }; });
-  /* Vol が増えると国が密集するので、地名はフォーカス中の Vol（と次の目的地）だけに出し、
-     それ以外の Vol の国は国旗だけにする（名前は行程チップにある） */
-  const focusVol = (j[tourSel] || j[0] || { tour: { vol: 1 } }).tour.vol;
   const labels = [];                                     // 置いたラベルの矩形 {x0,x1,y0,y1}
   const labelByCC = {};                                  // 同じ国が別 Vol で再登場しても地名ラベルは 1 つ
   const placeLabel = (x, y, half) => {
@@ -3712,33 +3717,39 @@ function renderTourMap(opts){
     const c = tourCC(e.cc), x = tmapX(c.lon), y = tmapY(c.lat);
     const done = tourIsCleared(e.id), isNext = e.seq === next, unlocked = e.seq <= next;
     const g = tsvg("g", { "data-seq": e.seq, "data-st": done ? "done" : isNext ? "next" : "lock" }, nodes);
+    const focus = e.tour.vol === focusVol || opts.justCleared === e.seq;
     if(done){
-      const st = tsvg("g", { class: opts.justCleared === e.seq ? "tstamp-in" : "" }, g);
-      tsvg("circle", { cx: x, cy: y, r: 7.5, fill: "#C8452C", stroke: "#D9A441", "stroke-width": 1.2 }, st);
-      tsvg("text", { x, y: y + 2.6, "text-anchor": "middle", "font-size": 7, fill: "#EFE7DA",
-                     "font-family": "var(--f-disp)" }, st).textContent = "印";
+      if(focus){
+        const st = tsvg("g", { class: opts.justCleared === e.seq ? "tstamp-in" : "" }, g);
+        tsvg("circle", { cx: x, cy: y, r: 7.5, fill: "#C8452C", stroke: "#D9A441", "stroke-width": 1.2 }, st);
+        tsvg("text", { x, y: y + 2.6, "text-anchor": "middle", "font-size": 7, fill: "#EFE7DA",
+                       "font-family": "var(--f-disp)" }, st).textContent = "印";
+      }else{
+        /* フォーカス外のクリア済みは小さな朱の点にして、地図を印で埋めない */
+        tsvg("circle", { cx: x, cy: y, r: 3, fill: "#C8452C", stroke: "#D9A441", "stroke-width": .8, opacity: .8 }, g);
+      }
     }else if(isNext){
       tsvg("circle", { cx: x, cy: y, r: 4, fill: "#E8C46A" }, g);
     }else{
       tsvg("circle", { cx: x, cy: y, r: 3.5, fill: "#100E0C", stroke: "#8C8177", "stroke-width": 1 }, g);
     }
     if(isNext) tsvg("circle", { cx: x, cy: y, r: 6, fill: "none", stroke: "#E8C46A", "stroke-width": 1.2, class: "tnext-ring" }, g);
-    /* ラベル（国ごとに 1 つ。再登場した時は色と副題だけ更新する） */
+    /* ラベルはフォーカス中の Vol と次の目的地だけ（全国に旗を出すと読めなくなる。
+       名前は行程チップにあり、別 Vol を選べば地図のフォーカスも移る）。国ごとに 1 つ。 */
     let L = labelByCC[e.cc];
     const named = e.tour.vol === focusVol || isNext;
-    if(L && named && !L.named){                        // 旗だけだったラベルを地名付きに格上げ
-      L.el.textContent = flagOf(e.cc) + " " + c.en; L.named = true;
-    }
-    if(!L){
-      L = placeLabel(x, y, named ? 7 + c.en.length * 3.1 : 7);
+    if(!L && named){
+      L = placeLabel(x, y, 7 + c.en.length * 3.1);
       L.el = tsvg("text", { x: L.x, y: L.y, "text-anchor": L.a, "font-size": 8, "font-family": "var(--f-mono)",
                             "letter-spacing": ".14em" }, g);
-      L.el.textContent = named ? flagOf(e.cc) + " " + c.en : flagOf(e.cc);
-      L.bright = false; L.named = named;
+      L.el.textContent = flagOf(e.cc) + " " + c.en;
+      L.bright = false;
       labelByCC[e.cc] = L;
     }
-    if((done || isNext) && !L.bright){ L.el.setAttribute("fill", "#EFE7DA"); L.bright = true; }
-    else if(!L.bright) L.el.setAttribute("fill", "#8C8177");
+    if(L){
+      if((done || isNext) && !L.bright){ L.el.setAttribute("fill", "#EFE7DA"); L.bright = true; }
+      else if(!L.bright) L.el.setAttribute("fill", "#8C8177");
+    }
     if(isNext){
       const s2 = tsvg("text", { x: L.x, y: L.sub, "text-anchor": L.a, "font-size": 6.5,
                                 "font-family": "var(--f-mono)", "letter-spacing": ".12em", fill: "#D9A441" }, g);
@@ -4112,6 +4123,10 @@ function renderTourHeader(){
 function tourSelect(seq){
   if(seq > tourActiveNext()) return;
   tourSel = seq;
+  /* 別 Vol の国を選んだら、地図のフォーカス（朱印・ラベル・航路の強弱）も追従して描き直す。
+     飛行演出中は描き直さない（#tplane が消えて演出が途切れるため） */
+  if(tourMode === "earth" && !tourBusy && tourJourney()[seq].tour.vol !== tourFocusVol)
+    renderTourMap();
   for(const b of $("tchips").querySelectorAll(".chip"))
     b.setAttribute("aria-selected", String(+b.dataset.seq === seq));
   renderTourHeader();
