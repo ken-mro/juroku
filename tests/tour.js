@@ -240,6 +240,30 @@ async function main(){
     console.log("[tour] map wraparound OK (3 panes, copies under the original, space stays single)");
   }
 
+  /* ── 4c. クリアが増えても地図が読める（強調はフォーカス中の Vol に絞る） ── */
+  {
+    const { window, document, testErrors } = await boot();
+    window.eval("for(const v of TOUR_VOLS) for(const t of v.tracks) tourState.cleared[t.id] = {d:1, diff:'easy', acc:60};");
+    window.openTour();                                   // 全クリア → 選択は最終 Vol の最後の国
+    const lastVol = window.eval("TOUR_VOLS[TOUR_VOLS.length - 1].vol");
+    assert(window.eval("tourFocusVol") === lastVol, "focus should follow the selected country's Vol");
+    const stamps = () => Array.from(document.querySelectorAll("#tmap g[data-seq] text"))
+      .filter(t => t.textContent === "印").length;
+    assert(stamps() === 8, `full 朱印 only for the focused Vol (got ${stamps()})`);
+    assert(document.querySelectorAll("#tmap g[data-seq]").length ===
+           window.eval("TOUR_VOLS.reduce((a, v) => a + v.tracks.length, 0)"), "every country still has a node");
+    const flags = Array.from(document.querySelectorAll("#tmap g[data-seq] text"))
+      .filter(t => t.textContent !== "印" && /\s/.test(t.textContent)).length;
+    assert(flags === 8, `flag+name labels only for the focused Vol (got ${flags})`);
+    /* 別 Vol の国を選ぶと地図のフォーカスが追従する */
+    window.tourSelect(0);                                // Vol.1 の日本
+    assert(window.eval("tourFocusVol") === 1, "selecting a Vol.1 country refocuses the map");
+    assert(stamps() === 8, "full 朱印 moved to Vol.1");
+    assert(document.querySelector('#tmap g[data-seq="0"] text').textContent === "印", "Japan is now a full stamp");
+    if(testErrors.length) fail("script errors during declutter:\n" + testErrors.join("\n---\n"));
+    console.log("[tour] map declutter OK (focus-only stamps/labels, refocus on select)");
+  }
+
   /* ── 5. finish() integration ───────────────────────────────────────── */
   {
     const { window, document, testErrors } = await boot();
