@@ -392,7 +392,9 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
 .chip{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:66px;padding:7px 8px 6px;
   border:1px solid var(--line);border-radius:3px;background:var(--urushi);color:var(--gofun-dim);
   font-family:inherit;font-size:10px;letter-spacing:.06em;cursor:pointer;transition:border-color .16s,color .16s}
-.chip .f{font-size:16px;line-height:1}
+.chip .f{font-size:16px;line-height:1;height:16px;display:flex;align-items:center;justify-content:center}
+.chip .f svg{display:block}
+.rkt-land{display:inline-block;transform:rotate(90deg)}   /* 着陸の 🚀（90°右回転） */
 .chip .s{font-family:var(--f-mono);font-size:8px;letter-spacing:.14em;min-height:10px}
 .chip[data-st="done"]{color:var(--gofun)}
 .chip[data-st="done"] .s{color:var(--shu)}
@@ -657,6 +659,7 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
       <button data-d="hard">HARD</button>
       <button data-d="oni">EXTREME</button>
     </div>
+    <button class="btn" id="tearthmap" type="button" style="padding:8px 14px" hidden>↩ EARTH</button>
     <button class="btn" id="tsettings" type="button" style="padding:8px 20px" data-i18n="settings">設定</button>
   </div>
   <div class="tmapouter">
@@ -896,6 +899,45 @@ const TOUR_LAND = {
   cu:[[-85,22],[-75,20],[-77,20],[-84,22]],
 };
 
+/* ─── 隠しステージ「Pulse of the Earth: Planets」 ───
+   全ツアー曲を EXTREME でクリアすると世界地図のケネディ宇宙センターに 🚀 が現れ、
+   太陽系の宇宙地図（tourMode === "space"）へ入れる。座標は #tmap の viewBox ピクセル直指定。 */
+const SPACE_BODIES = {
+  sun:     { en:"SUN",     x: 58, y:150, r:26 },
+  mercury: { en:"MERCURY", x:128, y:168, r:3.5, col:"#9A9AA0", col2:"#6E6E74" },
+  venus:   { en:"VENUS",   x:178, y:126, r:5,   col:"#D9A441", col2:"#E8C46A" },
+  earth:   { en:"EARTH",   x:243, y:162, r:5.5, col:"#3D5A99", col2:"#5F8C4A" },
+  mars:    { en:"MARS",    x:312, y:120, r:4.5, col:"#C8452C", col2:"#EFE7DA" },
+  jupiter: { en:"JUPITER", x:405, y:158, r:11,  col:"#C89A6B", col2:"#8C6B4F" },
+  saturn:  { en:"SATURN",  x:498, y:118, r:9,   col:"#D8B878", col2:"#B99752" },
+  uranus:  { en:"URANUS",  x:578, y:168, r:6.5, col:"#9FD8D8", col2:"#78B8BC" },
+  neptune: { en:"NEPTUNE", x:652, y:128, r:6.5, col:"#3350B0", col2:"#5F7FD8" },
+};
+/* 世界地図上の発射台（ケネディ宇宙センター）。実座標 (-80.6, 28.6) はキューバの朱印・
+   メキシコ湾の国々と重なって読めないため、表示は少し北東の大西洋沖にずらしてある。 */
+const TOUR_PAD = { lon: -73.5, lat: 33 };
+/* 収録曲タブの tag 用グリフ（cardInto は textContent なので文字で持つ） */
+const SPACE_TAG = { launch:"🚀", landing:"🚀", mercury:"☿", venus:"♀", earth:"⊕",
+                    mars:"♂", jupiter:"♃", saturn:"♄", uranus:"⛢", neptune:"♆" };
+const TOUR_SPACE = { vol:"S", title:"Pulse of the Earth: Planets",
+  tracks:[
+    { id:"694c37aa-45ee-4d4f-b6f3-855b6b997e4b", title:"Departure Beyond Blue", body:"earth",   kind:"launch"  },
+    { id:"543d157d-9cf6-4b6f-8a7f-f5cced3b313f", title:"Retrograde Bloom",      body:"venus"   },
+    { id:"0938c86a-acce-4324-baaa-d502d009a0fe", title:"Quicksilver Meltdown",  body:"mercury" },
+    { id:"747e99fb-8207-4549-8555-4a64faefcf06", title:"Pulse of the Earth",    body:"earth",   via:["venus"] },
+    { id:"6fead6f1-2f04-4438-ba00-68bace28cd8a", title:"Olympus Warcry",        body:"mars"    },
+    { id:"3cd150b5-742a-4d5b-b92d-3cdf87973347", title:"Great Red Tempest",     body:"jupiter" },
+    { id:"c64b4efa-3698-4bcb-9ec4-50919e0c04be", title:"Hexagon Halo",          body:"saturn"  },
+    { id:"8bc79107-e8f1-459e-99b2-eef59d85f116", title:"Axial Glitch",          body:"uranus"  },
+    { id:"ae03437d-7b37-498b-8562-acea14944bcc", title:"Supersonic Gale",       body:"neptune" },
+    { id:"3240a863-54d0-4009-b0d5-93a80b9412f9", title:"Heart of Earth",        body:"earth",   kind:"landing", arc:"long" },
+  ] };
+TOUR_SPACE.tracks = TOUR_SPACE.tracks.map((x, idx) => ({
+  ...x, ready:true, artist:"ken_mro", url:SUNO_CDN(x.id), art:SUNO_ART(x.id),
+  tour:{ vol:"S", idx, body:x.body },
+  tag: SPACE_TAG[x.kind || x.body] + " " + (x.kind ? x.kind.toUpperCase() : SPACE_BODIES[x.body].en),
+}));
+
 /* ─── 定数 ─── */
 const SR = 22050, FFT_N = 1024, HOP = 256;
 /* スペクトル差分のピークは実際のアタックより少し前のフレームに立つ。
@@ -933,6 +975,7 @@ const I18N = {
     difficulty:"難易度", depart:"出発する", depart_again:"もう一度旅する", done_badge:"完走", not_played:" は未プレー",
     prev_vol:"前の Vol", next_vol:"次の Vol", open_map:" · 地図を開く ▸", cleared_mark:"済",
     world_map:"世界地図：訪れた国と航路", itinerary:"行程",
+    next_planet:"次の惑星へ", space_map:"星図：太陽系の航路",
     preview:"試聴", stop:"停止", preview_of:"試聴する: ", stop_of:"試聴を止める: ", play_hint:"プレイ ▸",
     loading:"読み込み中", loading_sfx:" 読み込み中",
     load_fail:"読み込みに失敗しました", check_net:"通信状況を確認して、もう一度お試しください。", retry:"再試行",
@@ -969,6 +1012,7 @@ const I18N = {
     difficulty:"Difficulty", depart:"Depart", depart_again:"Travel again", done_badge:"Complete", not_played:" not played yet",
     prev_vol:"Previous Vol", next_vol:"Next Vol", open_map:" · Open map ▸", cleared_mark:"✓",
     world_map:"World map: visited countries and routes", itinerary:"Itinerary",
+    next_planet:"Next planet", space_map:"Star map: solar system route",
     preview:"Preview", stop:"Stop", preview_of:"Preview: ", stop_of:"Stop preview: ", play_hint:"PLAY ▸",
     loading:"Loading", loading_sfx:" loading",
     load_fail:"Failed to load", check_net:"Check your connection and try again.", retry:"Retry",
@@ -1112,6 +1156,30 @@ function tourNextSeq(){
   return n;
 }
 function saveTour(){ savePrefs("juroku:tour", JSON.stringify(tourState)); }
+
+/* ─── 隠しステージの進行 ───
+   解禁はベスト記録から導出する（tourState.cleared は初回クリア難易度しか持たないため使わない）。
+   ベストは高スコア優先で同期されるので、クラウド併合後も解禁状態が自然に揃う。 */
+let tourMode = "earth";           // "earth" | "space"。セッション内のみ（保存しない）
+function tourSpaceUnlocked(){
+  return TOUR_VOLS.every(v => v.tracks.every(x => {
+    const b = bestOf(x.title + "|oni");
+    return !!(b && typeof b.a === "number" && b.a >= 50);
+  }));
+}
+function tourSpaceJourney(){
+  let prev = null;
+  return TOUR_SPACE.tracks.map((x, i) => { const e = { ...x, seq: i, prevBody: prev }; prev = x.body; return e; });
+}
+function tourSpaceNextSeq(){
+  const j = tourSpaceJourney();
+  let n = 0;
+  while(n < j.length && tourIsCleared(j[n].id)) n++;
+  return n;
+}
+function tourSpaceDone(){ return TOUR_SPACE.tracks.every(x => tourIsCleared(x.id)); }
+const tourActiveJourney = () => tourMode === "space" ? tourSpaceJourney() : tourJourney();
+const tourActiveNext    = () => tourMode === "space" ? tourSpaceNextSeq() : tourNextSeq();
 
 /* ═══════════ 永続化（失敗しても続行） ═══════════ */
 /* window.storage は開発環境固有の非同期 KVS。GitHub Pages 等の本番環境には
@@ -2402,6 +2470,16 @@ async function play(name, arrayBuffer, srcUrl){
   /* ツアーの文脈は同期的に消費する。デコード失敗で途中 return しても
      次の通常プレーにツアー扱いが漏れないように。 */
   const tour = pendingTour; pendingTour = null;
+  /* 隠しステージは難易度を強制する（forceDiff）。保存設定とセレクタは触らず、
+     この 1 プレー準備の間だけグローバルを差し替える（prepare のチャートキーと
+     cur.diff/approach がこの値で決まる。cur に写した後は cur.diff だけを使う）。 */
+  const forced = tour && tour.forceDiff && DIFF[tour.forceDiff] ? tour.forceDiff : null;
+  const prevDiff = forced ? difficulty : null;
+  if(forced) difficulty = forced;
+  try{ await playRun(name, arrayBuffer, srcUrl, tour); }
+  finally{ if(prevDiff !== null) difficulty = prevDiff; }
+}
+async function playRun(name, arrayBuffer, srcUrl, tour){
   lastSong = { name, arrayBuffer, url: srcUrl || null, tour };
   const prep = await prepare(name, arrayBuffer);
   if(!prep) return;
@@ -2589,7 +2667,7 @@ function finish(){
   const tn = cur.tour ? tourOnFinish(cur.tour, acc) : null;
   $("back").textContent = cur.tour ? "MAP" : "SELECT";
   $("tnext").hidden = !(tn && tn.cleared);
-  if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? t("next_country") : t("to_map_done");
+  if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? t(cur.tour.space ? "next_planet" : "next_country") : t("to_map_done");
 
   /* 結果画像用の記録（ベスト記録と同じ形 + 曲名・難易度） */
   lastResult = { title: cur.name, diff: cur.diff, s: cur.score, a: +acc.toFixed(2), c: cur.counts.slice(),
@@ -2605,7 +2683,7 @@ function quit(){
   if(cur){ stopClaps(); try{ cur.source && cur.source.stop(); }catch(e){} cur.over = true; }
   cur = null;
   $("veil").classList.remove("on");
-  if(t) openTour({ focus: t.seq }); else show("title");
+  if(t) openTour({ focus: t.seq, space: !!t.space }); else show("title");
 }
 
 /* ═══════════ 入力 ═══════════ */
@@ -2693,7 +2771,7 @@ $("tnext").onclick    = () => {
   const t = cur && cur.tour;
   if(!t) return;
   quit();
-  openTour({ justCleared: t.seq });
+  openTour({ justCleared: t.seq, space: !!t.space });
 };
 
 /* ═══════════ 選曲 ═══════════ */
@@ -3447,6 +3525,89 @@ function tourNearVisited(lon, lat, visited){
   return false;
 }
 const TOUR_PLANE = "M-7,0 L4,-1.2 L7,0 L4,1.2 Z M-2,-.6 L-1,-5 L1,-5 L0.5,-.6 Z M-2,.6 L-1,5 L1,5 L0.5,.6 Z M-6,-.4 L-6.5,-2.6 L-5.2,-2.6 L-4.5,-.4 Z";
+/* 隠しステージのロケット（機首右向き）: 機体＋尾翼2枚＋ノズル */
+const TOUR_ROCKET = "M8,0 L4.5,-2.2 L-4.5,-2.2 L-4.5,2.2 L4.5,2.2 Z M-4.5,-2.2 L-7.5,-4.6 L-6,-.8 Z M-4.5,2.2 L-7.5,4.6 L-6,.8 Z M-4.5,-1 L-6,-1 L-6,1 L-4.5,1 Z";
+
+/* ─── 宇宙地図の描画ヘルパー ─── */
+/* 惑星間の航路。世界地図と同じ二次ベジェで、帰還アーク（long）だけ系の下を大きく回る。 */
+function spaceArc(a, b, long){
+  const A = SPACE_BODIES[a], B = SPACE_BODIES[b];
+  const cx = (A.x + B.x) / 2;
+  const cy = long ? 265 : (A.y + B.y) / 2 - Math.abs(B.x - A.x) * 0.18 - 6;
+  return { x1: A.x, y1: A.y, cx, cy, x2: B.x, y2: B.y, shift: 0 };
+}
+/* 行程 1 レグぶんの弧の列。via（水星→金星→地球の複合ルート）は複数の弧になる。 */
+function spaceLegArcs(e){
+  const segs = [e.prevBody, ...(e.via || []), e.body];
+  const out = [];
+  for(let i = 0; i < segs.length - 1; i++) out.push(spaceArc(segs[i], segs[i + 1], e.arc === "long"));
+  return out;
+}
+/* 星屑。決定的 PRNG（mulberry32）で常に同じ星空。太陽・惑星の近くは避ける。 */
+let spaceStars = null;
+function tourSpaceStars(){
+  if(spaceStars) return spaceStars;
+  let a = 16;
+  const rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0;
+    let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x;
+    return ((x ^ x >>> 14) >>> 0) / 4294967296; };
+  const faint = [], bright = [];
+  for(let i = 0; i < 320; i++){
+    const x = rnd() * TMAP_W, y = rnd() * TMAP_H;
+    if(Object.values(SPACE_BODIES).some(b => Math.hypot(x - b.x, y - b.y) < b.r + 6)) continue;
+    (rnd() < .18 ? bright : faint).push([x, y]);
+  }
+  return (spaceStars = { faint, bright });
+}
+/* 惑星のミニアイコン（地図ノードとチップで共通）。閉じた図形の拡大縮小ではなく
+   固有色＋固有の意匠（環・縞・大陸・極冠）で見分ける。 */
+let spaceClipN = 0;
+function spacePlanetInto(parent, body, x, y, s){
+  const b = SPACE_BODIES[body];
+  const g = tsvg("g", { transform: `translate(${x},${y}) scale(${s})` }, parent);
+  const clip = "spc" + (++spaceClipN);
+  const defs = tsvg("defs", {}, g);
+  const cp = tsvg("clipPath", { id: clip }, defs);
+  tsvg("circle", { r: 5, cx: 0, cy: 0 }, cp);
+  tsvg("circle", { r: 5, fill: b.col }, g);
+  const c = tsvg("g", { "clip-path": `url(#${clip})` }, g);
+  if(body === "mercury"){
+    tsvg("circle", { cx: -1.6, cy: -1, r: 1.1, fill: b.col2 }, c);
+    tsvg("circle", { cx: 1.8, cy: 1.6, r: .8, fill: b.col2 }, c);
+  }else if(body === "venus"){
+    tsvg("path", { d: "M-1,-4.6 A4.7,4.7 0 0 1 -1,4.6 A6.3,6.3 0 0 0 -1,-4.6", fill: b.col2, opacity: .8 }, c);
+  }else if(body === "earth"){
+    tsvg("path", { d: "M-4,-2 Q-1,-3.5 0,-1.5 Q1.5,0 -.5,1 Q-3,2 -4,.5 Z", fill: b.col2 }, c);
+    tsvg("path", { d: "M2,1.5 Q3.5,.5 4.5,2 Q3.5,4 1.5,3.5 Z", fill: b.col2 }, c);
+  }else if(body === "mars"){
+    tsvg("ellipse", { cx: 0, cy: -4.1, rx: 2, ry: 1, fill: b.col2, opacity: .85 }, c);
+  }else if(body === "jupiter"){
+    tsvg("rect", { x: -5, y: -2.6, width: 10, height: 1.1, fill: b.col2 }, c);
+    tsvg("rect", { x: -5, y: -.4, width: 10, height: 1.4, fill: b.col2 }, c);
+    tsvg("rect", { x: -5, y: 2.2, width: 10, height: .9, fill: b.col2 }, c);
+    tsvg("circle", { cx: 1.8, cy: 1.2, r: 1, fill: "#C8452C" }, c);
+  }else if(body === "saturn"){
+    tsvg("ellipse", { rx: 7.4, ry: 2, fill: "none", stroke: b.col2, "stroke-width": 1,
+                      transform: "rotate(-20)" }, g);   // 環はクリップの外
+  }else if(body === "uranus"){
+    tsvg("ellipse", { rx: 1.9, ry: 6.8, fill: "none", stroke: b.col2, "stroke-width": .8,
+                      transform: "rotate(14)" }, g);    // 98°傾いた自転軸 = 縦の環
+  }else if(body === "neptune"){
+    tsvg("path", { d: "M-4.5,-.6 Q0,-2 4.5,-.6", fill: "none", stroke: b.col2, "stroke-width": 1 }, c);
+    tsvg("path", { d: "M-4,1.8 Q0,.6 4,1.8", fill: "none", stroke: b.col2, "stroke-width": .7, opacity: .8 }, c);
+  }
+  return g;
+}
+/* チップ・出発カード・到着モーダル用の HTML。発射=🚀 / 着陸=90°右回転の🚀 / 惑星=インラインSVG */
+function spaceIcon(e, size){
+  if(e.kind === "launch") return "🚀";
+  if(e.kind === "landing") return `<span class="rkt-land">🚀</span>`;
+  const s = document.createElementNS(TSVG, "svg");
+  s.setAttribute("viewBox", "-9 -9 18 18");   // 土星・天王星の環（最大 ≈8.5）まで収まる幅
+  s.setAttribute("width", size || 16); s.setAttribute("height", size || 16);
+  spacePlanetInto(s, e.body, 0, 0, 1.15);
+  return s.outerHTML;
+}
 
 let tourSel = 0;          // 出発カードに出している行程の通し番号
 let tourBusy = false;     // 出発〜play() までの再入防止
@@ -3455,7 +3616,9 @@ let tourFlyGen = 0;       // 飛行演出の世代（失敗時に古い演出を
 /* 世界地図を組み立てる。opts.justCleared = 今クリアした通し番号（朱印・航路のアニメーション） */
 function renderTourMap(opts){
   opts = opts || {};
+  if(tourMode === "space") return renderTourSpaceMap(opts);
   const svg = $("tmap");
+  svg.setAttribute("aria-label", t("world_map"));
   svg.textContent = "";
   const j = tourJourney();
   const next = tourNextSeq();
@@ -3579,8 +3742,152 @@ function renderTourMap(opts){
       hit.addEventListener("click", () => tourSelect(e.seq));
     }
   }
+
+  /* 隠しステージ: 解禁済みならケネディ宇宙センターに縦向きの 🚀。
+     未完走は金の脈動（次の目的地と同じ文法）、完走後は金の輪だけ残して再入口にする。 */
+  if(tourSpaceUnlocked()){
+    const x = tmapX(TOUR_PAD.lon), y = tmapY(TOUR_PAD.lat);
+    const g = tsvg("g", { id: "tlaunchpad", style: "cursor:pointer" }, nodes);
+    tsvg("circle", { cx: x, cy: y, r: 8, fill: "none", stroke: tourSpaceDone() ? "#D9A441" : "#E8C46A",
+                     "stroke-width": 1.2, opacity: tourSpaceDone() ? .8 : 1,
+                     class: tourSpaceDone() ? "" : "tnext-ring" }, g);
+    const rg = tsvg("g", { transform: `translate(${x},${y})` }, g);
+    /* 絵文字の字形中心を原点に合わせてから回す（y のベースライン補正を回転前に入れないと
+       リングの中心からずれる）。dominant-baseline は絵文字フォントで信用できないため使わない。 */
+    tsvg("text", { x: 0, y: 0, "text-anchor": "middle", "font-size": 12,
+                   transform: "rotate(-45) translate(0,4)" }, rg).textContent = "🚀";
+    tsvg("circle", { cx: x, cy: y, r: 16, fill: "transparent" }, g).addEventListener("click", tourLaunch);
+  }
 }
 
+/* ─── 宇宙地図 ───
+   世界地図と同じ視覚文法（点描・金の航路・朱印・脈動）を太陽系に写す。
+   星屑と点描の太陽、軌道ガイド（経緯線の宇宙版）、惑星ノード。 */
+function renderTourSpaceMap(opts){
+  const svg = $("tmap");
+  svg.setAttribute("aria-label", t("space_map"));
+  svg.textContent = "";
+  const j = tourSpaceJourney();
+  const done = tourSpaceDone();
+  const next = done ? -1 : tourSpaceNextSeq();
+  tsvg("rect", { width: TMAP_W, height: TMAP_H, fill: "#100E0C" }, svg);
+
+  /* 軌道ガイド */
+  const orb = tsvg("g", { stroke: "#2A221D", "stroke-width": .5, fill: "none" }, svg);
+  const sun = SPACE_BODIES.sun;
+  for(const k in SPACE_BODIES){
+    if(k === "sun") continue;
+    const b = SPACE_BODIES[k], r = Math.hypot(b.x - sun.x, b.y - sun.y);
+    tsvg("ellipse", { cx: sun.x, cy: sun.y, rx: r, ry: r * .82 }, orb);
+  }
+
+  /* 星屑 — 色ごとに 1 本の path。完走後は明るい星が金に灯る */
+  const dot = (x, y, r) => `M${(x - r).toFixed(1)},${y.toFixed(1)}a${r},${r} 0 1 0 ${2*r},0a${r},${r} 0 1 0 ${-2*r},0`;
+  const st = tourSpaceStars();
+  let dF = "", dB = "";
+  for(const [x, y] of st.faint) dF += dot(x, y, .8);
+  for(const [x, y] of st.bright) dB += dot(x, y, 1.2);
+  tsvg("path", { d: dF, fill: "#8C8177", opacity: .35, class: opts.enter ? "tdots-in" : "" }, svg);
+  const bright = tsvg("path", { d: dB, fill: done ? "#D9A441" : "#EFE7DA", opacity: .6,
+                                class: opts.enter || opts.justCleared != null ? "tdots-in" : "" }, svg);
+
+  /* 太陽 — 点描の金の同心円（塗り円にしない） */
+  let dS = "", sa = 7;
+  const srnd = () => { sa |= 0; sa = sa + 0x6D2B79F5 | 0;
+    let x = Math.imul(sa ^ sa >>> 15, 1 | sa); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x;
+    return ((x ^ x >>> 14) >>> 0) / 4294967296; };
+  for(let ring = 0; ring <= sun.r; ring += 3.2){
+    const n = Math.max(6, Math.round(ring * 2.2));
+    for(let i = 0; i < n; i++){
+      const a = i / n * Math.PI * 2 + srnd();
+      dS += dot(sun.x + ring * Math.cos(a), sun.y + ring * Math.sin(a), ring > sun.r - 4 ? 1 : 1.3);
+    }
+  }
+  tsvg("path", { d: dS, fill: "#D9A441", opacity: .8 }, svg);
+  tsvg("circle", { cx: sun.x, cy: sun.y, r: sun.r + 5, fill: "none", stroke: "#8C8177", "stroke-width": .5, opacity: .3 }, svg);
+  tsvg("text", { x: sun.x, y: sun.y + sun.r + 16, "text-anchor": "middle", "font-size": 8,
+                 "font-family": "var(--f-mono)", "letter-spacing": ".2em", fill: "#8C8177" }, svg).textContent = "SUN";
+  if(done)
+    tsvg("text", { x: sun.x, y: sun.y + sun.r + 28, "text-anchor": "middle", "font-size": 6.5,
+                   "font-family": "var(--f-mono)", "letter-spacing": ".18em", fill: "#D9A441" }, svg).textContent = "SYSTEM COMPLETE";
+
+  /* 航路。複合ルート（via）は同じ data-leg を持つ複数の弧 */
+  const routes = tsvg("g", {}, svg);
+  for(const e of j){
+    if(!e.prevBody) continue;
+    const legDone = tourIsCleared(e.id), isNext = e.seq === next;
+    const attrs = legDone
+      ? { stroke: "#D9A441", "stroke-width": 1.4, opacity: .9 }
+      : isNext ? { stroke: "#D9A441", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: .75 }
+               : { stroke: "#8C8177", "stroke-width": 1, "stroke-dasharray": "2 4", opacity: .45 };
+    for(const A of spaceLegArcs(e)){
+      const path = tsvg("path", { d: tourArcPath(A), fill: "none", ...attrs }, routes);
+      path.dataset.leg = e.seq;
+      if(opts.justCleared != null && e.seq === opts.justCleared){
+        const len = tourArcLen(A);
+        path.setAttribute("stroke-dasharray", len); path.style.setProperty("--len", len);
+        path.setAttribute("class", "tleg-draw");
+      }
+    }
+  }
+
+  /* ロケット（演出中だけ表示） */
+  const rocket = tsvg("g", { id: "trocket", visibility: "hidden" }, svg);
+  const rg = tsvg("g", { transform: "scale(1.5)" }, rocket);
+  tsvg("path", { d: TOUR_ROCKET, fill: "#EFE7DA", stroke: "#100E0C", "stroke-width": .5, "paint-order": "stroke" }, rg);
+  tsvg("circle", { cx: 2.5, cy: 0, r: 1.1, fill: "#100E0C" }, rg);
+  tsvg("circle", { r: 9, fill: "none", stroke: "#EFE7DA", "stroke-width": .6, opacity: .45 }, rg);
+
+  /* ノード。惑星の絵と名前は body ごとに 1 回、印・脈動・輪は行程ごと。
+     地球は発射・本曲・着陸の 3 印が扇状に並ぶ（パスポートの押印風）。 */
+  const nodes = tsvg("g", {}, svg);
+  const drawnBody = {};
+  let earthStamps = 0;
+  for(const e of j){
+    const b = SPACE_BODIES[e.body];
+    const stDone = tourIsCleared(e.id), isNext = e.seq === next, unlocked = e.seq <= tourSpaceNextSeq();
+    const g = tsvg("g", { "data-seq": e.seq, "data-st": stDone ? "done" : isNext ? "next" : "lock" }, nodes);
+    let L = drawnBody[e.body];
+    if(!L){
+      spacePlanetInto(g, e.body, b.x, b.y, b.r / 5);
+      L = tsvg("text", { x: b.x, y: b.y - b.r - 7, "text-anchor": "middle", "font-size": 8,
+                         "font-family": "var(--f-mono)", "letter-spacing": ".14em",
+                         fill: stDone || isNext ? "#EFE7DA" : "#8C8177" }, g);
+      L.textContent = b.en;
+      drawnBody[e.body] = L;
+    }else if(stDone || isNext) L.setAttribute("fill", "#EFE7DA");
+    if(stDone){
+      let sx = b.x, sy = b.y;
+      if(e.body === "earth"){
+        const a = -Math.PI / 2 + (earthStamps++ - 1) * .85;
+        sx = b.x + Math.cos(a) * 13; sy = b.y + Math.sin(a) * 13;
+      }
+      const stmp = tsvg("g", { class: opts.justCleared === e.seq ? "tstamp-in" : "" }, g);
+      tsvg("circle", { cx: sx, cy: sy, r: 7, fill: "#C8452C", stroke: "#D9A441", "stroke-width": 1.2 }, stmp);
+      tsvg("text", { x: sx, y: sy + 2.5, "text-anchor": "middle", "font-size": 6.5, fill: "#EFE7DA",
+                     "font-family": "var(--f-disp)" }, stmp).textContent = "印";
+    }else if(isNext){
+      tsvg("circle", { cx: b.x, cy: b.y, r: b.r + 3.5, fill: "none", stroke: "#E8C46A", "stroke-width": 1.2,
+                       class: "tnext-ring" }, g);
+      const sub = tsvg("text", { x: b.x, y: b.y + b.r + 15, "text-anchor": "middle", "font-size": 6.5,
+                                 "font-family": "var(--f-mono)", "letter-spacing": ".12em", fill: "#D9A441" }, g);
+      sub.textContent = (e.kind ? e.kind.toUpperCase() + " — " : "") + e.title.toUpperCase();
+    }else{
+      tsvg("circle", { cx: b.x, cy: b.y, r: b.r + 3, fill: "none", stroke: "#8C8177", "stroke-width": .8, opacity: .5 }, g);
+    }
+    if(unlocked){
+      const hit = tsvg("circle", { cx: b.x, cy: b.y, r: 14, fill: "transparent", style: "cursor:pointer" }, g);
+      hit.addEventListener("click", () => tourSelect(e.seq));
+    }
+  }
+}
+
+/* 行程要素の地図上の座標（earth = 投影、space = viewBox 直指定） */
+function tourPosOf(e){
+  if(e.body) return { x: SPACE_BODIES[e.body].x, y: SPACE_BODIES[e.body].y };
+  const c = tourCC(e.cc);
+  return { x: tmapX(c.lon), y: tmapY(c.lat) };
+}
 /* 選択中の国を地図上で示す。朱印（クリア済み）や金の脈動（次の目的地）と混ざらないよう、
    囲みの角（照準）で「いま見ている国はここ」だけを表す。 */
 function tourMarkSelected(seq){
@@ -3588,9 +3895,9 @@ function tourMarkSelected(seq){
   if(!svg) return;
   const old = svg.querySelector("#tselmark");
   if(old) old.remove();
-  const e = tourJourney()[seq];
+  const e = tourActiveJourney()[seq];
   if(!e) return;
-  const c = tourCC(e.cc), x = tmapX(c.lon), y = tmapY(c.lat);
+  const { x, y } = tourPosOf(e);
   const g = tsvg("g", { id: "tselmark", class: "tselmark" }, svg);   // 最後に足すので他の要素の上に出る
   const R = 15, L = 5.5;
   for(const [sx, sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
@@ -3603,15 +3910,16 @@ function tourMarkSelected(seq){
 /* 地図の横スクロールを行程 seq の国が中央に来るように */
 function tourScrollTo(seq){
   const wrap = $("tmapwrap"), svg = $("tmap");
-  const e = tourJourney()[seq];
+  const e = tourActiveJourney()[seq];
   if(!wrap || !e || !svg.clientWidth) return;
-  const px = tmapX(tourCC(e.cc).lon) * (svg.clientWidth / TMAP_W);
+  const px = tourPosOf(e).x * (svg.clientWidth / TMAP_W);
   wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
 }
 
 /* 国のチップは Vol ごとに 1 ページ。横スワイプ（CSS のスクロールスナップ）で Vol を行き来する。
    スワイプできない環境のために ‹ › ボタンも置く。 */
 function renderTourChips(){
+  if(tourMode === "space") return renderTourSpaceChips();
   const wrap = $("tchips");
   wrap.textContent = "";
   const j = tourJourney(), next = tourNextSeq();
@@ -3663,6 +3971,37 @@ function renderTourChips(){
   tourSyncVolNav();
 }
 
+/* 隠しステージのチップ。1 ページだけなのでページ送りは出さない */
+function renderTourSpaceChips(){
+  const wrap = $("tchips");
+  wrap.textContent = "";
+  const j = tourSpaceJourney(), next = tourSpaceNextSeq();
+  const page = document.createElement("div");
+  page.className = "tpage";
+  page.dataset.vol = "S";
+  const inner = document.createElement("div");
+  inner.className = "tinner";
+  page.appendChild(inner);
+  for(const e of j){
+    const done = tourIsCleared(e.id), isNext = e.seq === next, unlocked = e.seq <= next;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.dataset.seq = e.seq;
+    b.dataset.st = done ? "done" : isNext ? "next" : "lock";
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", String(e.seq === tourSel));
+    b.disabled = !unlocked;
+    b.innerHTML = `<span class="f"></span><span class="n"></span><span class="s"></span>`;
+    b.querySelector(".f").innerHTML = spaceIcon(e);
+    b.querySelector(".n").textContent = e.kind ? e.kind.toUpperCase() : SPACE_BODIES[e.body].en;
+    b.querySelector(".s").textContent = done ? tourBestRank(e.title) : isNext ? "NEXT" : "🔒";
+    b.title = e.title;
+    if(unlocked) b.onclick = () => tourSelect(e.seq);
+    inner.appendChild(b);
+  }
+  wrap.appendChild(page);
+  $("tnav").hidden = true;
+}
+
 /* いま表示している Vol のページ番号（スクロール位置から求める） */
 function tourVolPageIndex(){
   const wrap = $("tchips");
@@ -3706,15 +4045,21 @@ function tourBestRank(title){
 }
 
 function renderTourCard(){
-  const j = tourJourney(), next = tourNextSeq();
+  const space = tourMode === "space";
+  const j = tourActiveJourney(), next = tourActiveNext();
   const e = j[tourSel];
   if(!e) return;
-  const c = tourCC(e.cc);
-  $("tflag").textContent = flagOf(e.cc);
-  $("tcen").textContent = c.en;
+  if(space){
+    $("tflag").innerHTML = spaceIcon(e, 34);
+    $("tcen").textContent = e.kind ? e.kind.toUpperCase() : SPACE_BODIES[e.body].en;
+  }else{
+    $("tflag").textContent = flagOf(e.cc);
+    $("tcen").textContent = tourCC(e.cc).en;
+  }
   $("ttrack").textContent = e.title;
-  $("tdiffv").textContent = DIFF[difficulty].label;      // 難易度はタイトル画面の 1 箇所で選ぶ。ここは現在値の表示だけ
-  const b = bestOf(e.title + "|" + difficulty);
+  const d = space ? "oni" : difficulty;                  // 隠しステージは EXTREME 固定
+  $("tdiffv").textContent = DIFF[d].label;               // 難易度はタイトル画面の 1 箇所で選ぶ。ここは現在値の表示だけ
+  const b = bestOf(e.title + "|" + d);
   const tb = $("tbest");
   if(b && typeof b.s === "number"){
     tb.innerHTML = `BEST <b></b> · <span class="rk"></span> · <span class="ac"></span>`;
@@ -3722,13 +4067,21 @@ function renderTourCard(){
     tb.querySelector(".rk").textContent = typeof b.a === "number" ? kj(rankOf(b.a)) : "—";
     tb.querySelector(".ac").textContent = typeof b.a === "number" ? b.a.toFixed(2) + "%" : "";
   }else{
-    tb.textContent = DIFF[difficulty].label + t("not_played");
+    tb.textContent = DIFF[d].label + t("not_played");
   }
   const done = tourIsCleared(e.id);
   $("tgo").textContent = done ? t("depart_again") : t("depart");
   $("tgo").disabled = tourBusy || e.seq > next;
 }
 function renderTourHeader(){
+  if(tourMode === "space"){
+    const n = TOUR_SPACE.tracks.filter(x => tourIsCleared(x.id)).length;
+    $("teyebrow").textContent = "World Tour · Hidden Stage";
+    $("ttitle").textContent = TOUR_SPACE.title;
+    $("tprog").textContent = `${n} / ${TOUR_SPACE.tracks.length}` + (tourSpaceDone() ? " · COMPLETE" : "");
+    $("tdone").hidden = !tourSpaceDone();
+    return;
+  }
   const j = tourJourney();
   const e = j[tourSel];
   const v = e ? TOUR_VOLS.find(x => x.vol === e.tour.vol) : TOUR_VOLS[0];
@@ -3740,7 +4093,7 @@ function renderTourHeader(){
   $("tdone").hidden = !tourVolDone(v);
 }
 function tourSelect(seq){
-  if(seq > tourNextSeq()) return;
+  if(seq > tourActiveNext()) return;
   tourSel = seq;
   for(const b of $("tchips").querySelectorAll(".chip"))
     b.setAttribute("aria-selected", String(+b.dataset.seq === seq));
@@ -3748,13 +4101,16 @@ function tourSelect(seq){
   renderTourCard();
   tourMarkSelected(seq);
   tourScrollTo(seq);
-  tourShowVolPage(tourJourney()[seq].tour.vol);   // 別 Vol の国を選んだらチップもその Vol に送る
+  if(tourMode === "earth")                        // 宇宙は 1 ページ（dataset.vol="S" は数値でない）
+    tourShowVolPage(tourJourney()[seq].tour.vol); // 別 Vol の国を選んだらチップもその Vol に送る
 }
-/* ツアー画面を開く。opts: {vol} その Vol の次の国へ / {focus} その通し番号 / {justCleared} 直後の演出 */
+/* ツアー画面を開く。opts: {vol} その Vol の次の国へ / {focus} その通し番号 / {justCleared} 直後の演出
+   / {space} 隠しステージの宇宙地図（省略時は世界地図） / {enter} 発射直後の星屑フェードイン */
 function openTour(opts){
   opts = opts || {};
-  const j = tourJourney();
-  const next = tourNextSeq();
+  tourMode = opts.space ? "space" : "earth";
+  const j = tourActiveJourney();
+  const next = tourActiveNext();
   let sel;
   if(opts.justCleared != null) sel = Math.min(opts.justCleared + 1, j.length - 1);
   else if(opts.focus != null) sel = opts.focus;
@@ -3766,17 +4122,29 @@ function openTour(opts){
   tourSel = Math.max(0, Math.min(sel, Math.min(next, j.length - 1)));
   $("terr").hidden = true;
   $("tload").hidden = true;
+  tourSyncDiffUI();
+  $("tearthmap").hidden = tourMode !== "space";
   renderTourHeader();
-  renderTourMap({ justCleared: opts.justCleared });
+  renderTourMap({ justCleared: opts.justCleared, enter: opts.enter });
   renderTourChips();
   renderTourCard();
   tourMarkSelected(tourSel);
   show("tour");
   requestAnimationFrame(() => {
     tourScrollTo(opts.justCleared != null ? opts.justCleared : tourSel);
-    const e = tourJourney()[tourSel];
-    if(e) tourShowVolPage(e.tour.vol);        // チップも選択中の国の Vol から始める
+    if(tourMode === "earth"){
+      const e = tourJourney()[tourSel];
+      if(e) tourShowVolPage(e.tour.vol);      // チップも選択中の国の Vol から始める
+    }
   });
+}
+/* 隠しステージ中は難易度セレクタを EXTREME で固定表示にする（設定は変えない） */
+function tourSyncDiffUI(){
+  const space = tourMode === "space";
+  for(const x of document.querySelectorAll("#tdiffsel button[data-d]")){
+    x.disabled = space;
+    x.setAttribute("aria-pressed", String(space ? x.dataset.d === "oni" : x.dataset.d === difficulty));
+  }
 }
 function tourError(msg){
   const el = $("terr");
@@ -3811,6 +4179,27 @@ function renderTourVols(){
     b.onclick = () => openTour({ vol: v.vol });
     wrap.appendChild(b);
   }
+  /* 隠しステージ（全曲 EXTREME クリアで出現）。主な入口は地図の 🚀、これは控えめな副入口 */
+  if(tourSpaceUnlocked()){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "vcard";
+    b.dataset.vol = "S";
+    b.innerHTML = `<div class="eyebrow"></div><div class="vt"></div><div class="vs"></div><div class="vd"></div>`;
+    b.querySelector(".eyebrow").textContent = "World Tour · Hidden Stage";
+    b.querySelector(".vt").textContent = "🚀 " + TOUR_SPACE.title;
+    const n = TOUR_SPACE.tracks.filter(x => tourIsCleared(x.id)).length;
+    b.querySelector(".vs").textContent = `${n} / ${TOUR_SPACE.tracks.length}` + (tourSpaceDone() ? " · " + t("done_badge") : "") + t("open_map");
+    const vd = b.querySelector(".vd");
+    const sn = tourSpaceNextSeq();
+    TOUR_SPACE.tracks.forEach((x, i) => {
+      const dotEl = document.createElement("i");
+      if(tourIsCleared(x.id)) dotEl.className = "on"; else if(i === sn) dotEl.className = "next";
+      vd.appendChild(dotEl);
+    });
+    b.onclick = () => openTour({ space: true });
+    wrap.appendChild(b);
+  }
 }
 /* 収録曲タブ: クリア済みのツアー曲だけを Vol ごとの見出し付きで並べる */
 function renderTourTracks(){
@@ -3825,6 +4214,15 @@ function renderTourTracks(){
     h.textContent = `🌏 PULSE OF THE EARTH · VOL.${v.vol} — WORLD TOUR`;
     wrap.appendChild(h);
     for(const tr of done) cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
+  }
+  /* 隠しステージ: クリア済みの曲だけ。ここからは通常プレー（全難易度） */
+  const sdone = TOUR_SPACE.tracks.filter(x => tourIsCleared(x.id));
+  if(sdone.length){
+    const h = document.createElement("div");
+    h.className = "tgroup";
+    h.textContent = `🚀 PULSE OF THE EARTH: PLANETS — HIDDEN STAGE`;
+    wrap.appendChild(h);
+    for(const tr of sdone) cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
   }
 }
 
@@ -3873,10 +4271,90 @@ function tourFly(fromCC, toCC, ms){
     requestAnimationFrame(step);
   });
 }
+/* 隠しステージの飛行演出。tourFly と同じ骨格（ベジェ・イージング・軌跡・追従スクロール・世代）で、
+   機体はロケット。複合ルート（via）は弧の長さで時間を配分して 1 本の rAF で順に飛ぶ。
+   prevBody が無い発射レグは地球の周りを一周（軌道投入）。 */
+function tourSpaceFly(e, ms){
+  return new Promise(resolve => {
+    const gen = ++tourFlyGen;
+    const svg = $("tmap"), rocket = $("trocket"), wrap = $("tmapwrap");
+    if(!rocket) return resolve();
+    const dur = (reduceMotion || !(ms > 0)) ? 0 : ms;
+    const arcs = e.prevBody ? spaceLegArcs(e) : null;
+    const lens = arcs ? arcs.map(tourArcLen) : null;
+    const total = arcs ? lens.reduce((a, x) => a + x, 0) : 1;
+    const trail = arcs ? tsvg("path", { fill: "none", stroke: "#D9A441", "stroke-width": 1.4, opacity: .9 }) : null;
+    if(trail) rocket.parentNode.insertBefore(trail, rocket);
+    rocket.setAttribute("visibility", "visible");
+    const t0 = performance.now();
+    const step = () => {
+      if(gen !== tourFlyGen) return resolve();
+      const t = dur ? Math.min(1, (performance.now() - t0) / dur) : 1;
+      const ez = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+      let x, y, ang;
+      if(arcs){
+        let dist = ez * total, k = 0;
+        while(k < arcs.length - 1 && dist > lens[k]){ dist -= lens[k]; k++; }
+        const tk = lens[k] ? Math.min(1, dist / lens[k]) : 1;
+        const p = tourBez(arcs[k], tk); x = p.x; y = p.y; ang = p.ang;
+        let d = "";
+        for(let i = 0; i < k; i++) d += tourArcPath(arcs[i]) + " ";
+        for(let i = 0; i <= 24; i++){
+          const q = tourBez(arcs[k], tk * i / 24);
+          d += (i ? "L" : "M") + q.x.toFixed(1) + "," + q.y.toFixed(1);
+        }
+        trail.setAttribute("d", d);
+      }else{
+        const b = SPACE_BODIES[e.body], r = 20 * (1 - ez), a = -Math.PI / 2 + ez * Math.PI * 2;
+        x = b.x + r * Math.cos(a); y = b.y + r * Math.sin(a) * .6; ang = a + Math.PI / 2;
+      }
+      rocket.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${(ang * 180 / Math.PI).toFixed(1)})`);
+      if(wrap && svg.clientWidth){
+        const px = x * (svg.clientWidth / TMAP_W);
+        wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
+      }
+      if(t >= 1) resolve(); else requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+/* 世界地図の 🚀 から: ロケットが上昇し、暗転して宇宙地図へ。reduceMotion なら即切替。 */
+function tourLaunch(){
+  if(tourBusy) return;
+  const gen = ++tourFlyGen;
+  const svg = $("tmap");
+  const pad = svg && svg.querySelector("#tlaunchpad");
+  const rg = pad && pad.querySelector("g");
+  if(!rg || reduceMotion){ openTour({ space: true }); return; }
+  const x = tmapX(TOUR_PAD.lon), y = tmapY(TOUR_PAD.lat);
+  const exhaust = tsvg("g", { stroke: "#E8C46A", "stroke-width": 1.4, "stroke-linecap": "round" }, svg);
+  const overlay = tsvg("rect", { width: TMAP_W, height: TMAP_H, fill: "#100E0C", opacity: 0 }, svg);
+  const t0 = performance.now(), DUR = 950;
+  const step = () => {
+    if(gen !== tourFlyGen) return;
+    const t = Math.min(1, (performance.now() - t0) / DUR);
+    const rise = t * t * 150;                             // ease-in で加速上昇
+    rg.setAttribute("transform", `translate(${(x + rise * .12).toFixed(1)},${(y - rise).toFixed(1)})`);
+    exhaust.textContent = "";
+    for(let i = 0; i < 3; i++){
+      const ey = y + 6 - rise + i * 5 + (t * 40) % 5;
+      if(ey < y + 8) tsvg("line", { x1: x + rise * .12, y1: ey, x2: x + rise * .12, y2: ey + 2.5,
+                                    opacity: Math.max(0, .9 - i * .3) }, exhaust);
+    }
+    overlay.setAttribute("opacity", Math.max(0, (t - .45) / .55).toFixed(2));
+    if(t < 1) requestAnimationFrame(step);
+    else openTour({ space: true, enter: true });          // 星屑がフェードインして宇宙地図へ
+  };
+  requestAnimationFrame(step);
+}
 function tourArrive(e){
-  const c = tourCC(e.cc);
-  $("tarrflag").textContent = flagOf(e.cc);
-  $("tarrt").textContent = c.en;
+  if(e.body){                                             // 隠しステージ: 惑星アイコン＋惑星名
+    $("tarrflag").innerHTML = spaceIcon(e, 34);
+    $("tarrt").textContent = e.kind ? e.kind.toUpperCase() : SPACE_BODIES[e.body].en;
+  }else{
+    $("tarrflag").textContent = flagOf(e.cc);
+    $("tarrt").textContent = tourCC(e.cc).en;
+  }
   $("tarrs").textContent = e.title;
   $("tarrive").dataset.on = "1";
   return new Promise(r => setTimeout(() => { $("tarrive").dataset.on = "0"; r(); }, reduceMotion ? 400 : 1300));
@@ -3884,9 +4362,10 @@ function tourArrive(e){
 /* 出発。ダウンロードと飛行演出を並行し、到着後に通常の play() へ。 */
 async function tourDepart(seq){
   if(tourBusy) return;
-  const j = tourJourney();
+  const space = tourMode === "space";
+  const j = tourActiveJourney();
   const e = j[seq];
-  if(!e || seq > tourNextSeq()) return;
+  if(!e || seq > tourActiveNext()) return;
   tourBusy = true;
   $("tgo").disabled = true;
   $("terr").hidden = true; $("err").hidden = true;
@@ -3897,23 +4376,28 @@ async function tourDepart(seq){
     tl.textContent = "DOWNLOADING · " + (total ? Math.round(got / total * 100) + "%" : (got / 1048576).toFixed(1) + " MB");
   });
   try{
-    const [, ab] = await Promise.all([tourFly(e.prevCC, e.cc, e.prevCC ? 2800 : 1400), dl]);
+    const fly = space
+      ? tourSpaceFly(e, e.prevBody ? (e.via ? 3600 : e.arc === "long" ? 4200 : 2800) : 1400)
+      : tourFly(e.prevCC, e.cc, e.prevCC ? 2800 : 1400);
+    const [, ab] = await Promise.all([fly, dl]);
     tl.hidden = true;
     await tourArrive(e);
     loadBase = 0;
-    pendingTour = { vol: e.tour.vol, idx: e.tour.idx, seq, id: e.id };
+    pendingTour = space
+      ? { space: true, idx: e.tour.idx, seq, id: e.id, forceDiff: "oni" }   // 隠しステージは EXTREME 固定
+      : { vol: e.tour.vol, idx: e.tour.idx, seq, id: e.id };
     await play(e.title, ab, e.url);
     if(!$("game").classList.contains("on")){          // prepare() 内の fail() でタイトルへ戻された
       const m = $("err").textContent;
       $("err").hidden = true;
-      openTour({ focus: seq });
+      openTour({ focus: seq, space });
       tourError(m);
     }
   }catch(err){
     tourFlyGen++;                                       // 進行中の飛行演出を止める
     tl.hidden = true;
     $("tarrive").dataset.on = "0";
-    openTour({ focus: seq });
+    openTour({ focus: seq, space });
     tourError(t("err_fetch_tour"));
   }finally{
     tourBusy = false;
@@ -3929,7 +4413,7 @@ function tourOnFinish(t, acc){
     renderTracks();
     renderTourVols();
   }
-  const j = tourJourney();                              // 完走で次の Vol が現れることがある
+  const j = t.space ? tourSpaceJourney() : tourJourney();   // 完走で次の Vol が現れることがある
   const next = cleared && t.seq + 1 < j.length ? t.seq + 1 : null;
   return { cleared, next };
 }
@@ -3940,9 +4424,11 @@ $("tchips").addEventListener("scroll", () => {
 $("tback").onclick = () => show("title");
 $("tgo").onclick = () => tourDepart(tourSel);
 $("tdiffsel").onclick = e => {
+  if(tourMode === "space") return;                 // 隠しステージは EXTREME 固定（ボタンも disabled）
   const b = e.target.closest("button[data-d]");
   if(b) setDifficulty(b.dataset.d);
 };
+$("tearthmap").onclick = () => openTour({ space: false });
 $("tsettings").onclick = () => syncStart();
 $("langsel").onclick = e => {
   const b = e.target.closest("button[data-l]");
