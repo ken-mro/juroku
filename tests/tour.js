@@ -210,6 +210,36 @@ async function main(){
     console.log("[tour] openTour OK (map, 8 nodes, 7 legs, chips, card, difficulty sync)");
   }
 
+  /* ── 4b. 世界地図の 3 面連続（180° またぎの巻き戻しスクロール用の構造） ── */
+  {
+    const { window, document, testErrors } = await boot();
+    window.openTour();
+    const svg = document.getElementById("tmap");
+    assert(svg.getAttribute("viewBox") === "0 0 2160 300", "earth map should span 3 worlds");
+    const world = svg.querySelector("#tworld");
+    assert(world && world.getAttribute("transform") === "translate(720,0)", "original world sits on the middle pane");
+    const uses = svg.querySelectorAll("use");
+    assert(uses.length === 2, `expected 2 <use> copies, got ${uses.length}`);
+    const xs = Array.from(uses).map(u => u.getAttribute("x")).sort((a, b) => a - b);
+    assert(xs[0] === "-720" && xs[1] === "720" &&
+           Array.from(uses).every(u => u.getAttribute("href") === "#tworld"), "copies flank the original at ±720");
+    assert(Array.from(uses).every(u => u.nextElementSibling || u.compareDocumentPosition(world) & 4),
+      "copies are drawn under the original (labels overflowing the middle pane stay visible)");
+    const bg = svg.querySelector("rect");
+    assert(bg.getAttribute("width") === "2160", "background covers all 3 panes");
+    assert(world.querySelector("#tselmark"), "selection mark lives inside #tworld so the copies mirror it");
+    assert(world.querySelectorAll("g[data-seq]").length === 8, "nodes live inside #tworld");
+    /* 宇宙地図に切り替えると 1 面に戻る */
+    window.eval('for(const v of TOUR_VOLS) for(const x of v.tracks) bests[x.title + "|oni"] = { s: 1, a: 50 };');
+    window.eval("openTour({ space: true });");
+    assert(svg.getAttribute("viewBox") === "0 0 720 300", "space map is a single pane");
+    assert(!svg.querySelector("#tworld") && !svg.querySelector("use"), "no wraparound structure in space mode");
+    window.eval("openTour();");
+    assert(svg.getAttribute("viewBox") === "0 0 2160 300", "returning to earth restores the 3-pane map");
+    if(testErrors.length) fail("script errors during wraparound:\n" + testErrors.join("\n---\n"));
+    console.log("[tour] map wraparound OK (3 panes, copies under the original, space stays single)");
+  }
+
   /* ── 5. finish() integration ───────────────────────────────────────── */
   {
     const { window, document, testErrors } = await boot();
