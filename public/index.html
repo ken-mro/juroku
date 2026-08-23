@@ -3620,11 +3620,21 @@ function renderTourMap(opts){
   const svg = $("tmap");
   svg.setAttribute("aria-label", t("world_map"));
   svg.textContent = "";
+  /* 地図は 3 面連続（左・中央・右）。原本＝操作対象は中央面で、左右は <use> の複製。
+     スクロールが端に寄ったら同じ見た目の位置へ巻き戻す（下のスクロール監視）ことで、
+     ニュージーランドなど 180° 近くの国も端で切れずに中央へ置ける。複製は原本より
+     先に描く＝下になるので、中央面からはみ出したラベルは複製に隠れない。 */
+  svg.setAttribute("viewBox", `0 0 ${TMAP_W * 3} ${TMAP_H}`);
+  svg.style.width = "300%";
+  svg.style.minWidth = "1800px";
   const j = tourJourney();
   const next = tourNextSeq();
   const visited = j.filter(e => tourIsCleared(e.id)).map(e => tourCC(e.cc));
-  tsvg("rect", { width: TMAP_W, height: TMAP_H, fill: "#100E0C" }, svg);
-  const grat = tsvg("g", { stroke: "#2A221D", "stroke-width": .5 }, svg);
+  tsvg("rect", { width: TMAP_W * 3, height: TMAP_H, fill: "#100E0C" }, svg);
+  tsvg("use", { href: "#tworld", x: -TMAP_W }, svg);
+  tsvg("use", { href: "#tworld", x: TMAP_W }, svg);
+  const world = tsvg("g", { id: "tworld", transform: `translate(${TMAP_W},0)` }, svg);
+  const grat = tsvg("g", { stroke: "#2A221D", "stroke-width": .5 }, world);
   for(let lon = -150; lon <= 150; lon += 30) tsvg("line", { x1: tmapX(lon), y1: 0, x2: tmapX(lon), y2: TMAP_H }, grat);
   for(let lat = -30; lat <= 60; lat += 30) tsvg("line", { x1: 0, y1: tmapY(lat), x2: TMAP_W, y2: tmapY(lat) }, grat);
 
@@ -3636,12 +3646,12 @@ function renderTourMap(opts){
     if(visited.length && tourNearVisited(p.lon, p.lat, visited)) dGold += dot(x, y, 1.35);
     else dBase += dot(x, y, 1.15);
   }
-  tsvg("path", { d: dBase, fill: "#8C8177", opacity: .42 }, svg);
-  const gold = tsvg("path", { d: dGold, fill: "#D9A441", opacity: .85 }, svg);
+  tsvg("path", { d: dBase, fill: "#8C8177", opacity: .42 }, world);
+  const gold = tsvg("path", { d: dGold, fill: "#D9A441", opacity: .85 }, world);
   if(opts.justCleared != null) gold.setAttribute("class", "tdots-in");
 
   /* 航路: 各行程要素への到着レグ（prevCC → cc） */
-  const routes = tsvg("g", {}, svg);
+  const routes = tsvg("g", {}, world);
   for(const e of j){
     if(!e.prevCC) continue;
     const A = tourArc(tourCC(e.prevCC), tourCC(e.cc));
@@ -3660,14 +3670,14 @@ function renderTourMap(opts){
   }
 
   /* 飛行機（演出中だけ表示） */
-  const plane = tsvg("g", { id: "tplane", visibility: "hidden" }, svg);
+  const plane = tsvg("g", { id: "tplane", visibility: "hidden" }, world);
   const pg = tsvg("g", { transform: "scale(1.6)" }, plane);
   tsvg("path", { d: TOUR_PLANE, fill: "#EFE7DA", stroke: "#100E0C", "stroke-width": .5, "paint-order": "stroke" }, pg);
   tsvg("circle", { r: 9, fill: "none", stroke: "#EFE7DA", "stroke-width": .6, opacity: .45 }, pg);
 
   /* ノードとラベル。ラベルは上→下→右→左の順に、他のノードや置いたラベルと
      重ならない位置を選ぶ（フランスとスペインのように近い国のため）。 */
-  const nodes = tsvg("g", {}, svg);
+  const nodes = tsvg("g", {}, world);
   const pts = j.map(e => { const c = tourCC(e.cc); return { x: tmapX(c.lon), y: tmapY(c.lat) }; });
   /* Vol が増えると国が密集するので、地名はフォーカス中の Vol（と次の目的地）だけに出し、
      それ以外の Vol の国は国旗だけにする（名前は行程チップにある） */
@@ -3767,6 +3777,10 @@ function renderTourSpaceMap(opts){
   const svg = $("tmap");
   svg.setAttribute("aria-label", t("space_map"));
   svg.textContent = "";
+  /* 宇宙地図は 1 面（180° またぎが無いので巻き戻し不要）。世界地図の 3 面設定を戻す */
+  svg.setAttribute("viewBox", `0 0 ${TMAP_W} ${TMAP_H}`);
+  svg.style.width = "";
+  svg.style.minWidth = "";
   const j = tourSpaceJourney();
   const done = tourSpaceDone();
   const next = done ? -1 : tourSpaceNextSeq();
@@ -3898,7 +3912,8 @@ function tourMarkSelected(seq){
   const e = tourActiveJourney()[seq];
   if(!e) return;
   const { x, y } = tourPosOf(e);
-  const g = tsvg("g", { id: "tselmark", class: "tselmark" }, svg);   // 最後に足すので他の要素の上に出る
+  const g = tsvg("g", { id: "tselmark", class: "tselmark" },
+                 svg.querySelector("#tworld") || svg);   // 最後に足すので他の要素の上に出る（複製面にも映る）
   const R = 15, L = 5.5;
   for(const [sx, sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
     const px = x + sx*R, py = y + sy*R;
@@ -3912,7 +3927,9 @@ function tourScrollTo(seq){
   const wrap = $("tmapwrap"), svg = $("tmap");
   const e = tourActiveJourney()[seq];
   if(!wrap || !e || !svg.clientWidth) return;
-  const px = tourPosOf(e).x * (svg.clientWidth / TMAP_W);
+  /* 世界地図は 3 面連続なので、原本＝中央面の位置へスクロールする */
+  const ww = tourMode === "earth" ? svg.clientWidth / 3 : svg.clientWidth;
+  const px = tourPosOf(e).x * (ww / TMAP_W) + (tourMode === "earth" ? ww : 0);
   wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
 }
 
@@ -4262,8 +4279,9 @@ function tourFly(fromCC, toCC, ms){
       }
       const wx = ((x % TMAP_W) + TMAP_W) % TMAP_W;
       plane.setAttribute("transform", `translate(${wx.toFixed(1)},${y.toFixed(1)}) rotate(${(ang * 180 / Math.PI).toFixed(1)})`);
-      if(wrap && svg.clientWidth){                        // 飛行機を追ってスクロール
-        const px = wx * (svg.clientWidth / TMAP_W);
+      if(wrap && svg.clientWidth){                        // 飛行機を追ってスクロール（中央面基準）
+        const ww = svg.clientWidth / 3;
+        const px = wx * (ww / TMAP_W) + ww;
         wrap.scrollLeft = Math.max(0, px - wrap.clientWidth / 2);
       }
       if(t >= 1) resolve(); else requestAnimationFrame(step);
@@ -4327,8 +4345,9 @@ function tourLaunch(){
   const rg = pad && pad.querySelector("g");
   if(!rg || reduceMotion){ openTour({ space: true }); return; }
   const x = tmapX(TOUR_PAD.lon), y = tmapY(TOUR_PAD.lat);
-  const exhaust = tsvg("g", { stroke: "#E8C46A", "stroke-width": 1.4, "stroke-linecap": "round" }, svg);
-  const overlay = tsvg("rect", { width: TMAP_W, height: TMAP_H, fill: "#100E0C", opacity: 0 }, svg);
+  const exhaust = tsvg("g", { stroke: "#E8C46A", "stroke-width": 1.4, "stroke-linecap": "round" },
+                       svg.querySelector("#tworld") || svg);
+  const overlay = tsvg("rect", { width: TMAP_W * 3, height: TMAP_H, fill: "#100E0C", opacity: 0 }, svg);
   const t0 = performance.now(), DUR = 950;
   const step = () => {
     if(gen !== tourFlyGen) return;
@@ -4420,6 +4439,35 @@ function tourOnFinish(t, acc){
 $("tchips").addEventListener("scroll", () => {
   clearTimeout($("tchips")._navT);
   $("tchips")._navT = setTimeout(tourSyncVolNav, 80);      // スワイプが止まってから表示を更新
+});
+/* 世界地図の無限スクロール: 3 面連続の中央面から半面ぶん外れたら、
+   同じ見た目になる位置へ 1 面ぶん巻き戻す（180° をまたいで連続的に動かせる）。 */
+$("tmapwrap").addEventListener("scroll", () => {
+  if(tourMode !== "earth") return;
+  const wrap = $("tmapwrap"), svg = $("tmap");
+  const ww = svg.clientWidth / 3;
+  if(!ww) return;
+  if(wrap.scrollLeft < ww * .5) wrap.scrollLeft += ww;
+  else if(wrap.scrollLeft > ww * 1.5) wrap.scrollLeft -= ww;
+});
+/* 複製面（<use>）の中のノードは shadow 要素でクリックを拾えないため、
+   svg 全体で座標から当たり判定する。原本のヒット円が処理した分は二重に扱わない。 */
+$("tmap").addEventListener("click", ev => {
+  if(tourMode !== "earth") return;
+  if(ev.target.closest && ev.target.closest("g[data-seq], #tlaunchpad")) return;
+  const svg = $("tmap"), r = svg.getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  const vx = (ev.clientX - r.left) / r.width * (TMAP_W * 3);
+  const vy = (ev.clientY - r.top) / r.height * TMAP_H;
+  const x = (((vx - TMAP_W) % TMAP_W) + TMAP_W) % TMAP_W;   // 中央面基準の世界座標に畳む
+  if(tourSpaceUnlocked() &&
+     Math.hypot(x - tmapX(TOUR_PAD.lon), vy - tmapY(TOUR_PAD.lat)) <= 16) return tourLaunch();
+  const j = tourJourney(), next = tourNextSeq();
+  for(const e of j){
+    if(e.seq > next) continue;
+    const c = tourCC(e.cc);
+    if(Math.hypot(x - tmapX(c.lon), vy - tmapY(c.lat)) <= 14) return tourSelect(e.seq);
+  }
 });
 $("tback").onclick = () => show("title");
 $("tgo").onclick = () => tourDepart(tourSel);
