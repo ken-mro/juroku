@@ -372,8 +372,11 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
 .tleg-draw{animation:tdraw 1.1s ease-out .35s both}
 .tdots-in{animation:tdots .9s ease-out both}
 @keyframes tdots{from{opacity:0}to{opacity:.85}}
+/* 宇宙地図の開幕: 各層が自分の opacity へ滲み出す（delay/duration は JS が層ごとに指定） */
+.tin{animation:tin 1.2s ease-out both}
+@keyframes tin{from{opacity:0}}
 @keyframes tdraw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
-@media (prefers-reduced-motion: reduce){ .tnext-ring,.tstamp-in,.tleg-draw,.tdots-in{animation:none} }
+@media (prefers-reduced-motion: reduce){ .tnext-ring,.tstamp-in,.tleg-draw,.tdots-in,.tin{animation:none} }
 .titin{flex:none;display:flex;width:100%;max-width:720px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none;
   scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}   /* Vol ごとに 1 ページ、横スワイプで移動 */
 .titin::-webkit-scrollbar{display:none}
@@ -3797,8 +3800,19 @@ function renderTourSpaceMap(opts){
   const next = done ? -1 : tourSpaceNextSeq();
   tsvg("rect", { width: TMAP_W, height: TMAP_H, fill: "#100E0C" }, svg);
 
+  /* 開幕（enter）: 層ごとに時間差で滲み出させる（星 → 太陽 → 軌道 → 航路 → 惑星）。
+     時間の経過方向が読めるよう、遠景から近景へ順に灯す。reduceMotion では即表示。 */
+  const ent = (el, delay, dur) => {
+    if(!opts.enter || reduceMotion) return el;
+    el.setAttribute("class", ((el.getAttribute("class") || "") + " tin").trim());
+    el.style.animationDelay = delay + "ms";
+    el.style.animationDuration = dur + "ms";
+    return el;
+  };
+
   /* 軌道ガイド */
   const orb = tsvg("g", { stroke: "#2A221D", "stroke-width": .5, fill: "none" }, svg);
+  ent(orb, 1700, 1000);
   const sun = SPACE_BODIES.sun;
   for(const k in SPACE_BODIES){
     if(k === "sun") continue;
@@ -3812,9 +3826,10 @@ function renderTourSpaceMap(opts){
   let dF = "", dB = "";
   for(const [x, y] of st.faint) dF += dot(x, y, .8);
   for(const [x, y] of st.bright) dB += dot(x, y, 1.2);
-  tsvg("path", { d: dF, fill: "#8C8177", opacity: .35, class: opts.enter ? "tdots-in" : "" }, svg);
+  ent(tsvg("path", { d: dF, fill: "#8C8177", opacity: .35 }, svg), 150, 1900);
   const bright = tsvg("path", { d: dB, fill: done ? "#D9A441" : "#EFE7DA", opacity: .6,
-                                class: opts.enter || opts.justCleared != null ? "tdots-in" : "" }, svg);
+                                class: opts.justCleared != null ? "tdots-in" : "" }, svg);
+  ent(bright, 650, 1700);
 
   /* 太陽 — 点描の金の同心円（塗り円にしない） */
   let dS = "", sa = 7;
@@ -3828,16 +3843,17 @@ function renderTourSpaceMap(opts){
       dS += dot(sun.x + ring * Math.cos(a), sun.y + ring * Math.sin(a), ring > sun.r - 4 ? 1 : 1.3);
     }
   }
-  tsvg("path", { d: dS, fill: "#D9A441", opacity: .8 }, svg);
-  tsvg("circle", { cx: sun.x, cy: sun.y, r: sun.r + 5, fill: "none", stroke: "#8C8177", "stroke-width": .5, opacity: .3 }, svg);
+  const sung = ent(tsvg("g", {}, svg), 1200, 1200);
+  tsvg("path", { d: dS, fill: "#D9A441", opacity: .8 }, sung);
+  tsvg("circle", { cx: sun.x, cy: sun.y, r: sun.r + 5, fill: "none", stroke: "#8C8177", "stroke-width": .5, opacity: .3 }, sung);
   tsvg("text", { x: sun.x, y: sun.y + sun.r + 16, "text-anchor": "middle", "font-size": 8,
-                 "font-family": "var(--f-mono)", "letter-spacing": ".2em", fill: "#8C8177" }, svg).textContent = "SUN";
+                 "font-family": "var(--f-mono)", "letter-spacing": ".2em", fill: "#8C8177" }, sung).textContent = "SUN";
   if(done)
     tsvg("text", { x: sun.x, y: sun.y + sun.r + 28, "text-anchor": "middle", "font-size": 6.5,
-                   "font-family": "var(--f-mono)", "letter-spacing": ".18em", fill: "#D9A441" }, svg).textContent = "SYSTEM COMPLETE";
+                   "font-family": "var(--f-mono)", "letter-spacing": ".18em", fill: "#D9A441" }, sung).textContent = "SYSTEM COMPLETE";
 
   /* 航路。複合ルート（via）は同じ data-leg を持つ複数の弧 */
-  const routes = tsvg("g", {}, svg);
+  const routes = ent(tsvg("g", {}, svg), 2100, 900);
   for(const e of j){
     if(!e.prevBody) continue;
     const legDone = tourIsCleared(e.id), isNext = e.seq === next;
@@ -3865,7 +3881,7 @@ function renderTourSpaceMap(opts){
 
   /* ノード。惑星の絵と名前は body ごとに 1 回、印・脈動・輪は行程ごと。
      地球は発射・本曲・着陸の 3 印が扇状に並ぶ（パスポートの押印風）。 */
-  const nodes = tsvg("g", {}, svg);
+  const nodes = ent(tsvg("g", {}, svg), 2300, 900);
   const drawnBody = {};
   let earthStamps = 0;
   for(const e of j){
@@ -4161,6 +4177,10 @@ function openTour(opts){
   renderTourChips();
   renderTourCard();
   tourMarkSelected(tourSel);
+  if(opts.enter && !reduceMotion){                // 開幕は照準も惑星と同じ拍で灯す
+    const m = $("tmap").querySelector("#tselmark");
+    if(m){ m.classList.add("tin"); m.style.animationDelay = "2300ms"; m.style.animationDuration = "900ms"; }
+  }
   show("tour");
   requestAnimationFrame(() => {
     tourScrollTo(opts.justCleared != null ? opts.justCleared : tourSel);
@@ -4410,7 +4430,9 @@ function tourLaunch(){
       }
     }
     if(t < 1) requestAnimationFrame(step);
-    else openTour({ space: true, enter: true });          // 星屑がフェードインして宇宙地図へ
+    else setTimeout(() => {                               // 漆黒で一拍おいてから、星々が順に灯る開幕へ
+      if(gen === tourFlyGen) openTour({ space: true, enter: true });
+    }, 550);
   };
   requestAnimationFrame(step);
 }

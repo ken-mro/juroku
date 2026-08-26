@@ -105,7 +105,9 @@ async function main(){
     pumpFrame();                                  // 点火フレーム
     assert(window.eval("tourMode") === "earth", "launch: still on earth during ignition");
     window.eval("const __n = performance.now(); performance.now = () => __n + 5000;");
-    pumpFrame();                                  // 時間経過 → 上昇完了
+    pumpFrame();                                  // 時間経過 → 上昇完了 → 漆黒の一拍（setTimeout）
+    assert(window.eval("tourMode") === "earth", "launch: a beat of darkness before the star map");
+    await sleep(30);                              // テスト環境は setTimeout を 5ms に丸める
     assert(window.eval("tourMode") === "space", "launch completes into the star map");
     if(testErrors.length) fail("script errors:\n" + testErrors.join("\n---\n"));
     console.log("[space] KSC rocket OK (hidden when locked, pulsing when unlocked)");
