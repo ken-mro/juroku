@@ -86,7 +86,7 @@ async function main(){
 
   /* ── 3. rocket at Kennedy Space Center ─────────────────────────────── */
   {
-    const { window, document, testErrors } = await boot();
+    const { window, document, testErrors, pumpFrame } = await boot();
     window.openTour();
     assert(!document.querySelector("#tmap #tlaunchpad"), "locked: no rocket on the map");
     assert(document.querySelectorAll("#tmap g[data-seq]").length === 8, "earth map keeps its 8 nodes");
@@ -97,6 +97,18 @@ async function main(){
     assert(pad.querySelector(".tnext-ring"), "rocket has the gold pulse before completion");
     assert(pad.textContent.includes("🚀"), "pad shows the rocket emoji");
     assert(document.querySelectorAll("#tmap g[data-seq]").length === 8, "launchpad must not add data-seq nodes");
+    // 出発カードは解禁だけでは出ない（完走まで入口は地図の 🚀 のみ）
+    assert(!document.querySelector('#tourvols .vcard[data-vol="S"]'), "unlocked but not done: no hidden-stage depart card");
+    // 発射演出: タップ直後は切り替わらず（点火→上昇が挟まる）、時間が経ってから宇宙地図へ
+    window.eval("tourLaunch()");
+    assert(window.eval("tourMode") === "earth", "launch: no instant switch — lift-off plays first");
+    pumpFrame();                                  // 点火フレーム
+    assert(window.eval("tourMode") === "earth", "launch: still on earth during ignition");
+    window.eval("const __n = performance.now(); performance.now = () => __n + 5000;");
+    pumpFrame();                                  // 時間経過 → 上昇完了 → 漆黒の一拍（setTimeout）
+    assert(window.eval("tourMode") === "earth", "launch: a beat of darkness before the star map");
+    await sleep(30);                              // テスト環境は setTimeout を 5ms に丸める
+    assert(window.eval("tourMode") === "space", "launch completes into the star map");
     if(testErrors.length) fail("script errors:\n" + testErrors.join("\n---\n"));
     console.log("[space] KSC rocket OK (hidden when locked, pulsing when unlocked)");
   }
@@ -246,6 +258,12 @@ async function main(){
     document.getElementById("tearthmap").click();
     const pad = document.querySelector("#tmap #tlaunchpad");
     assert(pad && !pad.querySelector(".tnext-ring"), "after completion the rocket stays as a calm re-entry point");
+    // 出発カードは完走後にだけ現れ、名称は World Tour · Universe
+    window.eval("renderTourVols()");        // 実プレーでは tourOnFinish() が再描画する
+    const card = document.querySelector('#tourvols .vcard[data-vol="S"]');
+    assert(card, "done: hidden-stage depart card appears");
+    assert(card.querySelector(".eyebrow").textContent === "World Tour · Universe", "card eyebrow reads World Tour · Universe");
+    assert(card.textContent.includes("10 / 10"), "card shows full progress");
     if(testErrors.length) fail("script errors during completion:\n" + testErrors.join("\n---\n"));
     console.log("[space] completion OK (COMPLETE header, gold stars, rocket remains)");
   }
