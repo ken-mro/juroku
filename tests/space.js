@@ -97,8 +97,15 @@ async function main(){
     assert(pad.querySelector(".tnext-ring"), "rocket has the gold pulse before completion");
     assert(pad.textContent.includes("🚀"), "pad shows the rocket emoji");
     assert(document.querySelectorAll("#tmap g[data-seq]").length === 8, "launchpad must not add data-seq nodes");
-    // 出発カードは解禁だけでは出ない（完走まで入口は地図の 🚀 のみ）
-    assert(!document.querySelector('#tourvols .vcard[data-vol="S"]'), "unlocked but not done: no hidden-stage depart card");
+    // 出発カードは 1 曲もクリアしていない間は出ない（初回の入口は地図の 🚀 のみ）
+    assert(!document.querySelector('#tourvols .vcard[data-vol="S"]'), "unlocked but nothing cleared: no hidden-stage depart card");
+    // 1 曲クリアで再入場用のカードが現れる
+    clearSpace(window, 1);
+    window.eval("renderTourVols()");
+    const midCard = document.querySelector('#tourvols .vcard[data-vol="S"]');
+    assert(midCard, "one clear: hidden-stage depart card appears");
+    assert(midCard.textContent.includes("1 / 10"), "card shows partial progress 1 / 10");
+    window.eval("tourState.cleared = {}; renderTourVols();");   // 以降の発射テストは未クリア状態で
     // 発射演出: タップ直後は切り替わらず（点火→上昇が挟まる）、時間が経ってから宇宙地図へ
     window.eval("tourLaunch()");
     assert(window.eval("tourMode") === "earth", "launch: no instant switch — lift-off plays first");
@@ -183,6 +190,21 @@ async function main(){
       "difficulty clicks in space mode must not change or save anything");
     if(testErrors.length) fail("script errors during space render:\n" + testErrors.join("\n---\n"));
     console.log("[space] star map OK (nodes, legs, chips, EXTREME lock, ↩ EARTH)");
+  }
+
+  /* ── 5.5 星図表示中の再描画でモードを失わない（回帰: setLang / syncStop / cloudApply と同型） ── */
+  {
+    const { window, testErrors } = await boot();
+    unlockAll(window);
+    window.eval("openTour({ space: true });");
+    window.eval('setLang("en", { silent: true })');
+    assert(window.eval("tourMode") === "space", "setLang while on the star map must not fall back to earth");
+    window.eval('setLang("ja", { silent: true })');
+    assert(window.eval("tourMode") === "space", "setLang back keeps the star map");
+    window.eval('syncFrom = "tour"; syncStop();');
+    assert(window.eval("tourMode") === "space", "closing settings from the star map must return to the star map");
+    if(testErrors.length) fail("script errors during mode-keep checks:\n" + testErrors.join("\n---\n"));
+    console.log("[space] mode keep OK (setLang / syncStop stay on the star map)");
   }
 
   /* ── 6+7. forced EXTREME through play()/finish(), landing completes ── */

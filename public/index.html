@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.26-1</title>
+<title>十六 JŪROKU v2026.08.26-2</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -1068,7 +1068,8 @@ function setLang(l, opts){
   if(typeof renderTracks === "function") renderTracks();
   if(typeof renderTourVols === "function") renderTourVols();
   if(typeof renderAccount === "function") renderAccount();
-  if($("tour") && $("tour").classList.contains("on") && typeof openTour === "function") openTour({ focus: tourSel });
+  if($("tour") && $("tour").classList.contains("on") && typeof openTour === "function")
+    openTour({ focus: tourSel, space: tourMode === "space" });   // 星図表示中はモードを保つ
 }
 
 const DIFF = {
@@ -1353,7 +1354,8 @@ function cloudApply(m){
     cloudState.at = Date.now();
     renderTracks();                                // 収録曲・リンク曲・ツアー曲の表示を作り直す
     renderTourVols();
-    if($("tour").classList.contains("on")) openTour({ focus: tourSel });
+    /* 星図（隠しステージ）表示中に同期が届いても地球へ戻さない（モードを保って開き直す） */
+    if($("tour").classList.contains("on")) openTour({ focus: tourSel, space: tourMode === "space" });
   }catch(e){}
   renderAccount();
 }
@@ -4231,9 +4233,9 @@ function renderTourVols(){
     b.onclick = () => openTour({ vol: v.vol });
     wrap.appendChild(b);
   }
-  /* 隠しステージの出発カードは完走するまで出さない（解禁直後の入口は地図の 🚀 のみ）。
-     完走後の再入場用の控えめな副入口 */
-  if(tourSpaceDone()){
+  /* 隠しステージの出発カードは 1 曲もクリアしていない間は出さない（初回の入口は地図の 🚀 のみ）。
+     1 曲でもクリアしたら再入場用の控えめな副入口として出す */
+  if(TOUR_SPACE.tracks.some(x => tourIsCleared(x.id))){
     const b = document.createElement("button");
     b.type = "button";
     b.className = "vcard";
@@ -4988,7 +4990,7 @@ function syncStop(){
   for(const nd of syncBeepNodes){ try{ nd.stop(0); }catch(e){} }
   for(const nd of syncClapNodes){ try{ nd.stop(0); }catch(e){} }
   syncBeepNodes = []; syncClapNodes = [];
-  if(syncFrom === "tour") openTour({ focus: tourSel });   // 設定を変えたので描き直して戻る
+  if(syncFrom === "tour") openTour({ focus: tourSel, space: tourMode === "space" });   // 設定を変えたので描き直して戻る（星図はそのまま星図へ）
   else show(syncFrom);
 }
 function syncShowErr(j, ms){
