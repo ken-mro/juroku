@@ -4352,7 +4352,9 @@ function tourSpaceFly(e, ms){
     requestAnimationFrame(step);
   });
 }
-/* 世界地図の 🚀 から: ロケットが上昇し、暗転して宇宙地図へ。reduceMotion なら即切替。 */
+/* 世界地図の 🚀 から: 点火（身震いと育つ火花）→ 加速上昇（伸びる金の噴射）→
+   暗転の中を胡粉の光条が下へ流れ（上昇の相対速度）、星屑がフェードインして宇宙地図へ。
+   時間の経過が「量」で読めるように、残りは炎の長さと暗転の深さに出す。reduceMotion なら即切替。 */
 function tourLaunch(){
   if(tourBusy) return;
   const gen = ++tourFlyGen;
@@ -4364,19 +4366,49 @@ function tourLaunch(){
   const exhaust = tsvg("g", { stroke: "#E8C46A", "stroke-width": 1.4, "stroke-linecap": "round" },
                        svg.querySelector("#tworld") || svg);
   const overlay = tsvg("rect", { width: TMAP_W * 3, height: TMAP_H, fill: "#100E0C", opacity: 0 }, svg);
-  const t0 = performance.now(), DUR = 950;
+  const streaks = tsvg("g", { stroke: "#EFE7DA", "stroke-linecap": "round" }, svg);
+  const IGN = 650, ASC = 1450;                            // 点火 0.65s → 上昇 1.45s
+  const t0 = performance.now();
   const step = () => {
     if(gen !== tourFlyGen) return;
-    const t = Math.min(1, (performance.now() - t0) / DUR);
-    const rise = t * t * 150;                             // ease-in で加速上昇
-    rg.setAttribute("transform", `translate(${(x + rise * .12).toFixed(1)},${(y - rise).toFixed(1)})`);
-    exhaust.textContent = "";
-    for(let i = 0; i < 3; i++){
-      const ey = y + 6 - rise + i * 5 + (t * 40) % 5;
-      if(ey < y + 8) tsvg("line", { x1: x + rise * .12, y1: ey, x2: x + rise * .12, y2: ey + 2.5,
-                                    opacity: Math.max(0, .9 - i * .3) }, exhaust);
+    const el = performance.now() - t0;
+    if(el < IGN){
+      /* 点火: 機体が細かく身震いし、足元の火花が育つ */
+      const p = el / IGN;
+      const jx = Math.sin(el * .09) * .8 * p;
+      rg.setAttribute("transform", `translate(${(x + jx).toFixed(1)},${y})`);
+      exhaust.textContent = "";
+      for(let i = 0; i < 3; i++)
+        tsvg("line", { x1: x - 1.6 + i * 1.6, y1: y + 6 + (i % 2), x2: x - 1.6 + i * 1.6,
+                       y2: y + 7.2 + (i % 2) + p * 2.4, opacity: ((.2 + p * .7) * (1 - i * .22)).toFixed(2) }, exhaust);
+      requestAnimationFrame(step);
+      return;
     }
-    overlay.setAttribute("opacity", Math.max(0, (t - .45) / .55).toFixed(2));
+    const t = Math.min(1, (el - IGN) / ASC);
+    const rise = t * t * 240;                             // ease-in で加速上昇
+    const rx = x + rise * .12, ry = y - rise;
+    rg.setAttribute("transform", `translate(${rx.toFixed(1)},${ry.toFixed(1)})`);
+    /* 噴射: 速度に応じて伸びる金の尾 + 切れた排気が点々と残る */
+    exhaust.textContent = "";
+    tsvg("line", { x1: rx, y1: ry + 6, x2: rx, y2: ry + 9 + t * 13, "stroke-width": 1.8, opacity: .9 }, exhaust);
+    for(let i = 1; i <= 3; i++){
+      const ey = ry + 12 + t * 15 + i * 6 + (el * .04) % 6;
+      if(ey < y + 8) tsvg("line", { x1: rx, y1: ey, x2: rx, y2: ey + 2.5,
+                                    opacity: Math.max(0, .7 - i * .22).toFixed(2) }, exhaust);
+    }
+    overlay.setAttribute("opacity", Math.min(1, Math.max(0, (t - .35) / .5)).toFixed(2));
+    /* 暗転の中を胡粉の光条が下へ流れる（数は控えめ・発光は足さない） */
+    streaks.textContent = "";
+    if(t > .45){
+      const q = (t - .45) / .55;
+      for(let i = 0; i < 7; i++){
+        const sx = (i * 521 + 130) % (TMAP_W * 3);        // 決定的な散らし（乱数は使わない）
+        const len = (6 + q * 24) * (.55 + (i % 3) * .3);
+        const sy = ((i * 97) % TMAP_H + q * q * TMAP_H * 1.6) % TMAP_H;
+        tsvg("line", { x1: sx, y1: sy, x2: sx, y2: sy + len, "stroke-width": .8,
+                       opacity: ((.1 + q * .35) * (1 - i * .06)).toFixed(2) }, streaks);
+      }
+    }
     if(t < 1) requestAnimationFrame(step);
     else openTour({ space: true, enter: true });          // 星屑がフェードインして宇宙地図へ
   };

@@ -86,7 +86,7 @@ async function main(){
 
   /* ── 3. rocket at Kennedy Space Center ─────────────────────────────── */
   {
-    const { window, document, testErrors } = await boot();
+    const { window, document, testErrors, pumpFrame } = await boot();
     window.openTour();
     assert(!document.querySelector("#tmap #tlaunchpad"), "locked: no rocket on the map");
     assert(document.querySelectorAll("#tmap g[data-seq]").length === 8, "earth map keeps its 8 nodes");
@@ -99,6 +99,14 @@ async function main(){
     assert(document.querySelectorAll("#tmap g[data-seq]").length === 8, "launchpad must not add data-seq nodes");
     // 出発カードは解禁だけでは出ない（完走まで入口は地図の 🚀 のみ）
     assert(!document.querySelector('#tourvols .vcard[data-vol="S"]'), "unlocked but not done: no hidden-stage depart card");
+    // 発射演出: タップ直後は切り替わらず（点火→上昇が挟まる）、時間が経ってから宇宙地図へ
+    window.eval("tourLaunch()");
+    assert(window.eval("tourMode") === "earth", "launch: no instant switch — lift-off plays first");
+    pumpFrame();                                  // 点火フレーム
+    assert(window.eval("tourMode") === "earth", "launch: still on earth during ignition");
+    window.eval("const __n = performance.now(); performance.now = () => __n + 5000;");
+    pumpFrame();                                  // 時間経過 → 上昇完了
+    assert(window.eval("tourMode") === "space", "launch completes into the star map");
     if(testErrors.length) fail("script errors:\n" + testErrors.join("\n---\n"));
     console.log("[space] KSC rocket OK (hidden when locked, pulsing when unlocked)");
   }
