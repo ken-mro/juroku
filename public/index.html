@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.19-1</title>
+<title>十六 JŪROKU v2026.08.26-1</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -4211,14 +4211,15 @@ function renderTourVols(){
     b.onclick = () => openTour({ vol: v.vol });
     wrap.appendChild(b);
   }
-  /* 隠しステージ（全曲 EXTREME クリアで出現）。主な入口は地図の 🚀、これは控えめな副入口 */
-  if(tourSpaceUnlocked()){
+  /* 隠しステージの出発カードは完走するまで出さない（解禁直後の入口は地図の 🚀 のみ）。
+     完走後の再入場用の控えめな副入口 */
+  if(tourSpaceDone()){
     const b = document.createElement("button");
     b.type = "button";
     b.className = "vcard";
     b.dataset.vol = "S";
     b.innerHTML = `<div class="eyebrow"></div><div class="vt"></div><div class="vs"></div><div class="vd"></div>`;
-    b.querySelector(".eyebrow").textContent = "World Tour · Hidden Stage";
+    b.querySelector(".eyebrow").textContent = "World Tour · Universe";
     b.querySelector(".vt").textContent = "🚀 " + TOUR_SPACE.title;
     const n = TOUR_SPACE.tracks.filter(x => tourIsCleared(x.id)).length;
     b.querySelector(".vs").textContent = `${n} / ${TOUR_SPACE.tracks.length}` + (tourSpaceDone() ? " · " + t("done_badge") : "") + t("open_map");

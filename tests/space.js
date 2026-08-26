@@ -97,6 +97,8 @@ async function main(){
     assert(pad.querySelector(".tnext-ring"), "rocket has the gold pulse before completion");
     assert(pad.textContent.includes("🚀"), "pad shows the rocket emoji");
     assert(document.querySelectorAll("#tmap g[data-seq]").length === 8, "launchpad must not add data-seq nodes");
+    // 出発カードは解禁だけでは出ない（完走まで入口は地図の 🚀 のみ）
+    assert(!document.querySelector('#tourvols .vcard[data-vol="S"]'), "unlocked but not done: no hidden-stage depart card");
     if(testErrors.length) fail("script errors:\n" + testErrors.join("\n---\n"));
     console.log("[space] KSC rocket OK (hidden when locked, pulsing when unlocked)");
   }
@@ -246,6 +248,12 @@ async function main(){
     document.getElementById("tearthmap").click();
     const pad = document.querySelector("#tmap #tlaunchpad");
     assert(pad && !pad.querySelector(".tnext-ring"), "after completion the rocket stays as a calm re-entry point");
+    // 出発カードは完走後にだけ現れ、名称は World Tour · Universe
+    window.eval("renderTourVols()");        // 実プレーでは tourOnFinish() が再描画する
+    const card = document.querySelector('#tourvols .vcard[data-vol="S"]');
+    assert(card, "done: hidden-stage depart card appears");
+    assert(card.querySelector(".eyebrow").textContent === "World Tour · Universe", "card eyebrow reads World Tour · Universe");
+    assert(card.textContent.includes("10 / 10"), "card shows full progress");
     if(testErrors.length) fail("script errors during completion:\n" + testErrors.join("\n---\n"));
     console.log("[space] completion OK (COMPLETE header, gold stars, rocket remains)");
   }
