@@ -2,9 +2,10 @@
 "use strict";
 /* tests/audio.js — クライアントの音源取得（fetchAudio）のフォールバック
  *
- * Suno CDN（cdn1.suno.ai）が直接読めない場合（CORS ヘッダの欠落・ホットリンク遮断・
- * 一時的な 403）に、同一オリジンの中継 /api/audio?id=… で 1 度だけやり直すこと、
- * それ以外の URL では勝手に中継を使わないことを確認する。
+ * Suno は .mp3 を署名付き URL 必須（403 MissingKey）にしたため、直接取得が
+ * 失敗したら .mp4（動画・署名不要・CORS 可）を直接、それでも駄目なら同一オリジンの
+ * 中継 /api/audio?id=… の順にやり直すこと、それ以外の URL では勝手に別経路を
+ * 使わないことを確認する。
  */
 const fs = require("fs");
 const path = require("path");
@@ -18,10 +19,11 @@ const { window, testErrors } = buildEnv(html);
 
 /* 起動直後の同期（/api/me など）が同じ fetch スタブを共有するため、
    このテストが見るのは音源系の URL だけに絞る。 */
-const MINE = u => u === CDN || u === PROXY || /example\.com/.test(u);
+const MINE = u => u === CDN || u === VID || u === PROXY || /example\.com/.test(u);
 
 const ID = "029ecb48-dd9c-4fd6-b4e3-f1738c592766";
 const CDN = `https://cdn1.suno.ai/${ID}.mp3`;
+const VID = `https://cdn1.suno.ai/${ID}.mp4`;
 const PROXY = "/api/audio?id=" + ID;
 
 /* fetchAudioStream が読める最小のレスポンス（ストリーム非対応の経路を通す） */
@@ -47,7 +49,24 @@ async function main(){
     console.log("[audio] 直接取得 OK（中継なし・キャッシュ）");
   }
 
-  /* 直接取得が例外（CORS 遮断はネットワークエラーになる）→ 中継でやり直す */
+  /* .mp3 が 403（署名必須化）→ .mp4 を直接取得できれば中継は使わない */
+  {
+    clearCache();
+    const buf = new ArrayBuffer(6);
+    const calls = [];
+    window.fetch = async u => {
+      if(MINE(String(u))) calls.push(String(u));
+      if(String(u) === VID) return mkRes(buf);
+      return { ok: false, status: 403, headers: { get: () => null } };   // .mp3 は MissingKey
+    };
+    const ab = await window.fetchAudio(CDN);
+    assert(ab === buf, ".mp4 直の結果を返す");
+    assert(calls.length === 2 && calls[0] === CDN && calls[1] === VID,
+      ".mp3 失敗 → .mp4 直で復旧（中継は使わない）: " + JSON.stringify(calls));
+    console.log("[audio] .mp3 403 → .mp4 直 OK（中継なし）");
+  }
+
+  /* .mp3 も .mp4 も駄目（CORS 遮断など）→ 同一オリジンの中継でやり直す */
   {
     clearCache();
     const buf = new ArrayBuffer(4);
@@ -59,36 +78,22 @@ async function main(){
     };
     const ab = await window.fetchAudio(CDN);
     assert(ab === buf, "中継の結果を返す");
-    assert(calls.length === 2 && calls[1] === PROXY, "CDN 失敗後に中継を 1 度だけ試す: " + JSON.stringify(calls));
+    assert(calls.join("→") === [CDN, VID, PROXY].join("→"),
+      ".mp3 → .mp4 直 → 中継 の順に試す: " + JSON.stringify(calls));
     console.log("[audio] CORS/ネットワーク失敗 → 中継 OK");
   }
 
-  /* 直接取得が 403（ホットリンク遮断）→ 中継でやり直す */
-  {
-    clearCache();
-    const buf = new ArrayBuffer(4);
-    const calls = [];
-    window.fetch = async u => {
-      if(MINE(String(u))) calls.push(String(u));
-      if(String(u) === PROXY) return mkRes(buf);
-      return { ok: false, status: 403, headers: { get: () => null } };
-    };
-    const ab = await window.fetchAudio(CDN);
-    assert(ab === buf, "403 でも中継の結果を返す");
-    assert(calls[1] === PROXY, "403 の後に中継を試す: " + JSON.stringify(calls));
-    console.log("[audio] 403 → 中継 OK");
-  }
-
-  /* 中継も失敗（静的配信のみで API が無い等）→ 元の失敗として投げる */
+  /* すべて失敗（静的配信のみで API が無い等）→ 最初の失敗として投げる */
   {
     clearCache();
     const calls = [];
     window.fetch = async u => { if(MINE(String(u))) calls.push(String(u)); throw new TypeError("Failed to fetch"); };
     let threw = null;
     try{ await window.fetchAudio(CDN); }catch(e){ threw = e; }
-    assert(threw, "両方失敗したら例外");
-    assert(calls.length === 2, "中継のやり直しは 1 度だけ: " + JSON.stringify(calls));
-    console.log("[audio] 両方失敗 → 例外 OK");
+    assert(threw, "全滅したら例外");
+    assert(calls.join("→") === [CDN, VID, PROXY].join("→"),
+      "候補は .mp3 → .mp4 直 → 中継 の 3 つだけ: " + JSON.stringify(calls));
+    console.log("[audio] 全滅 → 例外 OK");
   }
 
   /* Suno CDN 以外の URL では中継を使わない */

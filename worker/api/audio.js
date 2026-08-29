@@ -8,8 +8,12 @@
  *
  * 取得順:
  *   1. https://cdn1.suno.ai/{id}.mp3       — 署名が不要だった頃の URL（戻った時のため）
- *   2. https://audiopipe.suno.ai/?item_id= — Suno のストリーミング入口
+ *   2. https://cdn1.suno.ai/{id}.mp4       — 同じ曲の動画。署名不要で音声トラックを含む（本命）
  *   3. https://suno.com/song/{id} のページに埋め込まれた audio_url（署名付き URL が入る）
+ *
+ * かつて使っていた audiopipe.suno.ai は、いまは 200 を返しつつ本文が空
+ * （content-length も無い chunked）になり、「デコードできない音声」として
+ * 素通りしてしまうため外した。動画 URL(.mp4)がその役目を確実に果たす。
  *
  * - 秘密情報も KV も使わないため、同期が未構成（Secret 未設定）でも動く。
  * - id は Suno の曲 ID（UUID）に限定する。任意 URL は受けない
@@ -59,13 +63,16 @@ async function tryFetch(fn){
   try{ const res = await fn(); return res && res.ok ? res : null; }
   catch(_){ return null; }
 }
-/* 200 でもエラーページ（HTML/XML）が返ることがある。音声として通すのは
-   content-type が明らかに文書でないものだけ。 */
+/* 200 でもエラーページ（HTML/XML）や中身の無い応答が返ることがある。音声として
+   通すのは content-type が明らかに文書でなく、かつ空でない（content-length が 0 でない）
+   ものだけ。 */
 async function tryFetchAudio(fn){
   const res = await tryFetch(fn);
   if(!res) return null;
   const ct = (res.headers.get("content-type") || "").toLowerCase();
-  return /html|xml|json/.test(ct) ? null : res;
+  if(/html|xml|json/.test(ct)) return null;
+  if(res.headers.get("content-length") === "0") return null;
+  return res;
 }
 
 export async function onRequestGet({ request, ctx }){
@@ -82,7 +89,7 @@ export async function onRequestGet({ request, ctx }){
 
   let up =
     await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp3`)) ||
-    await tryFetchAudio(() => fetch(`https://audiopipe.suno.ai/?item_id=${id}`));
+    await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp4`));
   if(!up){
     const page = await tryFetch(() => fetch(`https://suno.com/song/${id}`,
       { headers: { accept: "text/html" } }));
