@@ -246,7 +246,89 @@ async function main(){
     console.log("[api] logout OK");
   }
 
-  console.log("[api] PASS — OAuth 検証・認証ガード・併合保存・削除");
+  /* ══ audio.js（音源の中継 — 署名付き URL 化した Suno CDN 向けフォールバック） ══ */
+  {
+    const A = await import(F("api/audio.js"));
+    const ID = "029ecb48-dd9c-4fd6-b4e3-f1738c592766";
+    const CDN = `https://cdn1.suno.ai/${ID}.mp3`;
+    const PIPE = `https://audiopipe.suno.ai/?item_id=${ID}`;
+    const PAGE = `https://suno.com/song/${ID}`;
+    const SIGNED = `https://cdn1.suno.ai/${ID}.mp3?Key-Pair-Id=APKTEST&Signature=sig`;
+    const aReq = q => ({ request: req("https://ju-roku.com/api/audio" + q) });
+    const mp3 = () => new Response("MP3BYTES", { status: 200, headers: { "content-type": "audio/mpeg" } });
+    const missingKey = () => new Response("<Error><Code>MissingKey</Code></Error>",
+      { status: 403, headers: { "content-type": "application/xml" } });
+
+    /* 素の CDN URL が生きていればそれだけで返す。Secret も KV も要らない（env 無しで動く）。 */
+    let calls = [];
+    globalThis.fetch = async url => { calls.push(String(url)); return mp3(); };
+    const ok = await A.onRequestGet(aReq("?id=" + ID));
+    assert(ok.status === 200, "audio: 正常系は 200（got " + ok.status + "）");
+    assert(calls.length === 1 && calls[0] === CDN, "audio: まず素の CDN URL: " + JSON.stringify(calls));
+    assert(ok.headers.get("content-type") === "audio/mpeg", "audio: content-type を引き継ぐ");
+    assert(/public/.test(ok.headers.get("cache-control") || ""), "audio: キャッシュ可で返す");
+    assert(await ok.text() === "MP3BYTES", "audio: 本文をそのまま返す");
+
+    /* CDN が 403 MissingKey → audiopipe でやり直す */
+    calls = [];
+    globalThis.fetch = async url => { calls.push(String(url));
+      return String(url) === PIPE ? mp3() : missingKey(); };
+    assert((await A.onRequestGet(aReq("?id=" + ID))).status === 200, "audio: audiopipe で復旧する");
+    assert(calls.length === 2 && calls[1] === PIPE, "audio: CDN 403 → audiopipe: " + JSON.stringify(calls));
+
+    /* audiopipe も駄目 → 曲ページから署名付き audio_url を拾って取得する
+       （埋め込み JSON は \" と \/ と & でエスケープされている） */
+    const pageHtml = '<html><script>self.push("{\\"id\\":\\"' + ID + '\\",' +
+      '\\"audio_url\\":\\"https:\\/\\/cdn1.suno.ai\\/' + ID + '.mp3?Key-Pair-Id=APKTEST\\u0026Signature=sig\\"}")</script></html>';
+    calls = [];
+    globalThis.fetch = async url => { calls.push(String(url));
+      const u = String(url);
+      if(u === PAGE) return new Response(pageHtml, { status: 200, headers: { "content-type": "text/html" } });
+      if(u === SIGNED) return mp3();
+      return missingKey(); };
+    const viaPage = await A.onRequestGet(aReq("?id=" + ID.toUpperCase()));   // 大文字 ID も受ける
+    assert(viaPage.status === 200, "audio: ページの audio_url で復旧する（got " + viaPage.status + "）");
+    assert(calls.join("→") === [CDN, PIPE, PAGE, SIGNED].join("→"),
+      "audio: CDN → audiopipe → ページ → 署名付き URL の順: " + JSON.stringify(calls));
+
+    /* ページの audio_url が Suno 以外を指していたら従わない（オープンプロキシにしない） */
+    calls = [];
+    globalThis.fetch = async url => { calls.push(String(url));
+      return String(url) === PAGE
+        ? new Response('{"audio_url":"https://evil.example/a.mp3"}', { status: 200, headers: { "content-type": "text/html" } })
+        : missingKey(); };
+    assert((await A.onRequestGet(aReq("?id=" + ID))).status === 502, "audio: Suno 以外の audio_url は 502");
+    assert(!calls.some(u => u.includes("evil.example")), "audio: Suno 以外へ取りに行ってはいけない: " + JSON.stringify(calls));
+
+    /* 200 でも HTML が返ったら音声として通さない（エラーページ対策） */
+    globalThis.fetch = async url => String(url) === PAGE
+      ? new Response("<html>no audio_url here</html>", { status: 200, headers: { "content-type": "text/html" } })
+      : new Response("<html>err</html>", { status: 200, headers: { "content-type": "text/html" } });
+    assert((await A.onRequestGet(aReq("?id=" + ID))).status === 502, "audio: 200 の HTML は音声として通さない");
+
+    /* UUID 以外は 400 で、外へは一切取りに行かない */
+    calls = [];
+    globalThis.fetch = async url => { calls.push(String(url)); return mp3(); };
+    for(const q of ["", "?id=", "?id=abc", "?id=" + ID + "x",
+                    "?id=..%2F..%2Fetc", "?id=https%3A%2F%2Fevil.example%2Fa.mp3"]){
+      const bad = await A.onRequestGet(aReq(q));
+      assert(bad.status === 400, `audio: 不正な id（${q}）は 400（got ${bad.status}）`);
+    }
+    assert(calls.length === 0, "audio: 不正な id で外部へ取りに行ってはいけない");
+
+    /* 全て到達不能でも 502 で返る（例外を漏らさない） */
+    globalThis.fetch = async () => { throw new Error("net down"); };
+    assert((await A.onRequestGet(aReq("?id=" + ID))).status === 502, "audio: 全滅は 502");
+
+    /* extractAudioUrl 単体: 素の JSON とエスケープ済み JSON の両方から拾える */
+    assert(A.extractAudioUrl('{"audio_url":"' + SIGNED.replace("&", "\\u0026") + '"}') === SIGNED, "extract: 素の JSON");
+    assert(A.extractAudioUrl('x\\"audio_url\\":\\"https:\\/\\/cdn1.suno.ai\\/a.mp3\\"') === "https://cdn1.suno.ai/a.mp3", "extract: エスケープ済み JSON");
+    assert(A.extractAudioUrl('{"audio_url":"https://evil.example/a.mp3"}') === "", "extract: Suno 以外は捨てる");
+    assert(A.extractAudioUrl("no urls here") === "", "extract: 無ければ空文字");
+    console.log("[api] audio OK (CDN → audiopipe → ページ / ID 検証 / ドメイン制限 / 全滅 502)");
+  }
+
+  console.log("[api] PASS — OAuth 検証・認証ガード・併合保存・削除・音源中継");
   process.exit(0);
 }
 main().catch(e => fail((e && e.stack) || String(e)));

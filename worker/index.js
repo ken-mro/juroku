@@ -12,6 +12,7 @@ import * as callback from "./api/auth/callback.js";
 import * as logout from "./api/auth/logout.js";
 import * as me from "./api/me.js";
 import * as sync from "./api/sync.js";
+import * as audio from "./api/audio.js";
 
 const ROUTES = {
   "/api/auth/login": login,
@@ -19,6 +20,7 @@ const ROUTES = {
   "/api/auth/logout": logout,
   "/api/me": me,
   "/api/sync": sync,
+  "/api/audio": audio,
 };
 
 /* GET → onRequestGet のように、メソッドごとの関数名に直す。
