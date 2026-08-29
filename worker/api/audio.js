@@ -1,34 +1,97 @@
 /* 音源の中継（フォールバック）。
  *
- * ブラウザが cdn1.suno.ai を直接読めないことがある（CORS ヘッダの欠落・
- * ホットリンク遮断・一時的な 403 など、Suno 側の配信設定に依存する）。
- * その場合にクライアントが同一オリジンの /api/audio?id=<曲ID> へやり直し、
- * この Worker がサーバー側で取得して返す。サーバー間の取得には CORS が無い。
+ * Suno は cdn1.suno.ai を CloudFront の署名付き URL 必須に変更した
+ * （素の /{id}.mp3 は 403 <Error><Code>MissingKey</Code>…）。ブラウザからの
+ * 直接取得はもう当てにできないため、クライアントが同一オリジンの
+ * /api/audio?id=<曲ID> へやり直し、この Worker がサーバー側で
+ * 「いま有効な音源 URL」を見つけて取得し、返す。
+ *
+ * 取得順:
+ *   1. https://cdn1.suno.ai/{id}.mp3       — 署名が不要だった頃の URL（戻った時のため）
+ *   2. https://audiopipe.suno.ai/?item_id= — Suno のストリーミング入口
+ *   3. https://suno.com/song/{id} のページに埋め込まれた audio_url（署名付き URL が入る）
  *
  * - 秘密情報も KV も使わないため、同期が未構成（Secret 未設定）でも動く。
  * - id は Suno の曲 ID（UUID）に限定する。任意 URL は受けない
- *   （オープンプロキシにしない）。
- * - Cloudflare のエッジキャッシュに 1 日載せ、同じ曲の取得で
- *   毎回 Suno へ行かないようにする。
+ *   （オープンプロキシにしない）。ページから拾った audio_url も
+ *   Suno のドメイン（*.suno.ai / *.suno.com）以外なら捨てる。
+ * - 成功した応答は Cache API で 1 日キャッシュし、同じ曲の取得で
+ *   毎回 Suno へ行かないようにする（署名付き URL は短命なので、
+ *   URL ではなく音声データの方をキャッシュする）。
  */
 
 const ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SUNO_HOST_RE = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.suno\.(ai|com)\//i;
 
 const jerr = (error, status) => new Response(JSON.stringify({ error }),
   { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
-export async function onRequestGet({ request }){
+/* ページの HTML から audio_url の値を取り出す。埋め込み JSON は素の
+   `"audio_url":"https://…"` の形でも、文字列内にさらにエスケープされた
+   `\"audio_url\":\"https:\/\/…\"` の形でも現れるため、`audio_url` の直後から
+   https: を見つけて「エスケープを解きながら引用符まで」を読む。 */
+export function extractAudioUrl(html){
+  const re = /audio_url/g;
+  let m;
+  while((m = re.exec(html))){
+    const start = html.indexOf("https:", m.index);
+    if(start < 0) break;
+    if(start - m.index > 16) continue;          // audio_url\":\" 程度の距離に無ければ別物
+    let u = "", i = start;
+    while(i < html.length){
+      const c = html[i];
+      if(c === '"' || c === "'" || c === "<" || c === " ") break;
+      if(c === "\\"){
+        const n = html[i + 1];
+        if(n === "/"){ u += "/"; i += 2; continue; }
+        if(n === "u"){ const h = html.slice(i + 2, i + 6);
+          if(/^[0-9a-f]{4}$/i.test(h)){ u += String.fromCharCode(parseInt(h, 16)); i += 6; continue; } }
+        break;                                   // \" ＝文字列の終端
+      }
+      u += c; i++;
+    }
+    if(SUNO_HOST_RE.test(u)) return u;
+  }
+  return "";
+}
+
+async function tryFetch(fn){
+  try{ const res = await fn(); return res && res.ok ? res : null; }
+  catch(_){ return null; }
+}
+/* 200 でもエラーページ（HTML/XML）が返ることがある。音声として通すのは
+   content-type が明らかに文書でないものだけ。 */
+async function tryFetchAudio(fn){
+  const res = await tryFetch(fn);
+  if(!res) return null;
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  return /html|xml|json/.test(ct) ? null : res;
+}
+
+export async function onRequestGet({ request, ctx }){
   const id = (new URL(request.url).searchParams.get("id") || "").toLowerCase();
   if(!ID_RE.test(id)) return jerr("bad_id", 400);
 
-  let up;
-  try{
-    up = await fetch(`https://cdn1.suno.ai/${id}.mp3`,
-      { cf: { cacheEverything: true, cacheTtl: 86400 } });
-  }catch(_){
-    return jerr("upstream_unreachable", 502);
+  /* エッジキャッシュ（成功時のみ put する） */
+  const cache = (globalThis.caches && globalThis.caches.default) || null;
+  const cacheKey = new Request(new URL("/api/audio?id=" + id, request.url), { method: "GET" });
+  if(cache){
+    const hit = await cache.match(cacheKey);
+    if(hit) return hit;
   }
-  if(!up.ok) return jerr("upstream_" + up.status, up.status === 404 ? 404 : 502);
+
+  let up =
+    await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp3`)) ||
+    await tryFetchAudio(() => fetch(`https://audiopipe.suno.ai/?item_id=${id}`));
+  if(!up){
+    const page = await tryFetch(() => fetch(`https://suno.com/song/${id}`,
+      { headers: { accept: "text/html" } }));
+    if(page){
+      const u = extractAudioUrl(await page.text());
+      if(u) up = await tryFetchAudio(() => fetch(u));
+    }
+  }
+  if(!up) return jerr("upstream_failed", 502);
 
   const h = new Headers({
     "content-type": up.headers.get("content-type") || "audio/mpeg",
@@ -36,5 +99,10 @@ export async function onRequestGet({ request }){
   });
   const len = up.headers.get("content-length");
   if(len) h.set("content-length", len);
-  return new Response(up.body, { status: 200, headers: h });
+  const res = new Response(up.body, { status: 200, headers: h });
+  if(cache){
+    const put = cache.put(cacheKey, res.clone());
+    if(ctx && ctx.waitUntil) ctx.waitUntil(put);
+  }
+  return res;
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.29</title>
+<title>十六 JŪROKU v2026.08.29-2</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -2814,6 +2814,9 @@ function probeDuration(tr){
     if(tr.kind === "file" && tr.ab){
       a.src = URL.createObjectURL(new Blob([tr.ab], { type:"audio/mpeg" }));
     }else if(tr.url){
+      /* Suno CDN が直接読めない場合は中継でやり直す（fetchAudio と同じ理由） */
+      const id = sunoAudioId(tr.url);
+      if(id) a.onerror = () => { a.onerror = null; a.src = "/api/audio?id=" + id; };
       a.src = tr.url;
     }
   }catch(e){}
@@ -2898,7 +2901,18 @@ function togglePreview(tr){
     syncPreviewIcons();
   };
   a.onended    = () => stopPreview();              // 最後まで流し切ったら解除
-  a.onerror    = () => { showPreviewError(tr); stopPreview(); };
+  /* Suno CDN が直接読めない場合は中継で 1 度だけやり直す（fetchAudio と同じ理由） */
+  const proxyId = sunoAudioId(tr.url);
+  let triedProxy = false;
+  a.onerror    = () => {
+    if(proxyId && !triedProxy){
+      triedProxy = true;
+      a.src = "/api/audio?id=" + proxyId;
+      a.play().catch(() => stopPreview());
+      return;
+    }
+    showPreviewError(tr); stopPreview();
+  };
   a.onwaiting  = () => busy(true);
   a.onstalled  = () => busy(true);
   a.onplaying  = () => busy(false);
@@ -3154,8 +3168,9 @@ const sunoAudioId = url => {
 /* 音源の取得だけを行う。audioCache にあれば即返す。onProgress(got, total) は
    ストリーム読取中に呼ばれる（total は content-length、不明なら 0）。
    通常の読み込み画面（loadRemote）とツアーの飛行演出の両方から使う。
-   Suno CDN を直接読めない場合（CORS ヘッダの欠落・ホットリンク遮断・一時的な 403）は、
-   同一オリジンの中継 /api/audio?id=… で 1 度だけやり直す（worker/api/audio.js）。
+   Suno CDN を直接読めない場合（署名付き URL 必須化＝403 MissingKey、CORS 遮断など）は、
+   同一オリジンの中継 /api/audio?id=… で 1 度だけやり直す（worker/api/audio.js が
+   サーバー側で現在有効な音源 URL を見つけて返す）。
    静的配信のみ（API 無し）の環境では中継が 404 を返すので、元の失敗として扱われる。 */
 async function fetchAudio(url, onProgress){
   let ab = audioCache.get(url);
