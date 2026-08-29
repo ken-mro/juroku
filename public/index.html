@@ -2814,10 +2814,11 @@ function probeDuration(tr){
     if(tr.kind === "file" && tr.ab){
       a.src = URL.createObjectURL(new Blob([tr.ab], { type:"audio/mpeg" }));
     }else if(tr.url){
-      /* Suno CDN が直接読めない場合は中継でやり直す（fetchAudio と同じ理由） */
-      const id = sunoAudioId(tr.url);
-      if(id) a.onerror = () => { a.onerror = null; a.src = "/api/audio?id=" + id; };
-      a.src = tr.url;
+      /* .mp3 が読めない時は .mp4 直→同一オリジンの中継の順にやり直す（fetchAudio と同じ理由） */
+      const srcs = audioSources(tr.url);
+      let si = 0;
+      if(srcs.length > 1) a.onerror = () => { if(++si < srcs.length) a.src = srcs[si]; };
+      a.src = srcs[0];
     }
   }catch(e){}
 }
@@ -2891,7 +2892,6 @@ function togglePreview(tr){
   if(previewUrl === tr.url){ stopPreview(); return; }
   stopPreview();
   const a = new Audio();
-  a.src = tr.url;
   a.preload = "auto";
   /* 読み込み状態の遷移。実際に音が出た時点(playing)で解除し、
      途中でバッファ切れ(waiting/stalled)したら再び表示する。 */
@@ -2900,19 +2900,17 @@ function togglePreview(tr){
     previewLoading = v;
     syncPreviewIcons();
   };
-  a.onended    = () => stopPreview();              // 最後まで流し切ったら解除
-  /* Suno CDN が直接読めない場合は中継で 1 度だけやり直す（fetchAudio と同じ理由） */
-  const proxyId = sunoAudioId(tr.url);
-  let triedProxy = false;
-  a.onerror    = () => {
-    if(proxyId && !triedProxy){
-      triedProxy = true;
-      a.src = "/api/audio?id=" + proxyId;
-      a.play().catch(() => stopPreview());
-      return;
-    }
-    showPreviewError(tr); stopPreview();
+  /* .mp3 が読めない時は .mp4 直→同一オリジンの中継の順にやり直す（fetchAudio と同じ理由）。
+     src が駄目なら play() の Promise が reject するので、それを合図に次の候補へ進む
+     （最初の候補で即 stopPreview してしまうと後続のやり直しが消える）。 */
+  const srcs = audioSources(tr.url);
+  const tryAt = i => {
+    if(previewEl !== a) return;                    // 既に停止/別の曲へ切替わっていたら何もしない
+    if(i >= srcs.length){ showPreviewError(tr); stopPreview(); return; }
+    a.src = srcs[i];
+    a.play().catch(() => tryAt(i + 1));            // この候補が鳴らなければ次を試す
   };
+  a.onended    = () => stopPreview();              // 最後まで流し切ったら解除
   a.onwaiting  = () => busy(true);
   a.onstalled  = () => busy(true);
   a.onplaying  = () => busy(false);
@@ -2924,7 +2922,7 @@ function togglePreview(tr){
   previewEl = a; previewUrl = tr.url; previewLoading = true;   // 押した直後は読み込み中
   syncPreviewIcons();
   syncSeek();
-  a.play().catch(() => stopPreview());
+  tryAt(0);
 }
 
 /* ベスト記録の詳細。旧形式(スコアのみ)の記録は判定内訳を持たないので、
@@ -3165,26 +3163,36 @@ const sunoAudioId = url => {
   const m = /^https:\/\/cdn1\.suno\.ai\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.mp3$/i.exec(url || "");
   return m ? m[1].toLowerCase() : "";
 };
+/* Suno は cdn1.suno.ai/{id}.mp3 を署名付き URL 必須（403 MissingKey）にした。
+   同じ ID の動画 URL(.mp4)は署名不要で CORS も開いており、その音声トラックは
+   decodeAudioData / <audio> でそのまま再生・解析できる（現状で唯一確実な取得先）。 */
+const SUNO_VID = id => `https://cdn1.suno.ai/${id}.mp4`;
+/* Suno の曲 URL に対する取得先の候補（前から順に試す）。曲 URL 以外は 1 つだけ。
+   1. 元の .mp3（署名が不要に戻った時のため）
+   2. .mp4 を直接（CORS 可・確実。静的配信のみの環境でもここまでで足りる）
+   3. 同一オリジンの中継 /api/audio（直接取得が塞がれた時の最後の砦。API が無ければ失敗） */
+const audioSources = url => {
+  const id = sunoAudioId(url);
+  return id ? [url, SUNO_VID(id), "/api/audio?id=" + id] : [url];
+};
 /* 音源の取得だけを行う。audioCache にあれば即返す。onProgress(got, total) は
    ストリーム読取中に呼ばれる（total は content-length、不明なら 0）。
    通常の読み込み画面（loadRemote）とツアーの飛行演出の両方から使う。
    Suno CDN を直接読めない場合（署名付き URL 必須化＝403 MissingKey、CORS 遮断など）は、
-   同一オリジンの中継 /api/audio?id=… で 1 度だけやり直す（worker/api/audio.js が
-   サーバー側で現在有効な音源 URL を見つけて返す）。
-   静的配信のみ（API 無し）の環境では中継が 404 を返すので、元の失敗として扱われる。 */
+   audioSources の候補（.mp4 直→同一オリジンの中継 /api/audio?id=…）を順にやり直す。
+   キャッシュのキーは実際に成功した取得先ではなく、常に元の URL のままにする。 */
 async function fetchAudio(url, onProgress){
   let ab = audioCache.get(url);
   if(ab) return ab;
-  try{
-    ab = await fetchAudioStream(url, onProgress);
-  }catch(e){
-    const id = sunoAudioId(url);
-    if(!id) throw e;
-    try{ ab = await fetchAudioStream("/api/audio?id=" + id, onProgress); }
-    catch(_){ throw e; }
+  let firstErr;
+  for(const src of audioSources(url)){
+    try{
+      ab = await fetchAudioStream(src, onProgress);
+      audioCache.set(url, ab);
+      return ab;
+    }catch(e){ if(firstErr === undefined) firstErr = e; }
   }
-  audioCache.set(url, ab);
-  return ab;
+  throw firstErr;
 }
 async function fetchAudioStream(url, onProgress){
   const res = await fetch(url);
