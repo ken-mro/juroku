@@ -246,7 +246,48 @@ async function main(){
     console.log("[api] logout OK");
   }
 
-  console.log("[api] PASS — OAuth 検証・認証ガード・併合保存・削除");
+  /* ══ audio.js（音源の中継 — CDN を直接読めないブラウザ向けフォールバック） ══ */
+  {
+    const A = await import(F("api/audio.js"));
+    const ID = "029ecb48-dd9c-4fd6-b4e3-f1738c592766";
+    const aReq = q => ({ request: req("https://ju-roku.com/api/audio" + q) });
+
+    /* 正常系: cdn1.suno.ai から取得して返す。Secret も KV も要らない（env 無しで動く）。 */
+    let calls = [];
+    globalThis.fetch = async url => { calls.push(String(url));
+      return new Response("MP3BYTES", { status: 200, headers: { "content-type": "audio/mpeg" } }); };
+    const ok = await A.onRequestGet(aReq("?id=" + ID));
+    assert(ok.status === 200, "audio: 正常系は 200（got " + ok.status + "）");
+    assert(calls.length === 1 && calls[0] === `https://cdn1.suno.ai/${ID}.mp3`, "audio: 取得先は cdn1.suno.ai の曲 URL: " + JSON.stringify(calls));
+    assert(ok.headers.get("content-type") === "audio/mpeg", "audio: content-type を引き継ぐ");
+    assert(/public/.test(ok.headers.get("cache-control") || ""), "audio: キャッシュ可で返す");
+    assert(await ok.text() === "MP3BYTES", "audio: 本文をそのまま返す");
+
+    /* 大文字の ID も受け、小文字にして取りに行く */
+    calls = [];
+    await A.onRequestGet(aReq("?id=" + ID.toUpperCase()));
+    assert(calls[0] === `https://cdn1.suno.ai/${ID}.mp3`, "audio: ID は小文字化して取得する: " + calls[0]);
+
+    /* UUID 以外は 400 で、外へは一切取りに行かない（オープンプロキシにしない） */
+    calls = [];
+    for(const q of ["", "?id=", "?id=abc", "?id=" + ID + "x",
+                    "?id=..%2F..%2Fetc", "?id=https%3A%2F%2Fevil.example%2Fa.mp3"]){
+      const bad = await A.onRequestGet(aReq(q));
+      assert(bad.status === 400, `audio: 不正な id（${q}）は 400（got ${bad.status}）`);
+    }
+    assert(calls.length === 0, "audio: 不正な id で外部へ取りに行ってはいけない");
+
+    /* 上流の失敗は包んで返す（404 はそのまま、他は 502。到達不能も 502） */
+    globalThis.fetch = async () => new Response("denied", { status: 403 });
+    assert((await A.onRequestGet(aReq("?id=" + ID))).status === 502, "audio: 上流 403 は 502");
+    globalThis.fetch = async () => new Response("", { status: 404 });
+    assert((await A.onRequestGet(aReq("?id=" + ID))).status === 404, "audio: 上流 404 は 404");
+    globalThis.fetch = async () => { throw new Error("net down"); };
+    assert((await A.onRequestGet(aReq("?id=" + ID))).status === 502, "audio: 上流到達不能は 502");
+    console.log("[api] audio OK (中継 / ID 検証 / 上流エラー)");
+  }
+
+  console.log("[api] PASS — OAuth 検証・認証ガード・併合保存・削除・音源中継");
   process.exit(0);
 }
 main().catch(e => fail((e && e.stack) || String(e)));

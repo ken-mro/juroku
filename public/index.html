@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.26-2</title>
+<title>十六 JŪROKU v2026.08.29</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -3146,12 +3146,32 @@ setTimeout(() => {
 }, 600);
 
 const audioCache = new Map();   // url -> ArrayBuffer
+/* cdn1.suno.ai の曲 URL なら曲 ID を返す（それ以外は "" ＝中継の対象外）。 */
+const sunoAudioId = url => {
+  const m = /^https:\/\/cdn1\.suno\.ai\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.mp3$/i.exec(url || "");
+  return m ? m[1].toLowerCase() : "";
+};
 /* 音源の取得だけを行う。audioCache にあれば即返す。onProgress(got, total) は
    ストリーム読取中に呼ばれる（total は content-length、不明なら 0）。
-   通常の読み込み画面（loadRemote）とツアーの飛行演出の両方から使う。 */
+   通常の読み込み画面（loadRemote）とツアーの飛行演出の両方から使う。
+   Suno CDN を直接読めない場合（CORS ヘッダの欠落・ホットリンク遮断・一時的な 403）は、
+   同一オリジンの中継 /api/audio?id=… で 1 度だけやり直す（worker/api/audio.js）。
+   静的配信のみ（API 無し）の環境では中継が 404 を返すので、元の失敗として扱われる。 */
 async function fetchAudio(url, onProgress){
   let ab = audioCache.get(url);
   if(ab) return ab;
+  try{
+    ab = await fetchAudioStream(url, onProgress);
+  }catch(e){
+    const id = sunoAudioId(url);
+    if(!id) throw e;
+    try{ ab = await fetchAudioStream("/api/audio?id=" + id, onProgress); }
+    catch(_){ throw e; }
+  }
+  audioCache.set(url, ab);
+  return ab;
+}
+async function fetchAudioStream(url, onProgress){
   const res = await fetch(url);
   if(!res.ok) throw new Error(res.status);
   const totalH = +(res.headers.get("content-length") || 0);
@@ -3168,12 +3188,9 @@ async function fetchAudio(url, onProgress){
     const merged = new Uint8Array(got);
     let at = 0;
     for(const c of chunks){ merged.set(c, at); at += c.length; }
-    ab = merged.buffer;
-  }else{
-    ab = await res.arrayBuffer();       // ストリーム非対応の環境
+    return merged.buffer;
   }
-  audioCache.set(url, ab);
-  return ab;
+  return res.arrayBuffer();             // ストリーム非対応の環境
 }
 async function loadRemote(tr){
   $("err").hidden = true;
