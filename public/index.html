@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.29-2</title>
+<title>十六 JŪROKU v2026.08.31</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -1120,6 +1120,44 @@ function bestOf(key){
   return (typeof v === "number") ? { s: v } : v;
 }
 const chartCache = new Map();   // key -> {chart}
+
+/* ─── 凍結譜面 ───────────────────────────────
+   Suno CDN の .mp3 が取得不能になり音源を同曲の .mp4（AAC）へ切り替えた結果、
+   デコード波形の微差でシード・オンセットが変わり、生成譜面が mp3 時代と
+   別物になった（実測: Hanabi Fever 229 ノーツ中、完全一致 2 個）。
+   mp3 時代の譜面を tools/freeze-chart.js で全難易度ぶん事前計算して
+   charts/{曲ID}.json に置き、ここで曲 ID から引いて解析をスキップする。
+   mp3/mp4 のデコード波形は同一タイムライン（実測オフセット 0ms）なので
+   mp3 由来の時刻が mp4 再生にそのまま合う。凍結はデコーダ差（端末の
+   サンプルレートやブラウザの AAC 実装）にも影響されない＝全端末で同一譜面。
+   ファイルが無い・読めない・壊れている場合は従来どおり生成へ戻る
+   （オフラインや file:// でもゲームは止めない）。 */
+const frozenCharts = new Map();   // 曲ID -> Promise<JSON|null>
+const trackIdOf = url => {
+  const m = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/.exec(url || "");
+  return m ? m[1] : null;
+};
+function loadFrozenChart(id, diff){
+  if(!frozenCharts.has(id)){
+    frozenCharts.set(id, fetch("charts/" + id + ".json")
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null));
+  }
+  return frozenCharts.get(id).then(data => {
+    try{
+      const rows = data && data.charts && data.charts[diff];
+      if(!Array.isArray(rows) || !rows.length) return null;
+      const off = +data.offset || 0;
+      const chart = [];
+      for(const r of rows){
+        const t = +r[0] + off, panel = r[1]|0;
+        if(!isFinite(t) || panel < 0 || panel > 15) return null;   // 壊れた行 → 凍結を捨てて生成へ
+        chart.push({ t, panel, row: panel>>2, hand: r[2] === "L" ? "L" : "R", judged: 0 });
+      }
+      return chart;
+    }catch(e){ return null; }
+  }).catch(() => null);
+}
 let cur = null;                 // 進行中のプレイ
 let lastSong = null;            // 最後に読み込んだ曲 {name, arrayBuffer} — Quitしても保持
 let lastResult = null;          // 直近の結果 {title, diff, s, a, c, m, n, d}（結果画像用）
@@ -1846,7 +1884,7 @@ let loadBase = 0;
 const setLoad = frac =>
   $("loadbar").style.width = (loadBase + Math.max(0, Math.min(1, frac)) * (100 - loadBase)) + "%";
 
-async function prepare(name, arrayBuffer){
+async function prepare(name, arrayBuffer, srcUrl){
   show("load");
   $("loadt").textContent = name;
   $("loads").textContent = "DECODING";
@@ -1862,6 +1900,18 @@ async function prepare(name, arrayBuffer){
   }catch(e){
     fail(t("err_decode"));
     return null;
+  }
+
+  /* 凍結譜面があれば解析ごとスキップ（詳細は loadFrozenChart のコメント）。
+     曲 ID は音源 URL に含まれる UUID。ローカルファイル等 URL の無い曲は生成へ。 */
+  const tid = trackIdOf(srcUrl);
+  if(tid){
+    const frozen = await loadFrozenChart(tid, difficulty);
+    if(frozen){
+      console.log(`[十六] ${name} / ${difficulty} — ${frozen.length} notes, 凍結譜面 ${tid}`);
+      setLoad(1);
+      return { buffer, chart: frozen };
+    }
   }
 
   $("loads").textContent = "ANALYZING";
@@ -2486,7 +2536,7 @@ async function play(name, arrayBuffer, srcUrl){
 }
 async function playRun(name, arrayBuffer, srcUrl, tour){
   lastSong = { name, arrayBuffer, url: srcUrl || null, tour };
-  const prep = await prepare(name, arrayBuffer);
+  const prep = await prepare(name, arrayBuffer, srcUrl);
   if(!prep) return;
 
   cur = {

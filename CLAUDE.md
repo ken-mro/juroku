@@ -165,6 +165,16 @@ JŪROKU は独自の視覚言語・タイミング提示・判定表現を持つ
 
 - BPM 推定・グリッド量子化は**行わない**。ノーツは生のオンセット位置に置く。
 - シードは音声内容の FNV ハッシュ。**同じ音源からは常に同じ譜面**が出る（決定的）。
+  ただし「同じ音源」はデコード後の PCM の意味なので、コーデック（mp3→mp4/AAC）や
+  端末のサンプルレートが変わると譜面も変わる。実際に音源の mp3→mp4 切替で
+  全収録曲の譜面が変わった。
+- **凍結譜面**: mp3 時代の譜面を `tools/freeze-chart.js`（実 Chromium で mp3 を解析）で
+  全難易度ぶん事前計算して `public/charts/{曲ID}.json` に置く。`prepare()` は音源 URL の
+  UUID からファイルを引き、あれば解析をスキップしてそれを使う（全端末で同一譜面になる）。
+  無い・読めない・壊れている場合は従来どおり生成する。mp3 と mp4 のデコード波形は
+  同一タイムライン（実測オフセット 0ms）なので mp3 由来の時刻は mp4 再生にそのまま合う。
+  凍結を増やすには各曲の mp3 が必要（CDN からはもう取得できない。作者の手元の
+  ダウンロード品を使う）。`node tools/freeze-chart.js <曲ID> <mp3>` で 1 曲ずつ追加。
 - 難易度別パラメータは `DIFF`。`riseFrac`（最小アタック床）と `salFloor`（セクション内
   相対床）が「曲と合っていないノーツ」の抑制を担う。
 - 配置は両手モデル（左手 = 列0-2 / 右手 = 列1-3）。`validate()` が押下可能性を検証する。
@@ -260,6 +270,7 @@ apple-touch-icon と maskable は角丸なしの全面塗り（OS 側でマス�
 node tests/smoke.js      # 起動→カウントイン→判定→ポーズ→再開
 node tests/domtest.js    # jsdom でのDOM構造・スクリプトエラー
 node tests/chart.js      # 既知の音源で譜面が変化していないか（時刻+パネルの完全一致）
+node tests/frozen-chart.js  # 凍結譜面（charts/{曲ID}.json の使用・難易度選択・破損/オフライン時の生成フォールバック）
 node tests/tour.js       # ワールドツアー（データ整合・解放ロジック・地図・finish 連携・失敗経路）
 node tests/tour-import.test.js  # Vol 追加スクリプト（fixture の md == index.html の Vol.1、合成 Vol.2 の挿入）
 node tests/result.js     # 結果画面の段階表示・結果画像（記録の同一性、canvas が例外を出さない、ボタン配線）
