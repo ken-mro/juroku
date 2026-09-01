@@ -4,9 +4,8 @@
  *
  * Suno の曲は同一オリジンの中継 /api/audio?id=… を最優先で使うこと
  * （worker/api/audio.js が R2 の自前 mp3 を返す。全員が同じバイト列を受け取る
- * ことが譜面固定の前提）、中継が使えない環境（静的配信のみ＝API 404 等）では
- * 元 URL の直接取得で 1 度だけやり直すこと、Suno 以外の URL では中継を
- * 使わないことを確認する。
+ * ことが譜面固定の前提）、中継が使えない環境では .mp3 直 → .mp4 直の順に
+ * やり直すこと、Suno 以外の URL では勝手に別経路を使わないことを確認する。
  */
 const fs = require("fs");
 const path = require("path");
@@ -20,10 +19,11 @@ const { window, testErrors } = buildEnv(html);
 
 /* 起動直後の同期（/api/me など）が同じ fetch スタブを共有するため、
    このテストが見るのは音源系の URL だけに絞る。 */
-const MINE = u => u === CDN || u === PROXY || /example\.com/.test(u);
+const MINE = u => u === CDN || u === VID || u === PROXY || /example\.com/.test(u);
 
 const ID = "029ecb48-dd9c-4fd6-b4e3-f1738c592766";
 const CDN = `https://cdn1.suno.ai/${ID}.mp3`;
+const VID = `https://cdn1.suno.ai/${ID}.mp4`;
 const PROXY = "/api/audio?id=" + ID;
 
 /* fetchAudioStream が読める最小のレスポンス（ストリーム非対応の経路を通す） */
@@ -49,10 +49,10 @@ async function main(){
     console.log("[audio] 中継優先 OK（直接取得なし・キャッシュ）");
   }
 
-  /* 中継が使えない（静的配信のみ＝404、通信断など）→ 元 URL でやり直す */
+  /* 中継が使えない（静的配信のみ＝404 等）→ .mp3 直でやり直す */
   {
     clearCache();
-    const buf = new ArrayBuffer(4);
+    const buf = new ArrayBuffer(6);
     const calls = [];
     window.fetch = async u => {
       if(MINE(String(u))) calls.push(String(u));
@@ -60,38 +60,40 @@ async function main(){
       return { ok: false, status: 404, headers: { get: () => null } };
     };
     const ab = await window.fetchAudio(CDN);
-    assert(ab === buf, "直接取得の結果を返す");
-    assert(calls.length === 2 && calls.join("→") === PROXY + "→" + CDN,
-      "中継 404 の後に元 URL を 1 度だけ試す: " + JSON.stringify(calls));
-    console.log("[audio] 中継 404 → 直接取得 OK");
+    assert(ab === buf, ".mp3 直の結果を返す");
+    assert(calls.join("→") === [PROXY, CDN].join("→"),
+      "中継 404 → .mp3 直で復旧: " + JSON.stringify(calls));
+    console.log("[audio] 中継 404 → .mp3 直 OK");
   }
 
-  /* 中継が例外（通信断）でも同じく元 URL でやり直す */
+  /* 中継も .mp3 直も駄目（CORS 遮断など）→ .mp4 直でやり直す */
   {
     clearCache();
     const buf = new ArrayBuffer(4);
     const calls = [];
     window.fetch = async u => {
       if(MINE(String(u))) calls.push(String(u));
-      if(String(u) === CDN) return mkRes(buf);
-      throw new TypeError("Failed to fetch");
+      if(String(u) === VID) return mkRes(buf);
+      throw new TypeError("Failed to fetch");         // ブラウザの CORS 失敗はこの形
     };
     const ab = await window.fetchAudio(CDN);
-    assert(ab === buf, "通信断でも直接取得の結果を返す");
-    assert(calls[1] === CDN, "例外の後に元 URL を試す: " + JSON.stringify(calls));
-    console.log("[audio] 中継の通信断 → 直接取得 OK");
+    assert(ab === buf, ".mp4 直の結果を返す");
+    assert(calls.join("→") === [PROXY, CDN, VID].join("→"),
+      "中継 → .mp3 直 → .mp4 直 の順に試す: " + JSON.stringify(calls));
+    console.log("[audio] 中継・.mp3 失敗 → .mp4 直 OK");
   }
 
-  /* 両方失敗 → 中継側の失敗として投げる（やり直しは 1 度だけ） */
+  /* すべて失敗（オフライン等）→ 最初の失敗として投げる */
   {
     clearCache();
     const calls = [];
     window.fetch = async u => { if(MINE(String(u))) calls.push(String(u)); throw new TypeError("Failed to fetch"); };
     let threw = null;
     try{ await window.fetchAudio(CDN); }catch(e){ threw = e; }
-    assert(threw, "両方失敗したら例外");
-    assert(calls.length === 2, "やり直しは 1 度だけ: " + JSON.stringify(calls));
-    console.log("[audio] 両方失敗 → 例外 OK");
+    assert(threw, "全滅したら例外");
+    assert(calls.join("→") === [PROXY, CDN, VID].join("→"),
+      "候補は 中継 → .mp3 直 → .mp4 直 の 3 つだけ: " + JSON.stringify(calls));
+    console.log("[audio] 全滅 → 例外 OK");
   }
 
   /* Suno CDN 以外の URL では中継を使わない */
@@ -101,8 +103,7 @@ async function main(){
     window.fetch = async u => { if(MINE(String(u))) calls.push(String(u)); throw new TypeError("Failed to fetch"); };
     let threw = null;
     try{ await window.fetchAudio("https://example.com/song.mp3"); }catch(e){ threw = e; }
-    assert(threw && calls.length === 1 && /example\.com/.test(calls[0]),
-      "対象外 URL は直接取得のみ: " + JSON.stringify(calls));
+    assert(threw && calls.length === 1, "対象外 URL は直接取得のみ: " + JSON.stringify(calls));
     console.log("[audio] 対象外 URL は中継しない OK");
   }
 

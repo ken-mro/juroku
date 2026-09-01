@@ -2814,10 +2814,11 @@ function probeDuration(tr){
     if(tr.kind === "file" && tr.ab){
       a.src = URL.createObjectURL(new Blob([tr.ab], { type:"audio/mpeg" }));
     }else if(tr.url){
-      /* Suno の曲は中継（R2 の自前 mp3）を優先し、無ければ元 URL（fetchAudio と同じ理由） */
-      const id = sunoAudioId(tr.url);
-      if(id) a.onerror = () => { a.onerror = null; a.src = tr.url; };
-      a.src = id ? "/api/audio?id=" + id : tr.url;
+      /* 中継（R2 の自前 mp3）→ .mp3 直 → .mp4 直の順（fetchAudio と同じ理由） */
+      const srcs = audioSources(tr.url);
+      let si = 0;
+      if(srcs.length > 1) a.onerror = () => { if(++si < srcs.length) a.src = srcs[si]; };
+      a.src = srcs[0];
     }
   }catch(e){}
 }
@@ -2891,10 +2892,6 @@ function togglePreview(tr){
   if(previewUrl === tr.url){ stopPreview(); return; }
   stopPreview();
   const a = new Audio();
-  /* Suno の曲は中継（R2 の自前 mp3）を優先する（fetchAudio と同じ理由）。
-     中継が使えない環境（静的配信のみ等）では onerror で元 URL にやり直す。 */
-  const proxyId = sunoAudioId(tr.url);
-  a.src = proxyId ? "/api/audio?id=" + proxyId : tr.url;
   a.preload = "auto";
   /* 読み込み状態の遷移。実際に音が出た時点(playing)で解除し、
      途中でバッファ切れ(waiting/stalled)したら再び表示する。 */
@@ -2903,17 +2900,17 @@ function togglePreview(tr){
     previewLoading = v;
     syncPreviewIcons();
   };
-  a.onended    = () => stopPreview();              // 最後まで流し切ったら解除
-  let triedDirect = false;
-  a.onerror    = () => {
-    if(proxyId && !triedDirect){
-      triedDirect = true;
-      a.src = tr.url;
-      a.play().catch(() => stopPreview());
-      return;
-    }
-    showPreviewError(tr); stopPreview();
+  /* 中継（R2 の自前 mp3）→ .mp3 直 → .mp4 直の順（fetchAudio と同じ理由）。
+     src が駄目なら play() の Promise が reject するので、それを合図に次の候補へ進む
+     （最初の候補で即 stopPreview してしまうと後続のやり直しが消える）。 */
+  const srcs = audioSources(tr.url);
+  const tryAt = i => {
+    if(previewEl !== a) return;                    // 既に停止/別の曲へ切替わっていたら何もしない
+    if(i >= srcs.length){ showPreviewError(tr); stopPreview(); return; }
+    a.src = srcs[i];
+    a.play().catch(() => tryAt(i + 1));            // この候補が鳴らなければ次を試す
   };
+  a.onended    = () => stopPreview();              // 最後まで流し切ったら解除
   a.onwaiting  = () => busy(true);
   a.onstalled  = () => busy(true);
   a.onplaying  = () => busy(false);
@@ -2925,7 +2922,7 @@ function togglePreview(tr){
   previewEl = a; previewUrl = tr.url; previewLoading = true;   // 押した直後は読み込み中
   syncPreviewIcons();
   syncSeek();
-  a.play().catch(() => stopPreview());
+  tryAt(0);
 }
 
 /* ベスト記録の詳細。旧形式(スコアのみ)の記録は判定内訳を持たないので、
@@ -3166,29 +3163,39 @@ const sunoAudioId = url => {
   const m = /^https:\/\/cdn1\.suno\.ai\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.mp3$/i.exec(url || "");
   return m ? m[1].toLowerCase() : "";
 };
+/* Suno は cdn1.suno.ai/{id}.mp3 を署名付き URL 必須（403 MissingKey）にした。
+   同じ ID の動画 URL(.mp4)は署名不要で CORS も開いており、その音声トラックは
+   decodeAudioData / <audio> でそのまま再生・解析できる（現状で唯一確実な取得先）。 */
+const SUNO_VID = id => `https://cdn1.suno.ai/${id}.mp4`;
+/* Suno の曲 URL に対する取得先の候補（前から順に試す）。曲 URL 以外は 1 つだけ。
+   1. 同一オリジンの中継 /api/audio（worker/api/audio.js が R2 の自前 mp3 を返す）。
+      譜面はデコード後の PCM から決定的に生成されるため、全員が同じバイト列を
+      受け取ることが譜面固定の前提。直接取得を先にすると Suno 側の配信が変わった時に
+      譜面が揺れる（実際に 2026-08 の署名必須化 → mp4 切替で揺れた）
+   2. 元の .mp3 を直接（中継が無い環境のため。署名が不要に戻った時にも効く）
+   3. .mp4 を直接（最後の手段。CORS 可。静的配信のみの環境でも再生だけは保つ） */
+const audioSources = url => {
+  const id = sunoAudioId(url);
+  return id ? ["/api/audio?id=" + id, url, SUNO_VID(id)] : [url];
+};
 /* 音源の取得だけを行う。audioCache にあれば即返す。onProgress(got, total) は
    ストリーム読取中に呼ばれる（total は content-length、不明なら 0）。
    通常の読み込み画面（loadRemote）とツアーの飛行演出の両方から使う。
-   Suno の曲は同一オリジンの /api/audio?id=… を最優先にする（worker/api/audio.js が
-   R2 の自前 mp3 を返す）。譜面はデコード後の PCM から決定的に生成されるため、
-   全員が同じバイト列を受け取ることが譜面固定の前提。Suno CDN の直接取得を先にすると、
-   Suno 側の配信が変わった時に譜面が揺れる（実際に 2026-08 の署名必須化で揺れた）。
-   静的配信のみ（API 無し）の環境では中継が 404 を返すので、直接取得でやり直す。 */
+   Suno の曲は audioSources の候補（中継 /api/audio?id=… → .mp3 直 → .mp4 直）を
+   順に試す（順序の理由は audioSources のコメント参照）。
+   キャッシュのキーは実際に成功した取得先ではなく、常に元の URL のままにする。 */
 async function fetchAudio(url, onProgress){
   let ab = audioCache.get(url);
   if(ab) return ab;
-  const id = sunoAudioId(url);
-  if(id){
-    try{ ab = await fetchAudioStream("/api/audio?id=" + id, onProgress); }
-    catch(e){
-      try{ ab = await fetchAudioStream(url, onProgress); }
-      catch(_){ throw e; }
-    }
-  }else{
-    ab = await fetchAudioStream(url, onProgress);
+  let firstErr;
+  for(const src of audioSources(url)){
+    try{
+      ab = await fetchAudioStream(src, onProgress);
+      audioCache.set(url, ab);
+      return ab;
+    }catch(e){ if(firstErr === undefined) firstErr = e; }
   }
-  audioCache.set(url, ab);
-  return ab;
+  throw firstErr;
 }
 async function fetchAudioStream(url, onProgress){
   const res = await fetch(url);

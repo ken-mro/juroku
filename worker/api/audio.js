@@ -1,11 +1,11 @@
 /* 音源の配信と中継。
  *
  * Suno は 2026-08 に素の cdn1.suno.ai/{id}.mp3 を CloudFront の署名付き URL 必須に変え
- * （403 <Error><Code>MissingKey</Code>…）、その後 audiopipe.suno.ai も
- * 「200 + audio/mp3 なのに本文 0 バイト」の死んだ応答になり、曲ページの audio_url も
- * 認証必須の /api/forbidden に差し替えられた。匿名で読める素の mp3 はもう存在しない。
- * （この時期、中継が動画ファイル cdn1.suno.ai/{id}.mp4 を拾って配信してしまい、
- *   デコード波形が変わって譜面が mp3 時代と別物になる事故が起きた。）
+ * （403 <Error><Code>MissingKey</Code>…）、audiopipe.suno.ai は「200 + audio/mp3 なのに
+ * 本文 0 バイト」の死んだ応答になり、曲ページの audio_url も認証必須の /api/forbidden に
+ * 差し替えられた。匿名で読める素の mp3 はもう存在しない。
+ * （この時期、中継が動画ファイル cdn1.suno.ai/{id}.mp4 を拾って配信し、デコード波形が
+ *   変わって譜面が mp3 時代と別物になっていた。）
  *
  * そこで収録曲・ツアー曲（作者自身の曲）の mp3 は R2 バケット juroku-audio に
  * {id}.mp3 として自前で持ち、それを最優先で返す。譜面はデコード後の PCM から
@@ -15,13 +15,13 @@
  * 取得順:
  *   0. R2（juroku-audio/{id}.mp3）           — 収録曲・ツアー曲はここで確定
  *   1. https://cdn1.suno.ai/{id}.mp3         — 署名が不要だった頃の URL（戻った時のため）
- *   2. https://audiopipe.suno.ai/?item_id=   — Suno のストリーミング入口（現在は空応答）
+ *   2. https://cdn1.suno.ai/{id}.mp4         — 同じ曲の動画。署名不要で音声トラックを含む。
+ *      プレイヤーが URL を貼った「リンク曲」は R2 に無いので、mp3 が塞がれている間は
+ *      これで再生だけは保つ（譜面は mp3 とは変わるが、再生不能よりよい）
  *   3. https://suno.com/song/{id} のページに埋め込まれた audio_url（署名付き URL が入る）
- *   4. https://cdn1.suno.ai/{id}.mp4         — 動画ファイル（音声トラック入り）。最後の手段。
- *      プレイヤーが URL を貼った「リンク曲」は R2 に無いので、mp3 が全滅している間は
- *      これで再生だけは保つ（譜面は mp3 時代とは変わるが、再生不能よりよい）
  *
- * - 1〜3 は本文をバッファして 0 バイト応答を弾く（audiopipe の死んだ 200 対策）。
+ * - 1〜3 は本文をバッファして空の応答を弾く（audiopipe が「200 なのに空」を返した実例
+ *   への対策。content-length を欠く chunked の空応答もこれで確実に検出できる）。
  * - 秘密情報も KV も使わないため、同期が未構成（Secret 未設定）でも動く。
  * - id は Suno の曲 ID（UUID）に限定する。任意 URL は受けない
  *   （オープンプロキシにしない）。ページから拾った audio_url も
@@ -70,9 +70,10 @@ async function tryFetch(fn){
   try{ const res = await fn(); return res && res.ok ? res : null; }
   catch(_){ return null; }
 }
-/* 200 でもエラーページ（HTML/XML）や空の本文が返ることがある。音声として通すのは
+/* 200 でもエラーページ（HTML/XML）や中身の無い応答が返ることがある。音声として通すのは
    content-type が明らかに文書でなく、本文が空でないものだけ。本文はここでバッファする
-   （曲は数 MB なので Worker のメモリに収まる）。 */
+   （曲は数 MB なので Worker のメモリに収まり、content-length の無い chunked の
+   空応答も確実に弾ける）。 */
 async function tryFetchAudio(fn){
   const res = await tryFetch(fn);
   if(!res) return null;
@@ -80,7 +81,7 @@ async function tryFetchAudio(fn){
   if(/html|xml|json/.test(ct)) return null;
   let buf;
   try{ buf = await res.arrayBuffer(); }catch(_){ return null; }
-  if(!buf || buf.byteLength === 0) return null;  // audiopipe の「200 なのに空」を弾く
+  if(!buf || buf.byteLength === 0) return null;
   return { buf, contentType: res.headers.get("content-type") || "audio/mpeg" };
 }
 
@@ -119,10 +120,10 @@ export async function onRequestGet({ request, env, ctx }){
       obj.httpEtag ? { etag: obj.httpEtag } : undefined);
   }
 
-  /* 1〜3. Suno 側の mp3（リンク曲、または R2 に未収録の曲） */
+  /* 1〜3. Suno 側（リンク曲、または R2 に未収録の曲） */
   let up =
     await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp3`)) ||
-    await tryFetchAudio(() => fetch(`https://audiopipe.suno.ai/?item_id=${id}`));
+    await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp4`));
   if(!up){
     const page = await tryFetch(() => fetch(`https://suno.com/song/${id}`,
       { headers: { accept: "text/html" } }));
@@ -131,8 +132,6 @@ export async function onRequestGet({ request, env, ctx }){
       if(u) up = await tryFetchAudio(() => fetch(u));
     }
   }
-  /* 4. 最後の手段: 動画ファイル（音声トラック入り）。 */
-  if(!up) up = await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp4`));
   if(!up) return jerr("upstream_failed", 502);
 
   return respond(up.buf, up.contentType, 86400);
