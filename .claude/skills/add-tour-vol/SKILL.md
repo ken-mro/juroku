@@ -33,10 +33,16 @@ Suno を実行時に叩かない（CLAUDE.md §3）。
    ```
    テストは Vol の数に依存しない（`tests/tour.js` / `tests/tour-import.test.js` は「今ある Vol の次」を
    合成して検証する）。**Vol を足すためにテストを書き換える必要は無い**。落ちたらデータの問題。
-4. `public/index.html` の `<title>` のバージョンを上げる（`v<今日の日付 YYYY.MM.DD>-<その日の通し番号>`。
+4. **mp3 を R2 に上げる**（音源は Suno CDN からは読めない。自前配信が唯一の経路 — CLAUDE.md §3）。
+   Suno から各曲の mp3 をダウンロードし（自分の曲。Download → MP3 Audio）、曲 ID の名前で置く:
+   ```bash
+   npx wrangler r2 object put "juroku-audio/<曲ID>.mp3" --file="<mp3>" --content-type audio/mpeg --remote
+   ```
+   R2 に無い曲は動画 mp4 の音声で再生されるが、**譜面が mp3 と別物になる**ので必ず全曲上げる。
+5. `public/index.html` の `<title>` のバージョンを上げる（`v<今日の日付 YYYY.MM.DD>-<その日の通し番号>`。
    同じ日なら末尾の番号を +1）。画面には出さない。
-5. `README.md` の「ワールドツアー」節に Vol の行（Vol 番号・国の並び・曲数）を足す。
-6. コミット（依頼があれば）。
+6. `README.md` の「ワールドツアー」節に Vol の行（Vol 番号・国の並び・曲数）を足す。
+7. コミット（依頼があれば）。
 
 ## 前提となる markdown の形
 

@@ -215,6 +215,16 @@ tourState       {cleared:{[trackId]:{d, diff, acc}}}   localStorage juroku:tour
 - **IDから生成**: 音源URL `cdn1.suno.ai/{id}.mp3` / 画像URL `cdn2.suno.ai/image_large_{id}.jpeg`
 - **実行時取得**: 画像の実体、曲の長さ（Audio のメタデータから実測）
 
+**音源の実体は R2 バケット `juroku-audio`（`{id}.mp3`）から自前配信する。** Suno は 2026-08 に
+素の `cdn1.suno.ai/{id}.mp3` を署名付き URL 必須（403 MissingKey）にし、audiopipe も曲ページの
+`audio_url` も封じた。匿名で読める mp3 はもう無い。譜面はデコード後の PCM から決定的に生成されるため、
+**音源のバイト列を固定しないと譜面が揺れる**（実際に一時期、中継が動画 `{id}.mp4` を拾って全曲の譜面が
+変わる事故が起きた）。クライアントは Suno の曲を必ず `/api/audio?id=…` 経由で取り（`fetchAudio` /
+試聴 / 長さ計測とも中継優先）、Worker は R2 → Suno の順で返す（`worker/api/audio.js`）。
+**曲を追加したら mp3 を R2 に置くこと**（`npx wrangler r2 object put "juroku-audio/{id}.mp3"
+--file=… --content-type audio/mpeg --remote`。手順は `.claude/skills/add-tour-vol`）。
+R2 に無い曲（プレイヤーのリンク曲）は最後の手段として動画 mp4 の音声で再生される。
+
 曲名を実行時に Suno から取得する方式は一度試して**失敗した**。ブラウザから suno.com は
 CORS で読めず、無料の CORS 中継は 429 や停止が常態で、16 曲ぶんの取得に最悪 1 時間かかった。
 同じ轍を踏まないこと。曲名は事前に取得した値を持たせる。

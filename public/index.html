@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.08.29-2</title>
+<title>十六 JŪROKU v2026.09.01</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -2814,7 +2814,7 @@ function probeDuration(tr){
     if(tr.kind === "file" && tr.ab){
       a.src = URL.createObjectURL(new Blob([tr.ab], { type:"audio/mpeg" }));
     }else if(tr.url){
-      /* .mp3 が読めない時は .mp4 直→同一オリジンの中継の順にやり直す（fetchAudio と同じ理由） */
+      /* 中継（R2 の自前 mp3）→ .mp3 直 → .mp4 直の順（fetchAudio と同じ理由） */
       const srcs = audioSources(tr.url);
       let si = 0;
       if(srcs.length > 1) a.onerror = () => { if(++si < srcs.length) a.src = srcs[si]; };
@@ -2900,7 +2900,7 @@ function togglePreview(tr){
     previewLoading = v;
     syncPreviewIcons();
   };
-  /* .mp3 が読めない時は .mp4 直→同一オリジンの中継の順にやり直す（fetchAudio と同じ理由）。
+  /* 中継（R2 の自前 mp3）→ .mp3 直 → .mp4 直の順（fetchAudio と同じ理由）。
      src が駄目なら play() の Promise が reject するので、それを合図に次の候補へ進む
      （最初の候補で即 stopPreview してしまうと後続のやり直しが消える）。 */
   const srcs = audioSources(tr.url);
@@ -3168,18 +3168,21 @@ const sunoAudioId = url => {
    decodeAudioData / <audio> でそのまま再生・解析できる（現状で唯一確実な取得先）。 */
 const SUNO_VID = id => `https://cdn1.suno.ai/${id}.mp4`;
 /* Suno の曲 URL に対する取得先の候補（前から順に試す）。曲 URL 以外は 1 つだけ。
-   1. 元の .mp3（署名が不要に戻った時のため）
-   2. .mp4 を直接（CORS 可・確実。静的配信のみの環境でもここまでで足りる）
-   3. 同一オリジンの中継 /api/audio（直接取得が塞がれた時の最後の砦。API が無ければ失敗） */
+   1. 同一オリジンの中継 /api/audio（worker/api/audio.js が R2 の自前 mp3 を返す）。
+      譜面はデコード後の PCM から決定的に生成されるため、全員が同じバイト列を
+      受け取ることが譜面固定の前提。直接取得を先にすると Suno 側の配信が変わった時に
+      譜面が揺れる（実際に 2026-08 の署名必須化 → mp4 切替で揺れた）
+   2. 元の .mp3 を直接（中継が無い環境のため。署名が不要に戻った時にも効く）
+   3. .mp4 を直接（最後の手段。CORS 可。静的配信のみの環境でも再生だけは保つ） */
 const audioSources = url => {
   const id = sunoAudioId(url);
-  return id ? [url, SUNO_VID(id), "/api/audio?id=" + id] : [url];
+  return id ? ["/api/audio?id=" + id, url, SUNO_VID(id)] : [url];
 };
 /* 音源の取得だけを行う。audioCache にあれば即返す。onProgress(got, total) は
    ストリーム読取中に呼ばれる（total は content-length、不明なら 0）。
    通常の読み込み画面（loadRemote）とツアーの飛行演出の両方から使う。
-   Suno CDN を直接読めない場合（署名付き URL 必須化＝403 MissingKey、CORS 遮断など）は、
-   audioSources の候補（.mp4 直→同一オリジンの中継 /api/audio?id=…）を順にやり直す。
+   Suno の曲は audioSources の候補（中継 /api/audio?id=… → .mp3 直 → .mp4 直）を
+   順に試す（順序の理由は audioSources のコメント参照）。
    キャッシュのキーは実際に成功した取得先ではなく、常に元の URL のままにする。 */
 async function fetchAudio(url, onProgress){
   let ab = audioCache.get(url);

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 "use strict";
-/* tests/audio.js — クライアントの音源取得（fetchAudio）のフォールバック
+/* tests/audio.js — クライアントの音源取得（fetchAudio）の経路
  *
- * Suno は .mp3 を署名付き URL 必須（403 MissingKey）にしたため、直接取得が
- * 失敗したら .mp4（動画・署名不要・CORS 可）を直接、それでも駄目なら同一オリジンの
- * 中継 /api/audio?id=… の順にやり直すこと、それ以外の URL では勝手に別経路を
- * 使わないことを確認する。
+ * Suno の曲は同一オリジンの中継 /api/audio?id=… を最優先で使うこと
+ * （worker/api/audio.js が R2 の自前 mp3 を返す。全員が同じバイト列を受け取る
+ * ことが譜面固定の前提）、中継が使えない環境では .mp3 直 → .mp4 直の順に
+ * やり直すこと、Suno 以外の URL では勝手に別経路を使わないことを確認する。
  */
 const fs = require("fs");
 const path = require("path");
@@ -34,56 +34,56 @@ async function main(){
   assert(typeof window.fetchAudio === "function", "fetchAudio が window に居ること");
   assert(testErrors.length === 0, "起動時のスクリプトエラー: " + testErrors.join("\n"));
 
-  /* 直接取得できるなら中継は使わない */
+  /* Suno の曲は中継を最優先にする（直接取得しない＝配信が変わっても譜面が揺れない） */
   {
     clearCache();
     const buf = new ArrayBuffer(8);
     const calls = [];
     window.fetch = async u => { if(MINE(String(u))) calls.push(String(u)); return mkRes(buf); };
     const ab = await window.fetchAudio(CDN);
-    assert(ab === buf, "直接取得の結果を返す");
-    assert(calls.length === 1 && calls[0] === CDN, "直接取得のみ: " + JSON.stringify(calls));
+    assert(ab === buf, "中継の結果を返す");
+    assert(calls.length === 1 && calls[0] === PROXY, "中継のみ（CDN へ直接行かない）: " + JSON.stringify(calls));
     /* 2 回目はキャッシュから（fetch されない） */
     await window.fetchAudio(CDN);
     assert(calls.length === 1, "2 回目はキャッシュから返す");
-    console.log("[audio] 直接取得 OK（中継なし・キャッシュ）");
+    console.log("[audio] 中継優先 OK（直接取得なし・キャッシュ）");
   }
 
-  /* .mp3 が 403（署名必須化）→ .mp4 を直接取得できれば中継は使わない */
+  /* 中継が使えない（静的配信のみ＝404 等）→ .mp3 直でやり直す */
   {
     clearCache();
     const buf = new ArrayBuffer(6);
     const calls = [];
     window.fetch = async u => {
       if(MINE(String(u))) calls.push(String(u));
-      if(String(u) === VID) return mkRes(buf);
-      return { ok: false, status: 403, headers: { get: () => null } };   // .mp3 は MissingKey
+      if(String(u) === CDN) return mkRes(buf);
+      return { ok: false, status: 404, headers: { get: () => null } };
     };
     const ab = await window.fetchAudio(CDN);
-    assert(ab === buf, ".mp4 直の結果を返す");
-    assert(calls.length === 2 && calls[0] === CDN && calls[1] === VID,
-      ".mp3 失敗 → .mp4 直で復旧（中継は使わない）: " + JSON.stringify(calls));
-    console.log("[audio] .mp3 403 → .mp4 直 OK（中継なし）");
+    assert(ab === buf, ".mp3 直の結果を返す");
+    assert(calls.join("→") === [PROXY, CDN].join("→"),
+      "中継 404 → .mp3 直で復旧: " + JSON.stringify(calls));
+    console.log("[audio] 中継 404 → .mp3 直 OK");
   }
 
-  /* .mp3 も .mp4 も駄目（CORS 遮断など）→ 同一オリジンの中継でやり直す */
+  /* 中継も .mp3 直も駄目（CORS 遮断など）→ .mp4 直でやり直す */
   {
     clearCache();
     const buf = new ArrayBuffer(4);
     const calls = [];
     window.fetch = async u => {
       if(MINE(String(u))) calls.push(String(u));
-      if(String(u) === PROXY) return mkRes(buf);
+      if(String(u) === VID) return mkRes(buf);
       throw new TypeError("Failed to fetch");         // ブラウザの CORS 失敗はこの形
     };
     const ab = await window.fetchAudio(CDN);
-    assert(ab === buf, "中継の結果を返す");
-    assert(calls.join("→") === [CDN, VID, PROXY].join("→"),
-      ".mp3 → .mp4 直 → 中継 の順に試す: " + JSON.stringify(calls));
-    console.log("[audio] CORS/ネットワーク失敗 → 中継 OK");
+    assert(ab === buf, ".mp4 直の結果を返す");
+    assert(calls.join("→") === [PROXY, CDN, VID].join("→"),
+      "中継 → .mp3 直 → .mp4 直 の順に試す: " + JSON.stringify(calls));
+    console.log("[audio] 中継・.mp3 失敗 → .mp4 直 OK");
   }
 
-  /* すべて失敗（静的配信のみで API が無い等）→ 最初の失敗として投げる */
+  /* すべて失敗（オフライン等）→ 最初の失敗として投げる */
   {
     clearCache();
     const calls = [];
@@ -91,8 +91,8 @@ async function main(){
     let threw = null;
     try{ await window.fetchAudio(CDN); }catch(e){ threw = e; }
     assert(threw, "全滅したら例外");
-    assert(calls.join("→") === [CDN, VID, PROXY].join("→"),
-      "候補は .mp3 → .mp4 直 → 中継 の 3 つだけ: " + JSON.stringify(calls));
+    assert(calls.join("→") === [PROXY, CDN, VID].join("→"),
+      "候補は 中継 → .mp3 直 → .mp4 直 の 3 つだけ: " + JSON.stringify(calls));
     console.log("[audio] 全滅 → 例外 OK");
   }
 
@@ -118,7 +118,7 @@ async function main(){
   }
 
   assert(testErrors.length === 0, "スクリプトエラー: " + testErrors.join("\n"));
-  console.log("[audio] PASS — 直接取得・中継フォールバック・ID 判定");
+  console.log("[audio] PASS — 中継優先・直接取得フォールバック・ID 判定");
   process.exit(0);
 }
 main().catch(e => fail((e && e.stack) || String(e)));
