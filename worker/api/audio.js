@@ -1,27 +1,38 @@
-/* 音源の中継（フォールバック）。
+/* 音源の配信と中継。
  *
- * Suno は cdn1.suno.ai を CloudFront の署名付き URL 必須に変更した
- * （素の /{id}.mp3 は 403 <Error><Code>MissingKey</Code>…）。ブラウザからの
- * 直接取得はもう当てにできないため、クライアントが同一オリジンの
- * /api/audio?id=<曲ID> へやり直し、この Worker がサーバー側で
- * 「いま有効な音源 URL」を見つけて取得し、返す。
+ * Suno は 2026-08 に素の cdn1.suno.ai/{id}.mp3 を CloudFront の署名付き URL 必須に変え
+ * （403 <Error><Code>MissingKey</Code>…）、その後 audiopipe.suno.ai も
+ * 「200 + audio/mp3 なのに本文 0 バイト」の死んだ応答になり、曲ページの audio_url も
+ * 認証必須の /api/forbidden に差し替えられた。匿名で読める素の mp3 はもう存在しない。
+ * （この時期、中継が動画ファイル cdn1.suno.ai/{id}.mp4 を拾って配信してしまい、
+ *   デコード波形が変わって譜面が mp3 時代と別物になる事故が起きた。）
+ *
+ * そこで収録曲・ツアー曲（作者自身の曲）の mp3 は R2 バケット juroku-audio に
+ * {id}.mp3 として自前で持ち、それを最優先で返す。譜面はデコード後の PCM から
+ * 決定的に生成されるため、音源のバイト列を固定すれば譜面も永久に固定される。
+ * Suno 側の仕様変更に二度と影響されない。
  *
  * 取得順:
- *   1. https://cdn1.suno.ai/{id}.mp3       — 署名が不要だった頃の URL（戻った時のため）
- *   2. https://audiopipe.suno.ai/?item_id= — Suno のストリーミング入口
+ *   0. R2（juroku-audio/{id}.mp3）           — 収録曲・ツアー曲はここで確定
+ *   1. https://cdn1.suno.ai/{id}.mp3         — 署名が不要だった頃の URL（戻った時のため）
+ *   2. https://audiopipe.suno.ai/?item_id=   — Suno のストリーミング入口（現在は空応答）
  *   3. https://suno.com/song/{id} のページに埋め込まれた audio_url（署名付き URL が入る）
+ *   4. https://cdn1.suno.ai/{id}.mp4         — 動画ファイル（音声トラック入り）。最後の手段。
+ *      プレイヤーが URL を貼った「リンク曲」は R2 に無いので、mp3 が全滅している間は
+ *      これで再生だけは保つ（譜面は mp3 時代とは変わるが、再生不能よりよい）
  *
+ * - 1〜3 は本文をバッファして 0 バイト応答を弾く（audiopipe の死んだ 200 対策）。
  * - 秘密情報も KV も使わないため、同期が未構成（Secret 未設定）でも動く。
  * - id は Suno の曲 ID（UUID）に限定する。任意 URL は受けない
  *   （オープンプロキシにしない）。ページから拾った audio_url も
  *   Suno のドメイン（*.suno.ai / *.suno.com）以外なら捨てる。
- * - 成功した応答は Cache API で 1 日キャッシュし、同じ曲の取得で
- *   毎回 Suno へ行かないようにする（署名付き URL は短命なので、
- *   URL ではなく音声データの方をキャッシュする）。
+ * - 成功した応答は Cache API に載せ、同じ曲の取得で毎回 R2 / Suno へ行かないようにする。
+ *   キャッシュキーの v= は世代番号。mp4 を配信していた頃のキャッシュを無効化するため v=2。
  */
 
 const ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SUNO_HOST_RE = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.suno\.(ai|com)\//i;
+const CACHE_VER = "2";
 
 const jerr = (error, status) => new Response(JSON.stringify({ error }),
   { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
@@ -59,27 +70,56 @@ async function tryFetch(fn){
   try{ const res = await fn(); return res && res.ok ? res : null; }
   catch(_){ return null; }
 }
-/* 200 でもエラーページ（HTML/XML）が返ることがある。音声として通すのは
-   content-type が明らかに文書でないものだけ。 */
+/* 200 でもエラーページ（HTML/XML）や空の本文が返ることがある。音声として通すのは
+   content-type が明らかに文書でなく、本文が空でないものだけ。本文はここでバッファする
+   （曲は数 MB なので Worker のメモリに収まる）。 */
 async function tryFetchAudio(fn){
   const res = await tryFetch(fn);
   if(!res) return null;
   const ct = (res.headers.get("content-type") || "").toLowerCase();
-  return /html|xml|json/.test(ct) ? null : res;
+  if(/html|xml|json/.test(ct)) return null;
+  let buf;
+  try{ buf = await res.arrayBuffer(); }catch(_){ return null; }
+  if(!buf || buf.byteLength === 0) return null;  // audiopipe の「200 なのに空」を弾く
+  return { buf, contentType: res.headers.get("content-type") || "audio/mpeg" };
 }
 
-export async function onRequestGet({ request, ctx }){
+export async function onRequestGet({ request, env, ctx }){
   const id = (new URL(request.url).searchParams.get("id") || "").toLowerCase();
   if(!ID_RE.test(id)) return jerr("bad_id", 400);
 
   /* エッジキャッシュ（成功時のみ put する） */
   const cache = (globalThis.caches && globalThis.caches.default) || null;
-  const cacheKey = new Request(new URL("/api/audio?id=" + id, request.url), { method: "GET" });
+  const cacheKey = new Request(new URL("/api/audio?id=" + id + "&v=" + CACHE_VER, request.url), { method: "GET" });
   if(cache){
     const hit = await cache.match(cacheKey);
     if(hit) return hit;
   }
 
+  const respond = (body, contentType, maxAge, extra) => {
+    const h = new Headers({
+      "content-type": contentType,
+      "cache-control": "public, max-age=" + maxAge,
+      ...extra,
+    });
+    const res = new Response(body, { status: 200, headers: h });
+    if(cache){
+      const put = cache.put(cacheKey, res.clone());
+      if(ctx && ctx.waitUntil) ctx.waitUntil(put);
+    }
+    return res;
+  };
+
+  /* 0. R2（自前ホストの mp3）。バイト列が固定なので譜面も固定される。 */
+  const bucket = env && env.JUROKU_AUDIO;
+  if(bucket){
+    let obj = null;
+    try{ obj = await bucket.get(id + ".mp3"); }catch(_){ obj = null; }
+    if(obj) return respond(obj.body, "audio/mpeg", 2592000,
+      obj.httpEtag ? { etag: obj.httpEtag } : undefined);
+  }
+
+  /* 1〜3. Suno 側の mp3（リンク曲、または R2 に未収録の曲） */
   let up =
     await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp3`)) ||
     await tryFetchAudio(() => fetch(`https://audiopipe.suno.ai/?item_id=${id}`));
@@ -91,18 +131,9 @@ export async function onRequestGet({ request, ctx }){
       if(u) up = await tryFetchAudio(() => fetch(u));
     }
   }
+  /* 4. 最後の手段: 動画ファイル（音声トラック入り）。 */
+  if(!up) up = await tryFetchAudio(() => fetch(`https://cdn1.suno.ai/${id}.mp4`));
   if(!up) return jerr("upstream_failed", 502);
 
-  const h = new Headers({
-    "content-type": up.headers.get("content-type") || "audio/mpeg",
-    "cache-control": "public, max-age=86400",
-  });
-  const len = up.headers.get("content-length");
-  if(len) h.set("content-length", len);
-  const res = new Response(up.body, { status: 200, headers: h });
-  if(cache){
-    const put = cache.put(cacheKey, res.clone());
-    if(ctx && ctx.waitUntil) ctx.waitUntil(put);
-  }
-  return res;
+  return respond(up.buf, up.contentType, 86400);
 }

@@ -133,15 +133,16 @@ MIT の対象外（改変版や再配布物を同じ名前・ロゴで公開し�
 
 ## ローカルでの動かし方
 
-Web Audio API と Suno CDN からの音源取得のため HTTPS（または `localhost`）が必要。
-`index.html` を `file://` で直接開いても CORS で音源が読み込めず動作しない。
+Web Audio API のため HTTPS（または `localhost`）が必要。
+`index.html` を `file://` で直接開いても動作しない。
 
 ```bash
 python3 -m http.server -d public      # ゲーム本体だけ（http://localhost:8000/）
 npx wrangler dev                      # API も含めて動かす（http://127.0.0.1:8787/）
 ```
 
-前者では記録の同期は無効な状態で表示される（サーバーが無いため）。
+前者では記録の同期は無効になり、収録曲の音源も読めない（音源は `/api/audio` が
+R2 から配信するため、サーバー無しでは取得できない。ファイル読み込みは動く）。
 
 ## 技術メモ
 

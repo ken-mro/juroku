@@ -24,3 +24,13 @@ binding = "ASSETS"
 [[kv_namespaces]]
 binding = "JUROKU_KV"
 id = "0a98f98800b14a4ca4ee6e9c8f1aaab7"
+
+# ── 収録曲・ツアー曲の mp3 を置く R2 ──
+# 作成コマンド: npx wrangler r2 bucket create juroku-audio
+# 中身は {曲ID}.mp3（作者自身の曲。Suno からダウンロードした原本）。
+# Suno CDN が署名付き URL 必須になり素の mp3 を読めなくなったため自前で持つ。
+# 音源のバイト列を固定することで、そこから決定的に生成される譜面も固定される（worker/api/audio.js）。
+# 曲を追加したら: npx wrangler r2 object put "juroku-audio/{id}.mp3" --file=... --content-type audio/mpeg --remote
+[[r2_buckets]]
+binding = "JUROKU_AUDIO"
+bucket_name = "juroku-audio"
