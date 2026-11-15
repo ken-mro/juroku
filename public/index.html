@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.09.02</title>
+<title>十六 JŪROKU v2026.11.15</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -1841,6 +1841,22 @@ function validate(notes, cfg){
   return { impossible, tightest:+tightest.toFixed(2) };
 }
 
+/* ═══════════ 音声の解除 ═══════════
+   ブラウザの自動再生制限により、AudioContext はユーザー操作の中で作成・resume() しないと
+   suspended のまま動かない。曲を選んだ瞬間（同期的に）呼び、await はしない。 */
+function unlockAudio(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }catch(_){}
+}
+/* それでも解除できなかった時の保険。一時停止中（cur.paused）は意図して止めているので触らない。 */
+for(const ev of ["pointerdown","keydown","touchend"])
+  addEventListener(ev, () => {
+    if(audioCtx && audioCtx.state === "suspended" && !(cur && cur.paused && !cur.over))
+      audioCtx.resume().catch(()=>{});
+  }, true);
+
 /* ═══════════ 解析パイプライン ═══════════ */
 /* 解析フェーズが使う進捗の下限。ダウンロード済みで呼ばれたときに
    ゲージが巻き戻らないよう、呼び出し側が到達点を入れる。 */
@@ -1855,8 +1871,13 @@ async function prepare(name, arrayBuffer){
   setLoad(0.04);
   await new Promise(r=>setTimeout(r,30));
 
-  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state === "suspended") await audioCtx.resume();
+  unlockAudio();
+  /* resume() はユーザー操作の直後でないと保留のまま返らないことがある
+     （初回は長いダウンロードの間に操作の有効期限が切れる → DECODING で停止していた）。
+     デコードは suspended のままでもできるので、待つのは短時間だけにする。
+     再生開始までに解除できなければ、盤面のタップ（下の pointerdown）で解除する。 */
+  if(audioCtx.state === "suspended")
+    await Promise.race([audioCtx.resume().catch(()=>{}), new Promise(r=>setTimeout(r,300))]);
 
   let buffer;
   try{
@@ -3221,6 +3242,7 @@ async function fetchAudioStream(url, onProgress){
   return res.arrayBuffer();             // ストリーム非対応の環境
 }
 async function loadRemote(tr){
+  unlockAudio();                         // 操作の直後のうちに（ダウンロード後では遅い）
   $("err").hidden = true;
   show("load");
   $("loadt").textContent = tr.title;
@@ -4505,7 +4527,7 @@ async function tourDepart(seq){
   tourBusy = true;
   $("tgo").disabled = true;
   $("terr").hidden = true; $("err").hidden = true;
-  if(!audioCtx){ try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(_){} }
+  unlockAudio();                                      // 飛行演出＋ダウンロードの後では操作の有効期限が切れる
   const tl = $("tload");
   tl.hidden = false; tl.textContent = "DOWNLOADING";
   const dl = fetchAudio(e.url, (got, total) => {
@@ -4903,7 +4925,7 @@ $("slink").addEventListener("keydown", e => {
 
 $("drop").onclick = () => $("file").click();
 $("drop").onkeydown = e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); $("file").click(); } };
-$("file").onchange = e => { const f = e.target.files[0]; if(f) loadLocal(f); e.target.value = ""; };
+$("file").onchange = e => { const f = e.target.files[0]; if(f){ unlockAudio(); loadLocal(f); } e.target.value = ""; };
 
 for(const ev of ["dragenter","dragover"])
   $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.add("over"); });
@@ -4911,7 +4933,7 @@ for(const ev of ["dragleave","drop"])
   $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.remove("over"); });
 $("drop").addEventListener("drop", e => {
   const f = e.dataTransfer.files[0];
-  if(f) loadLocal(f);
+  if(f){ unlockAudio(); loadLocal(f); }
 });
 addEventListener("dragover", e => e.preventDefault());
 addEventListener("drop", e => e.preventDefault());
