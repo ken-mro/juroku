@@ -117,8 +117,41 @@ async function main(){
     console.log("[audio] sunoAudioId OK");
   }
 
+  /* 初回プレーで DOWNLOADING → DECODING のまま止まった不具合の回帰。
+     長いダウンロードの間にユーザー操作の有効期限が切れると、AudioContext は
+     suspended のまま resume() が永遠に解決しない。それでも読み込みを完走して
+     盤面へ進み、次のタップで音声が解除されること。 */
+  {
+    const env2 = buildEnv(html, { beforeParse(w){
+      const Base = w.AudioContext;
+      class Stuck extends Base {
+        constructor(){ super(); this.state = "suspended"; Stuck.last = this; this.gesture = false; }
+        resume(){
+          if(this.gesture){ this.state = "running"; return Promise.resolve(); }
+          return new Promise(() => {});              // 操作外では保留のまま
+        }
+      }
+      w.AudioContext = w.webkitAudioContext = Stuck;
+      w.__Stuck = Stuck;
+    }});
+    const w = env2.window;
+    const buf = new ArrayBuffer(64);
+    new Uint8Array(buf).forEach((_, i, a) => a[i] = (i * 37) & 255);
+    w.fetch = async u => String(u) === PROXY ? mkRes(buf) : Promise.reject(new Error("offline"));
+    const done = w.loadRemote({ title: "Stuck Test", url: CDN });
+    const r = await Promise.race([done.then(() => "done"), new Promise(r => setTimeout(() => r("hang"), 5000))]);
+    assert(r === "done", "suspended のまま resume() が返らなくても読み込みが止まらないこと");
+    assert(w.document.getElementById("game").classList.contains("on"), "盤面へ進むこと");
+    const ctx = w.__Stuck.last;
+    ctx.gesture = true;
+    w.dispatchEvent(new w.Event("pointerdown"));
+    assert(ctx.state === "running", "盤面のタップで音声が解除されること");
+    assert(env2.testErrors.length === 0, "スクリプトエラー: " + env2.testErrors.join("\n"));
+    console.log("[audio] 操作期限切れでも DECODING で止まらない OK");
+  }
+
   assert(testErrors.length === 0, "スクリプトエラー: " + testErrors.join("\n"));
-  console.log("[audio] PASS — 中継優先・直接取得フォールバック・ID 判定");
+  console.log("[audio] PASS — 中継優先・直接取得フォールバック・ID 判定・音声解除");
   process.exit(0);
 }
 main().catch(e => fail((e && e.stack) || String(e)));
