@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>十六 JŪROKU v2026.11.15</title>
+<title>十六 JŪROKU v2026.11.15-2</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -465,6 +465,10 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
       <button data-d="hard">HARD</button>
       <button data-d="oni">EXTREME</button>
     </div>
+    <div class="seg" id="algo" role="group" aria-label="譜面アルゴリズム" data-i18n-attr="aria-label:chart_algo">
+      <button data-a="v1" aria-pressed="true" data-i18n-attr="title:algo_v1">v1</button>
+      <button data-a="v2" data-i18n-attr="title:algo_v2">v2</button>
+    </div>
     <button class="btn" id="syncbtn" style="padding:8px 20px" data-i18n="settings">設定</button>
   </div>
 
@@ -661,6 +665,10 @@ html[lang="en"] .card[data-loading="1"] .ptm::after{content:" loading"}
       <button data-d="normal" aria-pressed="true">NORMAL</button>
       <button data-d="hard">HARD</button>
       <button data-d="oni">EXTREME</button>
+    </div>
+    <div class="seg" id="talgo" role="group" aria-label="譜面アルゴリズム" data-i18n-attr="aria-label:chart_algo">
+      <button data-a="v1" aria-pressed="true" data-i18n-attr="title:algo_v1">v1</button>
+      <button data-a="v2" data-i18n-attr="title:algo_v2">v2</button>
     </div>
     <button class="btn" id="tearthmap" type="button" style="padding:8px 14px" hidden>↩ EARTH</button>
     <button class="btn" id="tsettings" type="button" style="padding:8px 20px" data-i18n="settings">設定</button>
@@ -977,7 +985,7 @@ const I18N = {
     sync_foot:"マーカーが打点に達した瞬間が押し時。マーカー・打点音はこの場で試せます。冴/良/甘が出ればその精度で叩けています。<br>ズレの符号：−は早い、＋は遅い。中央値を反映すれば自動調整されます。",
     applied:"反映しました", lang:"言語 / Language",
     next_country:"次の国へ", to_map_done:"地図へ（完走）", save_image:"画像を保存",
-    difficulty:"難易度", depart:"出発する", depart_again:"もう一度旅する", done_badge:"完走", not_played:" は未プレー",
+    difficulty:"難易度", chart_algo:"譜面アルゴリズム", algo_v1:"v1 — 従来の譜面", algo_v2:"v2 — 打点の精密化と、曲の繰り返しに沿った配置の型", depart:"出発する", depart_again:"もう一度旅する", done_badge:"完走", not_played:" は未プレー",
     prev_vol:"前の Vol", next_vol:"次の Vol", open_map:" · 地図を開く ▸", cleared_mark:"済",
     world_map:"世界地図：訪れた国と航路", itinerary:"行程",
     next_planet:"次の惑星へ", space_map:"星図：太陽系の航路",
@@ -1014,7 +1022,7 @@ const I18N = {
     sync_foot:"Press when the marker reaches the Hit Point. Try markers and hit sounds here. 冴/良/甘 mean you are hitting at that accuracy.<br>Drift sign: − early, + late. Applying the median adjusts it automatically.",
     applied:"Applied", lang:"言語 / Language",
     next_country:"Next country", to_map_done:"To map (complete)", save_image:"Save image",
-    difficulty:"Difficulty", depart:"Depart", depart_again:"Travel again", done_badge:"Complete", not_played:" not played yet",
+    difficulty:"Difficulty", chart_algo:"Chart algorithm", algo_v1:"v1 — original charts", algo_v2:"v2 — refined timing and patterns that follow the song's repeats", depart:"Depart", depart_again:"Travel again", done_badge:"Complete", not_played:" not played yet",
     prev_vol:"Previous Vol", next_vol:"Next Vol", open_map:" · Open map ▸", cleared_mark:"✓",
     world_map:"World map: visited countries and routes", itinerary:"Itinerary",
     next_planet:"Next planet", space_map:"Star map: solar system route",
@@ -1111,6 +1119,7 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* ─── 状態 ─── */
 let audioCtx = null;
 let difficulty = "normal";
+let chartAlgo = "v1";          // 譜面アルゴリズム（v1 = 従来 / v2）。端末ごと（juroku:algo）、同期しない
 let offsetMs = 0;
 let vibrateMs = 20;   // タップ認識時のバイブ長(ms)。0でバイブ無効
 let bests = {};
@@ -1121,10 +1130,13 @@ function bestOf(key){
   if(v == null) return null;
   return (typeof v === "number") ? { s: v } : v;
 }
-const chartCache = new Map();   // key -> {chart}
+/* ベスト記録のキー。v1 は従来のまま「曲名|難易度」、v2 は別記録として末尾に |v2 を付ける
+   （譜面が違うのでスコアは比べられない。既存の記録は移行せずにそのまま v1 の記録になる）。 */
+const bestKey = (title, d, a) => title + "|" + d + (a === "v2" ? "|v2" : "");
+const chartCache = new Map();   // key -> {chart, algo}
 let cur = null;                 // 進行中のプレイ
 let lastSong = null;            // 最後に読み込んだ曲 {name, arrayBuffer} — Quitしても保持
-let lastResult = null;          // 直近の結果 {title, diff, s, a, c, m, n, d}（結果画像用）
+let lastResult = null;          // 直近の結果 {title, diff, algo, s, a, c, m, n, d}（結果画像用）
 
 /* ─── ワールドツアーの進行 ─── */
 let tourState = { cleared: {} };  // cleared[trackId] = {d, diff, acc}  (localStorage juroku:tour)
@@ -1225,6 +1237,10 @@ async function loadPrefs(){
   try{
     const dd = await window.storage.get("juroku:difficulty");
     if(dd && dd.value && DIFF[dd.value]) setDifficulty(dd.value, { silent: true });
+  }catch(e){}
+  try{
+    const al = await window.storage.get("juroku:algo");
+    if(al && al.value && CHART_ALGOS.includes(al.value)) setChartAlgo(al.value, { silent: true });
   }catch(e){}
   try{
     const o = await window.storage.get("juroku:offset");
@@ -1841,6 +1857,504 @@ function validate(notes, cfg){
   return { impossible, tightest:+tightest.toFixed(2) };
 }
 
+/* ═══════════ 譜面生成 v2 ═══════════
+   v1（detectOnsets / analyzeSections / buildChart）は凍結。v2 はその出力（ピーク・セクション）を
+   入力に使い、選別と配置を別関数で行う。v1 との違い:
+   ・打点の時刻 … 束ねた音のうち「最も重要な帯域」のピークを代表にし（v1 は最初のピーク）、
+     原音を 1.45ms 刻みで見直して立ち上がり（帯域の振幅が上昇幅の 30% に達した点）に合わせる
+   ・配置 … ランダムな局所探索ではなく「型（階段・往復・回転…）」でフレーズを置き、
+     同じリズムのフレーズには同じ型を出す（同じ区間では同形、別の区間では鏡像などの変化）
+   押下可能性の基準（両手ゾーン・到達時間・repGap）は v1 と同じで、validate() で検証できる。 */
+const CHART_ALGOS = ["v1", "v2"];
+const V2_HOP = 32;                       // 精密化の刻み（1.45ms）
+const V2_WIN = 0.045;                    // 粗い時刻より後ろはこの範囲だけを見る
+const V2_BACK = 0.12;                    // 前へはここまで遡ってよい（遅れて検出された、ゆっくり立ち上がる音）
+const V2_RISE = 0.30;                    // 上昇幅のこの割合に達した点を打点とする
+const V2_SLOW_FREE = 1.0;               // 上昇時間がこの窓長倍を超えた分を「遅い立ち上がり」とみなす
+const V2_SLOW_K = 0.5;                  // その超過分の何割だけ前へ戻すか
+const V2_COMP = 0.0095;                      // 精密化後の補正（合成音の実測で校正）
+
+/* 粗い打点 tc（秒）の付近で、帯域 band のエネルギーが立ち上がる時刻を返す。
+   窓の中心を時刻とするので、衝撃音では窓が音を中心に捉えた瞬間＝発音時刻になる。 */
+const v2fft = { 1024: null, 256: null };
+function refineOnsetV2(pcm, tc, band){
+  const N = band <= 1 ? 1024 : 256;
+  const fft = v2fft[N] || (v2fft[N] = makeFFT(N));
+  const sc = FFT_N / N;
+  const lo = Math.max(1, Math.round(BANDS[band][0] / sc)), hi = Math.max(lo, Math.round(BANDS[band][1] / sc));
+  const re = new Float32Array(N), im = new Float32Array(N);
+  const half = N >> 1;
+  const s0 = Math.round((tc - V2_BACK - 0.05) * SR) - half, s1 = Math.round((tc + V2_WIN) * SR) - half;
+  const ts = [], es = [];
+  for(let s = s0; s <= s1; s += V2_HOP){
+    if(s < 0 || s + N > pcm.length) continue;
+    for(let i = 0; i < N; i++){ const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1)); re[i] = pcm[s + i] * w; im[i] = 0; }
+    fft(re, im);
+    let e = 0;
+    for(let k = lo; k <= hi; k++) e += re[k] * re[k] + im[k] * im[k];
+    ts.push((s + half) / SR); es.push(Math.sqrt(e));
+  }
+  if(es.length < 8) return tc;
+  /* 窓内の最大値と上昇の始まりの間で、上昇幅の V2_RISE を跨いだ最初の点 */
+  let pk = 0;
+  for(let i = 0; i < es.length; i++) if(ts[i] <= tc + V2_WIN && es[i] > es[pk]) pk = i;
+  /* 上昇の始まりまで遡る（ゆっくり立ち上がる音でも上昇全体の中点を採る）。
+     わずかな揺れ（ピークの 8%。和音のうなり等）は上昇の途中とみなし、それより大きく下がった所で止める。 */
+  let mn = pk;
+  for(let i = pk - 1; i >= 0 && ts[pk] - ts[i] <= 0.15; i--){
+    if(es[i] < es[mn]) mn = i;
+    else if(es[i] > es[mn] + 0.08 * es[pk]) break;
+  }
+  if(es[pk] - es[mn] < 1e-3) return tc;
+  const mid = es[mn] + V2_RISE * (es[pk] - es[mn]);
+  let k = mn;
+  while(k < pk && es[k] < mid) k++;
+  const t = k > 0 ? ts[k - 1] + (ts[k] - ts[k - 1]) * (mid - es[k - 1]) / ((es[k] - es[k - 1]) || 1) : ts[k];
+  /* 上昇に窓の長さ以上かかる音（パッド・ボウイング・歌い出し）は、その分だけ前へ戻す。
+     衝撃音の上昇時間はほぼ窓の長さで決まるため、ここでは補正がかからない。 */
+  const slow = Math.max(0, (ts[pk] - ts[mn]) - N / SR * V2_SLOW_FREE);
+  const tAdj = t - V2_SLOW_K * slow;
+  return (tAdj >= tc - V2_BACK && tAdj <= tc + V2_WIN) ? tAdj + V2_COMP : tc;
+}
+
+/* 選別（v1 の buildChart 1〜3 と同じゲート・予算。違いは時刻の決め方と区間番号の付与）。
+   v1 側は凍結のため、共有せずにここへ写してある。 */
+function selectEventsV2(peaks, sections, energy, loud, cfg, pcm){
+  const BAND_W = [1.30, 1.15, 1.00, 0.85];
+  const events = [];
+  const CLUSTER = 0.030;
+  for(const p of peaks){
+    const t = p.frame * HOP_SEC + ONSET_COMP;
+    const last = events[events.length-1];
+    if(last && t - last.t < CLUSTER){
+      last.bands.push({ band:p.band, strength:p.strength, frame:p.frame });
+      last.strength = Math.max(last.strength, p.strength);
+    }else{
+      events.push({ t, bands:[{band:p.band, strength:p.strength, frame:p.frame}], strength:p.strength });
+    }
+  }
+  const esorted = Float32Array.from(energy).sort();
+  const efloor = esorted[Math.floor(esorted.length*0.95)] * 0.14;
+  const lsorted = Float32Array.from(loud).sort();
+  const loudP90 = lsorted[Math.floor(lsorted.length*0.90)];
+  const loudFloor = loudP90 * 0.004;
+  const rises = [];
+  for(const e of events){
+    const fi = Math.min(loud.length-1, Math.max(0, Math.round((e.t-ONSET_COMP)/HOP_SEC)));
+    e.fi = fi;
+    let peakL = 0, pre = loud[Math.max(0, fi-3)];
+    for(let k=fi; k<=Math.min(loud.length-1, fi+3); k++) peakL = Math.max(peakL, loud[k]);
+    e.peakL = peakL;
+    e.rise = Math.max(0, peakL - pre);
+    rises.push(e.rise);
+  }
+  rises.sort((a,b)=>a-b);
+  const riseN = rises[Math.floor(rises.length*0.70)] || 1e-6;
+  for(let i=0;i<events.length;i++){
+    const e = events[i];
+    let dm = e.bands[0];
+    for(const b of e.bands) if(b.strength*BAND_W[b.band] > dm.strength*BAND_W[dm.band]) dm = b;
+    e.dom = dm.band;
+    e.domFrame = dm.frame;
+    e.echo = false;
+    for(let j=i-1; j>=0 && e.t - events[j].t <= 0.6; j--){
+      if(events[j].dom === e.dom && events[j].rise > e.rise*3.5){ e.echo = true; break; }
+    }
+  }
+  const FW = Math.round(1.0/HOP_SEC);
+  for(const e of events){
+    let back = 0, fwd = 0;
+    for(let k=Math.max(0, e.fi-FW); k<=Math.max(0, e.fi-3); k++) back = Math.max(back, loud[k]);
+    for(let k=Math.min(loud.length-1, e.fi+5); k<=Math.min(loud.length-1, e.fi+FW); k++) fwd = Math.max(fwd, loud[k]);
+    e.fading = back > 0 && fwd/back < 0.60
+            && !(e.rise >= riseN*0.75 && e.peakL >= loudP90*0.85);
+  }
+  for(const e of events){
+    let w = 0;
+    for(const b of e.bands) w = Math.max(w, BAND_W[b.band]);
+    const riseW = 0.20 + 0.80*Math.min(1, Math.sqrt(e.rise/riseN));
+    e.salience = e.strength * w * riseW * (1 + 0.15*(e.bands.length-1));
+    const pre = loud[Math.max(0, e.fi-3)];
+    e.quiet = energy[e.fi] < efloor
+           || e.peakL < loudFloor
+           || e.rise < riseN * cfg.riseFrac
+           || e.rise < pre * cfg.relGate
+           || e.echo
+           || e.fading;
+  }
+  for(let i=0;i<events.length;i++){
+    const e = events[i];
+    let sum = 0, n = 0;
+    for(let j=i; j>=0 && e.t-events[j].t <= 0.35; j--){ sum += events[j].salience; n++; }
+    for(let j=i+1; j<events.length && events[j].t-e.t <= 0.35; j++){ sum += events[j].salience; n++; }
+    e.prom = e.salience / ((sum/n) || 1);
+  }
+  const kept = [];
+  const taken = [];
+  const canTake = t => {
+    for(const x of taken){ if(Math.abs(x-t) < cfg.minGap) return false; }
+    return true;
+  };
+  sections.forEach((sec, si) => {
+    const dur = sec.end - sec.start;
+    const budget = Math.round(dur * cfg.rate * (0.20 + 1.05*Math.pow(sec.intensity, 1.3)));
+    const pool = events.filter(e => e.t >= sec.start && e.t < sec.end)
+                       .sort((a,b) => b.salience - a.salience);
+    const clean = pool.filter(e => e.strength >= cfg.thresh && !e.quiet && e.prom >= cfg.promFloor);
+    const secTop = clean.length ? clean[Math.floor((clean.length-1)*0.10)].salience : 0;
+    const salMin = secTop * cfg.salFloor;
+    const salChord = secTop * 0.5;
+    let taken_n = 0;
+    for(const e of pool){
+      if(taken_n >= budget) break;
+      if(e.salience < salMin) break;
+      e.weakish = e.salience < salChord;
+      e.accent = e.salience >= secTop * 0.8;          // v2: フレーズの区切りの手がかり
+      if(e.strength < cfg.thresh || e.quiet) continue;
+      if(e.prom < cfg.promFloor) continue;
+      if(!canTake(e.t)) continue;
+      e.inten = sec.intensity;
+      e.sec = si;
+      taken.push(e.t); kept.push(e); taken_n++;
+    }
+  });
+  /* v2: 時刻を「最も重要な帯域のピーク」→ 原音での立ち上がりに置き直す */
+  for(const e of kept){
+    e.t0 = e.t;
+    e.t = refineOnsetV2(pcm, e.domFrame * HOP_SEC + ONSET_COMP, e.dom);
+  }
+  kept.sort((a,b)=>a.t-b.t);
+  /* v2: 繰り返しの箇所は、元の箇所で選んだ打点をずれの分だけ動かして採る（同じ音楽 → 同じリズム）。
+     元にあって選ばれていない打点は候補全体から拾い直す。元に無い打点は、ほぼそのままの
+     繰り返し（V2_REP_STRICT 以上）なら落とし、それ以外は残す。 */
+  const reps = repeatsV2(peaks, loud.length);
+  const fin = [];
+  const near = (arr, t, tol) => { let b = null, bd = tol; for(const x of arr){ const d = Math.abs(x.t - t); if(d <= bd){ bd = d; b = x; } } return b; };
+  let ki = 0;
+  for(const r of reps){
+    const t0 = r.t, t1 = r.t + V2_BLK;
+    const mine = [];
+    while(ki < kept.length && kept[ki].t < t1){ if(kept[ki].t >= t0) mine.push(kept[ki]); ki++; }
+    if(r.sim < V2_REP || !r.lag){ fin.push(...mine); continue; }
+    const srcs = fin.filter(x => x.t >= t0 - r.lag && x.t < t1 - r.lag);
+    for(const s of srcs){
+      const want = s.t + r.lag;
+      let e = near(mine, want, 0.035);
+      if(!e){
+        const c = near(events.filter(x => Math.abs(x.t - want) < 0.06 && !x.quiet && x.strength >= cfg.thresh * 0.8), want, 0.045);
+        if(c){
+          e = c; e.t0 = e.t; e.t = refineOnsetV2(pcm, e.domFrame * HOP_SEC + ONSET_COMP, e.dom);
+          e.inten = s.inten; e.sec = sections.findIndex(x => e.t >= x.start && e.t < x.end);
+          if(e.sec < 0) e.sec = s.sec;
+          e.weakish = s.weakish; e.accent = s.accent;
+        }
+      }
+      if(e && !fin.includes(e)){ e.src = s; fin.push(e); }
+    }
+    /* 元に無い打点: ほぼそのままの繰り返しなら落とす（リズムを元に揃える）。
+       そうでなければ残す（全部落とすと繰り返しの箇所だけ痩せる）。残した打点は型で置かれる */
+    if(r.sim < V2_REP_STRICT) for(const e of mine) if(!fin.includes(e)) fin.push(e);
+  }
+  fin.sort((a,b)=>a.t-b.t);
+  /* 置き直しで minGap を割った組は、弱い方を落とす（元の箇所を写した打点を優先） */
+  const out = [];
+  for(const e of fin){
+    const last = out[out.length-1];
+    if(last && e.t - last.t < cfg.minGap){
+      if((e.src && !last.src) || (!!e.src === !!last.src && e.salience > last.salience)) out[out.length-1] = e;
+      continue;
+    }
+    out.push(e);
+  }
+  return out;
+}
+
+/* ─── v2: 曲の繰り返しの検出 ─────────────────────────────
+   帯域ごとの立ち上がり（全ピーク）を 20ms 刻みの列にし、
+   「何秒前の箇所とよく重なるか（ずれ）」を 0.5 秒ごとに求める。
+   1. 曲全体で重なりの良いずれの候補を上位 V2_LAGS 個だけ選ぶ（全探索は重いので）
+   2. 各ブロックで候補（と前後 ±2 刻み）を窓 3 秒の余弦類似度で比べ、最も良いずれを採る
+   ─────────────────────────────────────────────────────── */
+const V2_BIN = 0.02, V2_BLK = 0.5, V2_RWIN = 3.0, V2_MINLAG = 2.0, V2_LAGS = 16;
+const V2_REP = 0.80;                    // この類似度以上を「繰り返し」とみなす
+const V2_REP_STRICT = 0.90;             // この類似度以上は「そのままの繰り返し」: 元に無い打点を落とし、リズムも元に揃える
+function repeatsV2(peaks, frames){
+  const nb = Math.ceil(frames * HOP_SEC / V2_BIN) + 2;
+  const env = Array.from({length:4}, () => new Float32Array(nb));
+  for(const p of peaks){
+    const i = Math.round((p.frame * HOP_SEC) / V2_BIN);
+    if(i < nb) env[p.band][i] += Math.min(4, p.strength);
+  }
+  for(const e of env){                  // 三角窓で ±40ms 滲ませ、演奏の揺れを許す
+    const c = e.slice();
+    for(let i=0;i<nb;i++){
+      let s = 0, w = 0;
+      for(let k=-2;k<=2;k++){ const j = i + k; if(j < 0 || j >= nb) continue; const ww = 3 - Math.abs(k); s += c[j] * ww; w += ww; }
+      e[i] = s / w;
+    }
+  }
+  const minL = Math.round(V2_MINLAG / V2_BIN), maxL = nb - Math.round(V2_RWIN / V2_BIN);
+  if(maxL <= minL) return [];
+  /* 1. 全体の重なり G(L) = Σ env[t]·env[t-L] / 重なりの長さ */
+  const G = new Float32Array(maxL + 1);
+  for(let L=minL; L<=maxL; L++){
+    let s = 0;
+    for(const e of env) for(let i=L;i<nb;i++) s += e[i] * e[i-L];
+    G[L] = s / (nb - L);
+  }
+  const cand = [];
+  for(let L=minL+1; L<maxL; L++) if(G[L] >= G[L-1] && G[L] >= G[L+1] && G[L] > 0) cand.push(L);
+  cand.sort((a,b) => G[b] - G[a]);
+  const lags = cand.slice(0, V2_LAGS);
+  /* 2. ブロックごとの最良のずれ */
+  const W = Math.round(V2_RWIN / V2_BIN), step = Math.round(V2_BLK / V2_BIN);
+  const out = [];
+  for(let b0=0; b0 < nb; b0 += step){
+    const a = Math.max(0, b0 - Math.round(W / 3)), z = Math.min(nb, a + W);
+    const sc = [];
+    for(const L0 of lags) for(let L=L0-2; L<=L0+2; L++){
+      if(a - L < 0) continue;
+      let xy = 0, xx = 0, yy = 0;
+      for(const e of env) for(let i=a;i<z;i++){ const x = e[i], y = e[i-L]; xy += x*y; xx += x*x; yy += y*y; }
+      sc.push({ L, sim: xx > 0 && yy > 0 ? xy / Math.sqrt(xx*yy) : 0 });
+    }
+    /* ループする曲は 1 周前とも 2 周前とも同じくらい似る。最良とほぼ同じなら最も短いずれを採る
+       （2 周前を採ると偶数周と奇数周が別々の系列になり、隣り合う周の形が揃わない） */
+    const bs = sc.reduce((m, x) => Math.max(m, x.sim), 0);
+    let best = null;
+    for(const x of sc) if(x.sim >= bs - 0.03 && (best == null || x.L < best)) best = x.L;
+    out.push({ t: b0 * V2_BIN, lag: best == null ? 0 : best * V2_BIN, sim: bs });
+  }
+  return out;
+}
+
+/* ─── v2 の配置: 型（パターン）でフレーズを置く ─────────────────
+   良い譜面の条件として、プレイヤーと譜面制作者の間でほぼ共通しているもの:
+   ・同じ音（同じリズム）には同じ形 → 覚えて上達できる（一貫性）
+   ・ただし同じ塊を延々と写すと退屈 → 繰り返しには鏡像などの変化を均等に混ぜる
+   ・定番の型は使ってよいが一つに支配させない／手の交互と負担の偏りを避ける
+   ・目立つ音（強拍・区間の頭）を強調する
+   これを次の規則で実装する:
+   1. 選ばれた打点をフレーズ（チャンク）に分ける。区切りは大きな間・区間の境・強い音（最大 8 打）
+   2. チャンクのリズム（打点数と打点間隔の列）が近いもの（間隔の比がおおむね ±20% 以内）を同じフレーズとみなす
+   3. 初めてのフレーズには型を 1 つ割り当てる（音の特徴で候補を絞り、使用回数の少ない型を優先）
+   4. 同じフレーズが同じ区間で再び来たら同じ形、別の区間なら次の変換（左右反転・上下反転・180°）。
+      同じ区間でも 3 回目以降は 2 回ごとに左右を入れ替える（AA A'A'…）
+   5. 型の示すパネルが押せない（到達時間・repGap・手のゾーン）時だけ近くのパネルへずらす
+   ─────────────────────────────────────────────────────── */
+const V2_RANK = { easy:0, normal:1, hard:2, oni:3 };
+const V2_SIM = 0.18;                    // 同じフレーズとみなす打点間隔の差（対数比の平均。0.18 ≈ ±20%）
+/* 型: gen(n, a, ev) → n 個の {r, c}。a = {r, c, dc, dr}（起点と向き）。盤の端では折り返す。
+   min = 使い始める難易度、feel = どんなリズムに向くか（even=等間隔、fast=速い、varied=不規則、melodic=音高の上下） */
+const bounce = (x, d) => { x += d; if(x > 3) return { x: 6 - x, d: -d }; if(x < 0) return { x: -x, d: -d }; return { x, d }; };
+const V2_PATTERNS = {
+  /* 階段: 横へ 1 枚ずつ。端で折り返す */
+  stair:  { min:0, feel:["even","fast"], gen:(n, a) => { const o = []; let c = a.c, d = a.dc; for(let i=0;i<n;i++){ o.push({ r:a.r, c }); const b = bounce(c, d); c = b.x; d = b.d; } return o; } },
+  /* 斜め階段: 横と縦に 1 枚ずつ */
+  diag:   { min:1, feel:["even","melodic"], gen:(n, a) => { const o = []; let c = a.c, r = a.r, dc = a.dc, dr = a.dr; for(let i=0;i<n;i++){ o.push({ r, c }); const b = bounce(c, dc), e = bounce(r, dr); c = b.x; dc = b.d; r = e.x; dr = e.d; } return o; } },
+  /* 往復: 隣り合う 2 枚を交互（左右の手で叩き分ける） */
+  trill:  { min:0, feel:["fast","even"], gen:(n, a) => { const c2 = a.c + (a.c >= 2 ? -1 : 1) * (a.w || 1); const o = []; for(let i=0;i<n;i++) o.push({ r:a.r, c: i % 2 ? c2 : a.c }); return o; } },
+  /* 回転: 2×2 を一周 */
+  rotate: { min:0, feel:["even","fast"], gen:(n, a) => { const r0 = Math.min(a.r, 2), c0 = Math.min(a.c, 2); const ring = a.dc > 0 ? [[0,0],[0,1],[1,1],[1,0]] : [[0,1],[0,0],[1,0],[1,1]]; const o = []; for(let i=0;i<n;i++){ const [dr, dc] = ring[i % 4]; o.push({ r:r0+dr, c:c0+dc }); } return o; } },
+  /* 鋸: 2 行を交互に行き来しながら横へ進む */
+  zigzag: { min:1, feel:["varied","even"], gen:(n, a) => { const r2 = a.r + (a.r >= 3 ? -1 : 1); const o = []; let c = a.c, d = a.dc; for(let i=0;i<n;i++){ o.push({ r: i % 2 ? r2 : a.r, c }); const b = bounce(c, d); c = b.x; d = b.d; } return o; } },
+  /* 対称: 左右の鏡像位置を交互に、2 打ごとに 1 行ずれる */
+  mirror: { min:1, feel:["varied","melodic"], gen:(n, a) => { const o = []; let r = a.r, d = a.dr; for(let i=0;i<n;i++){ o.push({ r, c: i % 2 ? 3 - a.c : a.c }); if(i % 2){ const e = bounce(r, d); r = e.x; d = e.d; } } return o; } },
+  /* 旋律: 行は音域（低い音ほど下）、列は左右交互に半歩ずつ */
+  melody: { min:0, feel:["melodic","varied"], gen:(n, a, ev) => { const o = []; let c = a.c, d = a.dc; for(let i=0;i<n;i++){ const b = ev[i].dom; o.push({ r: 3 - b, c }); if(i % 2){ const x = bounce(c, d); c = x.x; d = x.d; } } return o; } },
+  /* 縦列: 2 列を交互に、行を 1 つずつ進める */
+  column: { min:2, feel:["fast","varied"], gen:(n, a) => { const c2 = a.c >= 2 ? a.c - 2 : a.c + 2; const o = []; let r = a.r, d = a.dr; for(let i=0;i<n;i++){ o.push({ r, c: i % 2 ? c2 : a.c }); if(i % 2){ const e = bounce(r, d); r = e.x; d = e.d; } } return o; } },
+  /* 跳躍: 端から端へ。行を変えながら */
+  jump:   { min:2, feel:["varied","melodic"], gen:(n, a) => { const o = []; let r = a.r, d = a.dr; for(let i=0;i<n;i++){ o.push({ r, c: i % 2 ? 3 : 0 }); const e = bounce(r, d); r = e.x; d = e.d; } return o; } },
+};
+/* 変換（繰り返しの変化）: 0=そのまま 1=左右反転 2=上下反転 3=180° */
+const v2Trans = (p, k) => ({ r: k & 2 ? 3 - p.r : p.r, c: k & 1 ? 3 - p.c : p.c });
+
+function placeV2(kept, cfg, seed, diffName){
+  let s = seed >>> 0;
+  const rnd = () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296;
+  const rank = V2_RANK[diffName] ?? 1;
+  const R = cfg.reach;
+  const travel = d => d ? (REACH_BASE + d*REACH_PER) * R : REACH_TAP * R;
+  const cheb = (a,b) => Math.max(Math.abs((a>>2)-(b>>2)), Math.abs((a&3)-(b&3)));
+  const hands = { L:{ panel:9, t:-99 }, R:{ panel:10, t:-99 } };
+  const lastOnPanel = new Float32Array(16).fill(-99);
+  const rowUse = [0,0,0,0];
+  const notes = [];
+
+  /* 押下可能性は v1 と同じ基準（手のゾーン・到達時間×安全率・パネルの repGap・片手 2 本指は隣接のみ） */
+  const slackOf = (hk, p, t, reuse) => {
+    if(t - lastOnPanel[p] < cfg.repGap) return -1;
+    const col = p & 3;
+    if(hk === "L" && col > 2) return -1;
+    if(hk === "R" && col < 1) return -1;
+    const h = hands[hk], d = cheb(h.panel, p);
+    if(reuse) return d <= 1 ? 1 : -1;
+    const need = d === 0 ? cfg.repGap : travel(d) * SAFETY;
+    const avail = t - h.t;
+    return avail >= need ? avail / need : -1;
+  };
+  /* パネル p を叩ける手。ゾーンの得意側（左手=列0-1 / 右手=列2-3）を優先し、次に余裕の大きい方 */
+  const handFor = (p, t, used) => {
+    let best = null, bs = -1;
+    for(const hk of ["L","R"]){
+      const sl = slackOf(hk, p, t, used.has(hk));
+      if(sl < 0) continue;
+      const zone = (hk === "L") ? ((p & 3) <= 1 ? 1 : 0.6) : ((p & 3) >= 2 ? 1 : 0.6);
+      const sc = zone * Math.min(2, sl) * (used.has(hk) ? 0.5 : 1);
+      if(sc > bs){ bs = sc; best = hk; }
+    }
+    return best;
+  };
+  /* 型の示すパネルが押せなければ、近い順（同距離は乱数）に押せるパネルを探す */
+  const placeNear = (want, t, used, usedPanels) => {
+    const order = [];
+    for(let p=0;p<16;p++) if(!usedPanels.includes(p)) order.push({ p, d: cheb(p, want) + rnd() * 0.5 });
+    order.sort((a,b) => a.d - b.d);
+    for(const o of order){
+      const hk = handFor(o.p, t, used);
+      if(hk) return { p: o.p, hk };
+    }
+    return null;
+  };
+  const commit = (p, hk, t) => {
+    const h = hands[hk];
+    h.panel = p; h.t = t;
+    lastOnPanel[p] = t;
+    for(let r=0;r<4;r++) rowUse[r] *= 0.92;
+    rowUse[p >> 2] += 1;
+    notes.push({ t, panel:p, row:p>>2, hand:hk, judged:0 });
+  };
+
+  /* 同時押しの数（v1 と同じ規則） */
+  let prevT = -99;
+  for(const e of kept){
+    const gap = e.t - prevT;
+    let want = 1;
+    if(gap >= cfg.chordGap)       want = Math.min(2, cfg.maxChord, e.bands.length);
+    if(gap >= cfg.chordGap * 1.6) want = Math.min(cfg.maxChord, e.bands.length);
+    if((e.inten||0) < 0.45) want = 1;
+    if(e.weakish) want = 1;
+    if(e.src && e.src.want) want = Math.min(cfg.maxChord, e.src.want);   // 繰り返しは元と同じ数
+    e.want = want;
+    prevT = e.t;
+  }
+
+  /* 1. チャンクに分ける */
+  const chunks = [];
+  let ch = null;
+  const gaps = [];
+  for(let i=0;i<kept.length;i++){
+    const e = kept[i];
+    const gap = i ? e.t - kept[i-1].t : 99;
+    const med = gaps.length ? gaps.slice(-8).sort((a,b)=>a-b)[Math.min(gaps.length, 8) >> 1] : 0.5;
+    const brk = !ch || e.sec !== ch.sec || gap > Math.max(0.6, 2.2 * med)
+             || ch.ev.length >= 8 || (ch.ev.length >= 4 && e.accent);
+    if(brk){ ch = { sec: e.sec, ev: [] }; chunks.push(ch); }
+    ch.ev.push(e);
+    if(i) gaps.push(gap);
+  }
+
+  /* 2-4. 署名 → 型・起点・変換 */
+  const famList = [];
+  const use = {};
+  for(const k in V2_PATTERNS) use[k] = 0;
+  const recent = [];
+  for(const c of chunks){
+    const ev = c.ev, n = ev.length;
+    const iois = ev.slice(1).map((e, k) => e.t - ev[k].t);
+    /* 近似一致: 打点数が同じで、打点間隔の対数比の平均が V2_SIM 以内の既存フレーズ（最も近いもの） */
+    let f = null, fd = V2_SIM;
+    for(const g of famList){
+      if(g.n !== n) continue;
+      let dsum = 0;
+      for(let k=0;k<iois.length;k++) dsum += Math.abs(Math.log((iois[k] + 0.02) / (g.iois[k] + 0.02)));
+      const dd = iois.length ? dsum / iois.length : 0;
+      if(dd <= fd){ fd = dd; f = g; }
+    }
+    if(!f){
+      /* 音の特徴 */
+      const mean = iois.length ? iois.reduce((a,b)=>a+b,0) / iois.length : 0.5;
+      const cv = iois.length > 1 ? Math.sqrt(iois.reduce((a,b)=>a+(b-mean)**2,0) / iois.length) / (mean || 1) : 0;
+      const doms = ev.map(e => e.dom);
+      const span = Math.max(...doms) - Math.min(...doms);
+      const feels = new Set();
+      if(cv < 0.18) feels.add("even"); else feels.add("varied");
+      if(mean < 0.22) feels.add("fast");
+      if(span >= 2) feels.add("melodic");
+      /* 候補: 難易度で使える型のうち、特徴に合う型。使用回数が少なく、直近に使っていない型ほど選ばれやすい */
+      const cands = [];
+      for(const [k, P] of Object.entries(V2_PATTERNS)){
+        if(P.min > rank) continue;
+        if(k === "rotate" && n < 3) continue;
+        const fit = P.feel.filter(x => feels.has(x)).length;
+        const w = (0.25 + fit) / (1 + use[k] * 0.35) * (recent.includes(k) ? 0.3 : 1);
+        cands.push({ k, w });
+      }
+      let tot = cands.reduce((a,b)=>a+b.w,0), x = rnd() * tot, pick = cands[0].k;
+      for(const cd of cands){ x -= cd.w; if(x <= 0){ pick = cd.k; break; } }
+      use[pick]++;
+      recent.push(pick); if(recent.length > 3) recent.shift();
+      /* 起点の行: チャンクの主な音域（低い音ほど下）を、使い過ぎの行を避けつつ */
+      const bandAvg = doms.reduce((a,b)=>a+b,0) / n;
+      let row = 0, rs = -1;
+      for(let r=0;r<4;r++){
+        const pref = ROW_PREF[Math.round(bandAvg)][r];
+        const sc = (0.2 + pref) / (1 + rowUse[r] * 0.3) * (0.9 + 0.2 * rnd());
+        if(sc > rs){ rs = sc; row = r; }
+      }
+      f = { pat: pick, a: { r: row, c: rnd() < 0.5 ? 0 : 1, dc: rnd() < 0.5 ? 1 : -1, dr: row >= 2 ? -1 : 1, w: rank >= 2 && rnd() < 0.4 ? 2 : 1 },
+            trans: 0, lastSec: c.sec, inSec: 0, n, iois };
+      if(f.a.dc < 0) f.a.c = 3 - f.a.c;
+      famList.push(f);
+    }else{
+      if(f.lastSec !== c.sec){ f.trans = (f.trans + 1) % 4; f.lastSec = c.sec; f.inSec = 0; }
+      else f.inSec++;
+    }
+    const k = f.trans ^ ((f.inSec >> 1) & 1 && f.inSec >= 2 ? 1 : 0);
+    const pos = V2_PATTERNS[f.pat].gen(n, f.a, ev).map(p => v2Trans(p, k));
+
+    /* 5. 置く */
+    for(let i=0;i<n;i++){
+      const e = ev[i];
+      const used = new Set(), usedPanels = [];
+      /* 繰り返し: 元の配置を写す。同じ区間では AA A'A' AA…（2 回ごとに左右反転）、
+         区間が変わったら変換を一段進める（左右 → 上下 → 180° → そのまま） */
+      let copy = null;
+      if(e.src && e.src.panels && e.src.panels.length){
+        const sp = e.src;
+        if(sp.sec === e.sec){ e.rd = (sp.rd || 0) + 1; e.tk = (sp.tk || 0) ^ (e.rd % 2 === 0 ? 1 : 0); }
+        else { e.rd = 0; e.tk = ((sp.tk || 0) + 1) % 4; }
+        copy = sp.panels.map(q => { const v = v2Trans({ r: q >> 2, c: q & 3 }, (e.tk ^ (sp.tk || 0))); return v.r * 4 + v.c; });
+      }
+      e.panels = [];
+      const main = copy ? copy[0] : pos[i].r * 4 + pos[i].c;
+      for(let j=0;j<e.want;j++){
+        /* 同時押しの相方: 1 本目の左右反対（同列なら隣）、3 本目は 1 本目の上下隣 */
+        let target = main;
+        if(copy && j < copy.length){ target = copy[j]; }
+        else if(j === 1){ const c2 = 3 - pos[i].c; target = pos[i].r * 4 + (c2 === pos[i].c ? (pos[i].c ? pos[i].c - 1 : 1) : c2); }
+        else if(j === 2){ const r2 = pos[i].r + (pos[i].r >= 2 ? -1 : 1); target = r2 * 4 + pos[i].c; }
+        let hk = usedPanels.includes(target) ? null : handFor(target, e.t, used);
+        let p = target;
+        if(!hk){
+          const alt = placeNear(target, e.t, used, usedPanels);
+          if(!alt) break;
+          p = alt.p; hk = alt.hk;
+        }
+        commit(p, hk, e.t);
+        used.add(hk); usedPanels.push(p); e.panels.push(p);
+      }
+    }
+  }
+  notes.sort((a,b)=>a.t-b.t);
+  return notes;
+}
+
+function buildChartV2(pcm, peaks, sections, energy, loud, cfg, seed, diffName){
+  return placeV2(selectEventsV2(peaks, sections, energy, loud, cfg, pcm), cfg, seed, diffName);
+}
+
 /* ═══════════ 音声の解除 ═══════════
    ブラウザの自動再生制限により、AudioContext はユーザー操作の中で作成・resume() しないと
    suspended のまま動かない。曲を選んだ瞬間（同期的に）呼び、await はしない。 */
@@ -1901,7 +2415,8 @@ async function prepare(name, arrayBuffer){
   seed = seed >>> 0;
   const seedHex = seed.toString(16).padStart(8,"0");
 
-  const key = seedHex + "|" + difficulty;
+  const algo = chartAlgo;
+  const key = seedHex + "|" + difficulty + (algo === "v2" ? "|v2" : "");
   if(chartCache.has(key)){ setLoad(1); return { buffer, ...chartCache.get(key) }; }
   const { peaks, frames, energy, loud } = await detectOnsets(pcm, p => {
     setLoad(0.06 + p * 0.80);
@@ -1914,21 +2429,23 @@ async function prepare(name, arrayBuffer){
   await new Promise(r=>setTimeout(r,20));
 
 
-  const chart = buildChart(peaks, sections, energy, loud, DIFF[difficulty], seed);
+  const chart = algo === "v2"
+    ? buildChartV2(pcm, peaks, sections, energy, loud, DIFF[difficulty], seed, difficulty)
+    : buildChart(peaks, sections, energy, loud, DIFF[difficulty], seed);
 
   if(!chart.length){
     fail(t("err_no_notes"));
     return null;
   }
   const v = validate(chart, DIFF[difficulty]);
-  console.log(`[十六] ${name} / ${difficulty} — ${chart.length} notes, ` +
+  console.log(`[十六] ${name} / ${difficulty} / ${algo} — ${chart.length} notes, ` +
               `${(chart.length/buffer.duration).toFixed(1)}/s, seed ${seedHex}, ` +
               `sections [${sections.map(x=>x.intensity.toFixed(2)).join(" ")}], ` +
               `届かない配置 ${v.impossible}, 最もきつい余裕 ×${v.tightest}`);
 
   if(lastSong && lastSong.name === name)
     noteDuration(lastSong.url || ("file:" + name), buffer.duration);
-  const packed = { chart };
+  const packed = { chart, algo };
   chartCache.set(key, packed);
   setLoad(1);
   return { buffer, ...packed };
@@ -2523,12 +3040,12 @@ async function playRun(name, arrayBuffer, srcUrl, tour){
     head: 0, score: 0, points: 0, combo: 0, maxCombo: 0,
     counts: [0,0,0,0], source: null, startAt: 0, paused: false, over: false,
     clapHead: 0, clapNodes: [], lastClapT: -9,
-    diff: difficulty, arrayBuffer,
+    diff: difficulty, algo: prep.algo || "v1", arrayBuffer,
     tour,                            // ワールドツアー経由なら {vol, idx, seq, id}
   };
 
   $("gsong").textContent = name;
-  $("gdiff").textContent = DIFF[difficulty].label + " · " + prep.chart.length + " NOTES";
+  $("gdiff").textContent = DIFF[difficulty].label + (cur.algo === "v2" ? " · v2" : "") + " · " + prep.chart.length + " NOTES";
   $("gscore").textContent = "0";
   $("gacc").textContent = "100.00%";
   $("gprog").style.width = "0%";
@@ -2680,7 +3197,7 @@ function finish(){
   fcb.classList.toggle("perfect", all);
   if(fc) $("rfctext").textContent = all ? "\u5168\u51B4  ALL SAE" : "FULL COMBO";
 
-  const bk = cur.name + "|" + cur.diff;
+  const bk = bestKey(cur.name, cur.diff, cur.algo);
   const prev = bestOf(bk);
   const isBest = !prev || cur.score > prev.s;
   $("rnew").hidden = !isBest;
@@ -2698,7 +3215,7 @@ function finish(){
   if(tn && tn.cleared) $("tnext").textContent = tn.next != null ? t(cur.tour.space ? "next_planet" : "next_country") : t("to_map_done");
 
   /* 結果画像用の記録（ベスト記録と同じ形 + 曲名・難易度） */
-  lastResult = { title: cur.name, diff: cur.diff, s: cur.score, a: +acc.toFixed(2), c: cur.counts.slice(),
+  lastResult = { title: cur.name, diff: cur.diff, algo: cur.algo, s: cur.score, a: +acc.toFixed(2), c: cur.counts.slice(),
                  m: cur.maxCombo, n: total, d: Date.now() };
   $("rmsg").hidden = true;
 
@@ -2807,7 +3324,7 @@ function renderTracks(){
   const wrap = $("tracks");
   wrap.innerHTML = "";
   DEFAULT_TRACKS.forEach(tr => {
-    cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
+    cardInto(wrap, tr, () => loadRemote(tr), bestOf(bestKey(tr.title, difficulty, chartAlgo)));
   });
   renderUserTracks();
   renderTourTracks();
@@ -2952,7 +3469,7 @@ function togglePreview(tr){
    その場合は持っている情報だけを出す。 */
 let bestShown = null;           // ベスト記録モーダルに出している記録（結果画像用）
 function openBest(title, b){
-  bestShown = { title, diff: difficulty, s: b.s, a: b.a, c: b.c ? b.c.slice() : null, m: b.m, n: b.n, d: b.d };
+  bestShown = { title, diff: difficulty, algo: chartAlgo, s: b.s, a: b.a, c: b.c ? b.c.slice() : null, m: b.m, n: b.n, d: b.d };
   $("bmmsg").hidden = true;
   $("bmt").textContent = title;
   $("bmd").textContent = DIFF[difficulty].label + (b.n ? " · " + b.n + " NOTES" : "");
@@ -3105,7 +3622,7 @@ function renderUserTracks(){
     const tr = { ...tr0, ready: true };
     cardInto(wrap, tr,
       () => tr.kind === "file" ? play(tr.title, tr.ab) : loadRemote(tr),
-      bestOf(tr.title + "|" + difficulty));
+      bestOf(bestKey(tr.title, difficulty, chartAlgo)));
   });
 }
 function addUserTrack(tr){
@@ -3440,7 +3957,7 @@ async function renderShareCanvas(rec){
   const ty = lines.length === 2 ? 384 : 412;
   lines.forEach((l, i) => ctx.fillText(l, C, ty + i * (size + 8)));
   ctx.font = `400 22px ${mono}`; ctx.fillStyle = DIM;
-  const diffLabel = (DIFF[rec.diff] || DIFF.normal).label;
+  const diffLabel = (DIFF[rec.diff] || DIFF.normal).label + (rec.algo === "v2" ? " · v2" : "");
   ctx.fillText(diffLabel + (rec.n ? "  ·  " + rec.n + " NOTES" : ""), C, (lines.length === 2 ? 384 + size + 8 : 412) + 44);
 
   /* 段位（判定） */
@@ -4153,7 +4670,7 @@ function tourStepVolPage(d){
 /* その曲の全難易度でのベスト段位（チップ表示用） */
 function tourBestRank(title){
   let acc = -1;
-  for(const d in DIFF){ const b = bestOf(title + "|" + d); if(b && typeof b.a === "number" && b.a > acc) acc = b.a; }
+  for(const d in DIFF) for(const a of CHART_ALGOS){ const b = bestOf(bestKey(title, d, a)); if(b && typeof b.a === "number" && b.a > acc) acc = b.a; }
   return acc < 0 ? t("cleared_mark") : rankOf(acc);
 }
 
@@ -4171,8 +4688,8 @@ function renderTourCard(){
   }
   $("ttrack").textContent = e.title;
   const d = space ? "oni" : difficulty;                  // 隠しステージは EXTREME 固定
-  $("tdiffv").textContent = DIFF[d].label;               // 難易度はタイトル画面の 1 箇所で選ぶ。ここは現在値の表示だけ
-  const b = bestOf(e.title + "|" + d);
+  $("tdiffv").textContent = DIFF[d].label + (chartAlgo === "v2" ? " · v2" : "");   // 難易度・譜面はセレクタで選ぶ。ここは現在値の表示だけ
+  const b = bestOf(bestKey(e.title, d, chartAlgo));
   const tb = $("tbest");
   if(b && typeof b.s === "number"){
     tb.innerHTML = `BEST <b></b> · <span class="rk"></span> · <span class="ac"></span>`;
@@ -4335,7 +4852,7 @@ function renderTourTracks(){
     h.className = "tgroup";
     h.textContent = `🌏 PULSE OF THE EARTH · VOL.${v.vol} — WORLD TOUR`;
     wrap.appendChild(h);
-    for(const tr of done) cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
+    for(const tr of done) cardInto(wrap, tr, () => loadRemote(tr), bestOf(bestKey(tr.title, difficulty, chartAlgo)));
   }
   /* 隠しステージ: クリア済みの曲だけ。ここからは通常プレー（全難易度） */
   const sdone = TOUR_SPACE.tracks.filter(x => tourIsCleared(x.id));
@@ -4344,7 +4861,7 @@ function renderTourTracks(){
     h.className = "tgroup";
     h.textContent = `🚀 PULSE OF THE EARTH: PLANETS — HIDDEN STAGE`;
     wrap.appendChild(h);
-    for(const tr of sdone) cardInto(wrap, tr, () => loadRemote(tr), bestOf(tr.title + "|" + difficulty));
+    for(const tr of sdone) cardInto(wrap, tr, () => loadRemote(tr), bestOf(bestKey(tr.title, difficulty, chartAlgo)));
   }
 }
 
@@ -4964,6 +5481,21 @@ function setDifficulty(d, opts){
 $("diff").onclick = e => {
   const b = e.target.closest("button[data-d]");
   if(b) setDifficulty(b.dataset.d);
+};
+/* 譜面アルゴリズムもひとつの値。#algo（タイトル）と #talgo（ツアー）は難易度と同じ並びの同じ部品で、
+   どちらで選んでも両方が揃う。juroku:algo に保存（端末ごと、同期しない）。既定は v1。 */
+function setChartAlgo(a, opts){
+  if(!CHART_ALGOS.includes(a)) return;
+  chartAlgo = a;
+  for(const x of document.querySelectorAll("#algo button[data-a], #talgo button[data-a]"))
+    x.setAttribute("aria-pressed", String(x.dataset.a === a));
+  renderTracks();
+  if($("tour").classList.contains("on")) renderTourCard();
+  if(!(opts && opts.silent)) savePrefs("juroku:algo", a);
+}
+$("algo").onclick = $("talgo").onclick = e => {
+  const b = e.target.closest("button[data-a]");
+  if(b) setChartAlgo(b.dataset.a);
 };
 $("markersel").onclick = e => {
   const b = e.target.closest("button[data-m]");
